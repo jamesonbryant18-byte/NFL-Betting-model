@@ -1,0 +1,25 @@
+{
+  "ratings": {
+    "ridge_lambda": 6,
+    "recency_decay": 0.98,
+    "epa_margin_weight": 0.0,
+    "epa_to_points": 30.6,
+    "epa_home_intercept": 1.73,
+    "market_ridge_lambda": 1.0,
+    "offseason_weeks_equiv": 70,
+    "market_prior_weight": 0.5,
+    "prior_decay_games": 10.0
+  },
+  "qb_lambda": 20,
+  "backtest": {
+    "seasons": "2021-2025 (hold-out)",
+    "n_games": 1424,
+    "model_mae": 10.154440575021464,
+    "market_mae": 9.762289325842696,
+    "best_ats_win_rate": 0.509009009009009,
+    "best_ats_threshold": 4.0,
+    "beats_market": false,
+    "verdict": "Model did NOT beat the closing line out of sample (+0.39 pts worse per game). No demonstrated edge. Do not bet real money on its disagreements with the market. Use it as a second opinion and a bet-tracking system."
+  },
+  "residual_sd": 13.124550627328997
+}
