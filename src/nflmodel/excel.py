@@ -18,6 +18,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 from .config import STAKING
 from .data import TEAMS
+from .market import format_spread
 
 # ── Colors (same palette as the MLB model) ──
 NAVY = "1B2A4A"
@@ -84,6 +85,37 @@ def _header_row(ws, row, labels, start_col=1):
 # BUILD
 # ─────────────────────────────────────────────
 
+def read_existing_bets(path: str) -> list[list]:
+    """
+    Pull manually-entered Bet Tracker rows out of a workbook we are about to
+    overwrite.
+
+    The weekly runner is meant to be run twice -- once when lines open and
+    again before kickoff. Rebuilding the workbook from scratch on the second
+    run silently destroyed everything logged after the first, which is the
+    worst possible failure for a bet log: quiet, total, and only noticed later.
+    """
+    from openpyxl import load_workbook
+
+    try:
+        wb = load_workbook(path)
+        if "Bet Tracker" not in wb.sheetnames:
+            return []
+        ws = wb["Bet Tracker"]
+    except Exception:
+        return []
+
+    rows = []
+    for r in range(12, 501):
+        # Columns A-H are user-entered; I/J/L are formulas we rewrite.
+        vals = [ws.cell(row=r, column=c).value for c in range(1, 9)]
+        closing = ws.cell(row=r, column=11).value
+        model_edge = ws.cell(row=r, column=13).value
+        if any(v not in (None, "") for v in vals):
+            rows.append(vals + [closing, model_edge])
+    return rows
+
+
 def build_workbook(
     slate: pd.DataFrame,
     ratings: pd.DataFrame,
@@ -92,13 +124,15 @@ def build_workbook(
     backtest_summary: dict | None = None,
     path: str = "NFL_Betting_Model.xlsx",
 ) -> str:
+    preserved = read_existing_bets(path)
+
     wb = Workbook()
 
     _sheet_lists(wb)
     _sheet_slate(wb, slate, season, week)
     _sheet_detail(wb, slate, season, week)
     _sheet_ratings(wb, ratings, season, week)
-    _sheet_tracker(wb)
+    _sheet_tracker(wb, preserved)
     _sheet_reference(wb, backtest_summary)
 
     wb.save(path)
@@ -135,8 +169,8 @@ def _sheet_slate(wb, slate, season, week):
         vals = [
             i,
             f"{g['away_team']} @ {g['home_team']}",
-            f"{g['home_team']} {g['fair_spread']:+.1f}",
-            f"{g['home_team']} {g['spread_line']:+.1f}" if pd.notna(g["spread_line"]) else "—",
+            format_spread(g["home_team"], g["fair_spread"]),
+            format_spread(g["home_team"], g["spread_line"]) if pd.notna(g["spread_line"]) else "—",
             g["spread_edge_pts"],
             g["home_cover_prob"] if g["spread_edge_pts"] > 0 else g["away_cover_prob"],
             g["push_prob"],
@@ -213,8 +247,9 @@ def _sheet_detail(wb, slate, season, week):
         row += 1
 
         pairs = [
-            ("Model projected margin", f"{g['projected_margin']:+.2f}", "Vegas spread", f"{g['spread_line']:+.1f}" if pd.notna(g["spread_line"]) else "—"),
-            ("Model line", f"{g['home_team']} {g['fair_spread']:+.1f}", "Edge (points)", f"{g['spread_edge_pts']:+.2f}"),
+            ("Model projected margin", f"{g['projected_margin']:+.2f}", "Vegas line",
+             format_spread(g["home_team"], g["spread_line"]) if pd.notna(g["spread_line"]) else "—"),
+            ("Model line", format_spread(g["home_team"], g["fair_spread"]), "Edge (points)", f"{g['spread_edge_pts']:+.2f}"),
             ("Home cover %", f"{g['home_cover_prob']:.1%}", "Away cover %", f"{g['away_cover_prob']:.1%}"),
             ("Push %", f"{g['push_prob']:.1%}", "Home win %", f"{g['home_win_prob']:.1%}"),
             ("Model fair ML (home)", f"{g['home_ml_fair']:+.0f}", "Actual ML (home)", f"{g['home_ml']:+.0f}" if pd.notna(g["home_ml"]) else "—"),
@@ -265,7 +300,7 @@ def _sheet_ratings(wb, ratings, season, week):
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=4)
 
 
-def _sheet_tracker(wb):
+def _sheet_tracker(wb, preserved=None):
     ws = wb.create_sheet("Bet Tracker")
     ws.tab_color = DARK_GOLD
     set_widths(ws, {"A": 11, "B": 8, "C": 24, "D": 11, "E": 20, "F": 10, "G": 10,
@@ -297,10 +332,10 @@ def _sheet_tracker(wb):
 
     # CLV summary — the metric that tells you if you're sharp before P&L can.
     ws.cell(row=4, column=4, value="Avg CLV").font = Font(bold=True, size=11)
-    clv = ws.cell(row=4, column=5, value='=IFERROR(AVERAGE($M$12:$M$500),"")')
+    clv = ws.cell(row=4, column=5, value='=IFERROR(AVERAGE($L$12:$L$500),"")')
     clv.font, clv.alignment, clv.number_format, clv.border = Font(bold=True, color=NAVY, size=12), center(), "0.00%", thin_border()
     ws.cell(row=5, column=4, value="Beat close %").font = Font(bold=True, size=11)
-    bc = ws.cell(row=5, column=5, value='=IFERROR(COUNTIF($M$12:$M$500,">0")/COUNT($M$12:$M$500),"")')
+    bc = ws.cell(row=5, column=5, value='=IFERROR(COUNTIF($L$12:$L$500,">0")/COUNT($L$12:$L$500),"")')
     bc.font, bc.alignment, bc.number_format, bc.border = Font(bold=True, color=NAVY, size=12), center(), "0.0%", thin_border()
     ws.cell(row=6, column=4, value="↑ Positive CLV is the earliest real evidence of edge.").font = Font(italic=True, color=GREEN, size=10)
     ws.merge_cells("D6:F6")
@@ -323,24 +358,37 @@ def _sheet_tracker(wb):
         ws.cell(row=row, column=10, value=(
             f'=IF(COUNTA($A$12:$A{row})=0,"",$B$4+SUM($I$12:$I{row}))'
         )).number_format = '"$"#,##0.00'
-        # CLV in probability points: your number vs the close.
-        ws.cell(row=row, column=13, value=(
+        # CLV in probability points: your number vs the close. This is
+        # column 12 -- the one headed "CLV". It was previously written into
+        # column 13 ("Model Edge"), so the tracker showed CLV under the wrong
+        # label and left the real CLV column empty.
+        ws.cell(row=row, column=12, value=(
             f'=IF(OR($F{row}="",$K{row}=""),"",'
             f'IF($K{row}<0,-$K{row}/(-$K{row}+100),100/($K{row}+100))'
             f'-IF($F{row}<0,-$F{row}/(-$F{row}+100),100/($F{row}+100)))'
         )).number_format = "0.00%"
-        for col in (9, 10, 13):
+        for col in (9, 10, 12):
             c = ws.cell(row=row, column=col)
             c.font, c.alignment, c.border, c.fill = Font(color="000000", size=11), center(), thin_border(), fill(LIGHT_GRAY)
         for col in range(1, 9):
             ws.cell(row=row, column=col).border = thin_border()
         ws.cell(row=row, column=11).border = thin_border()
-        ws.cell(row=row, column=12).border = thin_border()
+        ws.cell(row=row, column=13).border = thin_border()
 
-    ws.conditional_formatting.add("M12:M500", FormulaRule(
-        formula=["AND(M12<>\"\",M12>0)"], fill=fill(LIGHT_GREEN), font=Font(bold=True, color="1B5E20")))
-    ws.conditional_formatting.add("M12:M500", FormulaRule(
-        formula=["AND(M12<>\"\",M12<0)"], fill=fill(LIGHT_RED), font=Font(bold=True, color="B71C1C")))
+    ws.conditional_formatting.add("L12:L500", FormulaRule(
+        formula=["AND(L12<>\"\",L12>0)"], fill=fill(LIGHT_GREEN), font=Font(bold=True, color="1B5E20")))
+    ws.conditional_formatting.add("L12:L500", FormulaRule(
+        formula=["AND(L12<>\"\",L12<0)"], fill=fill(LIGHT_RED), font=Font(bold=True, color="B71C1C")))
+
+    # Restore anything the user had already logged.
+    for i, rec in enumerate(preserved or []):
+        r = 12 + i
+        for c, v in enumerate(rec[:8], start=1):
+            ws.cell(row=r, column=c, value=v)
+        if len(rec) > 8 and rec[8] is not None:
+            ws.cell(row=r, column=11, value=rec[8])
+        if len(rec) > 9 and rec[9] is not None:
+            ws.cell(row=r, column=13, value=rec[9])
 
 
 def _sheet_reference(wb, backtest_summary):

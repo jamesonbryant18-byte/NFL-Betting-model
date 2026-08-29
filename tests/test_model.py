@@ -146,3 +146,104 @@ def test_ratings_are_centered_and_bounded():
     assert abs(vals.mean()) < 1e-9          # centered on league average
     assert vals.max() < 20 and vals.min() > -20
     assert 0 < hfa < 5                       # a sane home field number
+
+
+# ── regression: the sign bug that printed the wrong side of every game ──
+
+from nflmodel.market import format_spread
+
+
+def test_ticket_sign_matches_the_real_bet():
+    """
+    spread_line is 'points the home team is favored by'; a ticket shows the
+    negation. A 7-point home favorite must read '-7.0', never '+7.0'. This
+    shipped inverted once and printed the opposite side of every game.
+    """
+    assert format_spread("DET", 7.0) == "DET -7.0"     # favored lays points
+    assert format_spread("NO", -7.0) == "NO +7.0"      # dog takes points
+    assert format_spread("IND", -3.5) == "IND +3.5"
+    assert format_spread("BAL", 3.5) == "BAL -3.5"
+
+
+def test_recommendation_prints_favorite_as_laying_points():
+    from nflmodel.model import NFLModel
+    m = NFLModel()
+    m.team_ratings = {"DET": 6.0, "NO": -2.0}
+    m.hfa = 2.0
+    rec = m._recommend(
+        projected=12.0, line=7.0, spread_edge=5.0,
+        p_home=0.62, p_push=0.03, p_away=0.35,
+        home_wp=0.80, h_ml=-305, a_ml=245,
+        ml_edge_h=0.0, ml_edge_a=0.0, home="DET", away="NO",
+    )
+    # Model likes the home favorite -> the ticket must LAY the points.
+    assert "DET -7.0" in rec["recommendation"], rec["recommendation"]
+
+
+def test_market_ratings_respect_asof_cutoff():
+    """Replaying a finished season must not see later weeks' closing lines."""
+    import pandas as pd
+    from nflmodel.ratings import fit_market_ratings
+    from nflmodel.data import load_games
+    g = load_games()
+    if (g.season == 2025).sum() < 100:
+        pytest.skip("2025 not loaded")
+    full, _ = fit_market_ratings(g, 2025)
+    early, _ = fit_market_ratings(g, 2025, asof_week=3)
+    assert any(abs(full[t] - early[t]) > 1e-6 for t in full), \
+        "asof_week had no effect — the leak guard is not working"
+
+
+# ── key numbers ──────────────────────────────────────────────────
+
+def test_key_numbers_are_actually_modeled():
+    """
+    A margin of exactly 3 is far more likely than exactly 4. An earlier
+    version reported a flat ~3.3% push at every line, which is wrong by
+    roughly 9x on a three-point spread.
+    """
+    from nflmodel.market import MarginModel
+    from nflmodel.data import load_games
+    g = load_games()
+    hist = g[g.played & g.result.notna()]
+    if len(hist) < 1000:
+        pytest.skip('games not loaded')
+
+    mm = MarginModel(margins=hist.result.values)
+    push3 = mm.cover_prob(3.0, 3.0)[1]
+    push4 = mm.cover_prob(3.0, 4.0)[1]
+    assert push3 > 2.5 * push4, f'key number 3 not modeled: {push3:.4f} vs {push4:.4f}'
+
+    push7 = mm.cover_prob(3.0, 7.0)[1]
+    push8 = mm.cover_prob(3.0, 8.0)[1]
+    assert push7 > push8
+
+    h, p, a = mm.cover_prob(2.5, 3.0)
+    assert abs(h + p + a - 1.0) < 1e-9
+
+
+# ── odds / line shopping ─────────────────────────────────────────
+
+def test_line_shopping_guard_rejects_outliers():
+    """
+    A single mis-signed book in a feed produced a phantom 3-point 'better
+    line'. With a 1.5pt betting threshold that manufactures bets out of a
+    data error, so the median guard must reject it.
+    """
+    import pandas as pd
+    from nflmodel.odds import best_lines
+    def row(book, spread, so=-110, aso=-110):
+        return {'game': 'GB@MIN', 'book': book, 'spread': spread,
+                'spread_odds': so, 'away_spread_odds': aso,
+                'home_ml': -120, 'away_ml': 100, 'home_team': 'MIN',
+                'away_team': 'GB', 'source': 'action_network'}
+
+    df = pd.DataFrame([
+        row('draftkings', 1.5), row('fanduel', 1.5, -108, -112),
+        row('caesars', 2.0),
+        row('betmgm', -1.5),          # sign-inverted feed row
+    ])
+    guarded = best_lines(df, max_dev=1.0)
+    assert not guarded.empty
+    best = float(guarded.iloc[0]['best_home_spread'])
+    assert best >= 1.0, f'outlier not rejected: best_home_spread={best}'

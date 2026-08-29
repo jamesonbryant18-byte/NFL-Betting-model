@@ -140,6 +140,7 @@ def fit_market_ratings(
     season: int,
     params: RatingsParams = RATINGS,
     teams: list[str] | None = None,
+    asof_week: int | None = None,
 ) -> tuple[dict[str, float], float]:
     """
     Back out the market's own power ratings from posted spreads.
@@ -150,6 +151,13 @@ def fit_market_ratings(
     single snap of the season has been played.
 
     This is the sharpest preseason prior obtainable without paying for one.
+
+    asof_week is a leak guard. Live it is harmless -- only this week's lines
+    exist yet. But replayed over a COMPLETED season the unfiltered version sees
+    every closing line in the year, including games not yet played at the
+    simulated moment, which is worth about a quarter point of counterfeit
+    accuracy. Pass asof_week in any backfill or backtest; leave it None only
+    when genuinely running forward in time.
     """
     teams = teams or TEAMS
     idx = {t: i for i, t in enumerate(teams)}
@@ -158,6 +166,11 @@ def fit_market_ratings(
     lines = games[
         (games["season"] == season) & games["spread_line"].notna()
     ].copy()
+
+    if asof_week is not None:
+        # Keep lines from earlier weeks and from any game not yet played.
+        already_played = lines.get("played", pd.Series(False, index=lines.index))
+        lines = lines[(lines["week"] < asof_week) | (~already_played.fillna(False))]
 
     if len(lines) < n_teams:
         return {t: 0.0 for t in teams}, params_hfa_default()
@@ -328,3 +341,68 @@ def qb_value(qb_ratings: dict[str, float], name) -> float:
     if name is None or (isinstance(name, float) and np.isnan(name)):
         return qb_ratings.get(REPLACEMENT_QB, 0.0)
     return qb_ratings.get(name, qb_ratings.get(REPLACEMENT_QB, 0.0))
+
+
+# ─────────────────────────────────────────────
+# PROJECTED STARTERS
+# ─────────────────────────────────────────────
+
+def projected_starters(history: pd.DataFrame, season: int, week: int) -> dict[str, str]:
+    """
+    Best guess at each team's starting quarterback for an upcoming week.
+
+    nflverse only fills home_qb_name / away_qb_name once a game has been
+    PLAYED, so for a future slate both sides are null. That silently collapses
+    the QB term to replacement level on both teams, where it cancels out --
+    the whole QB decomposition becomes inert in exactly the situation it was
+    built for. Carrying the most recent starter forward restores it.
+
+    Two different questions need two different answers:
+
+      Mid-season, the most RECENT starter is right -- it reflects the current
+      injury situation.
+
+      For Week 1, the most recent starter is actively misleading. Week 18 is
+      where playoff-bound teams rest everyone, so carrying it forward hands
+      you the third-string quarterback: KC's last 2025 starter was Chris
+      Oladokun, not Patrick Mahomes. Week 1 therefore uses the prior season's
+      most FREQUENT starter, ignoring Week 18 entirely.
+
+    Neither can know about offseason moves -- a team that changed quarterbacks
+    in free agency will be wrong until it plays. Override those with --qb.
+    """
+    played = history[history["played"]].copy()
+    if played.empty:
+        return {}
+
+    long = pd.concat([
+        played[["season", "week", "home_team", "home_qb_name"]]
+            .rename(columns={"home_team": "team", "home_qb_name": "qb"}),
+        played[["season", "week", "away_team", "away_qb_name"]]
+            .rename(columns={"away_team": "team", "away_qb_name": "qb"}),
+    ]).dropna(subset=["qb"])
+
+    cutoff = long[(long["season"] < season)
+                  | ((long["season"] == season) & (long["week"] < week))]
+    if cutoff.empty:
+        return {}
+
+    in_season = cutoff[cutoff["season"] == season]
+
+    if len(in_season) >= 16:
+        # Enough of the current season has been played: use the latest starter.
+        starters = {}
+        for team, grp in in_season.groupby("team"):
+            starters[team] = grp.sort_values(["season", "week"]).iloc[-1]["qb"]
+        return starters
+
+    # Season opener: most frequent starter last year, excluding Week 18 rest.
+    prior = cutoff[cutoff["season"] == cutoff["season"].max()]
+    prior = prior[prior["week"] != 18]
+    if prior.empty:
+        return {}
+
+    starters = {}
+    for team, grp in prior.groupby("team"):
+        starters[team] = grp["qb"].value_counts().idxmax()
+    return starters

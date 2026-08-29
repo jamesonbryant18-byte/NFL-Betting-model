@@ -15,7 +15,8 @@ from nflmodel.config import (ADVISORY_MODE, CURRENT_SEASON, OUTPUT_DIR,
 from nflmodel.data import build_dataset, load_games
 from nflmodel.model import NFLModel
 from nflmodel.excel import build_workbook
-from nflmodel.ratings import qb_value
+from nflmodel.ratings import projected_starters, qb_value
+from nflmodel.market import format_spread
 
 
 def load_fitted():
@@ -34,6 +35,10 @@ def main():
     ap.add_argument('--season', type=int, default=CURRENT_SEASON)
     ap.add_argument('--week', type=int, default=None)
     ap.add_argument('--refresh', action='store_true')
+    ap.add_argument('--qb', action='append', default=[],
+                    metavar='TEAM=Name',
+                    help='override a projected starter, e.g. --qb KC="Patrick Mahomes". '
+                         'Repeatable. Week 1 carry-forward cannot know offseason moves.')
     args = ap.parse_args()
 
     params, qb_lambda, fitted = load_fitted()
@@ -61,14 +66,36 @@ def main():
         print(f'no games with posted lines for {args.season} week {week}')
         return
 
+    # nflverse only fills QB names for PLAYED games, so an upcoming slate has
+    # none and the QB term collapses to replacement on both sides, cancelling
+    # out. Carry the most recent starter forward so the decomposition is live.
+    starters = projected_starters(hist, args.season, week)
+    for ov in args.qb:
+        if '=' in ov:
+            team, name = ov.split('=', 1)
+            starters[team.strip().upper()] = name.strip()
+
+    slate_games['home_qb_name'] = slate_games['home_qb_name'].fillna(
+        slate_games['home_team'].map(starters))
+    slate_games['away_qb_name'] = slate_games['away_qb_name'].fillna(
+        slate_games['away_team'].map(starters))
+
+    missing = (slate_games['home_qb_name'].isna().sum()
+               + slate_games['away_qb_name'].isna().sum())
+    if missing:
+        print(f'WARNING: {missing} starting QB(s) unknown — those teams use '
+              f'replacement level. Override with --qb TEAM="Name".')
+
     model = NFLModel(params=params, qb_lambda=qb_lambda)
     model.fit(hist, args.season, week, market_games=games)
 
     from nflmodel.config import CACHE_DIR
     rp = CACHE_DIR / 'residuals.npy'
+    hist_margins = hist.loc[hist.played & hist.result.notna(), 'result'].to_numpy()
     if rp.exists():
-        model.set_residuals(np.load(rp))
-        print(f'using empirical residual distribution (n={len(np.load(rp)):,})')
+        model.set_residuals(np.load(rp), margins=hist_margins)
+        print(f'using empirical residuals (n={len(np.load(rp)):,}) and '
+              f'key-number margin distribution (n={len(hist_margins):,})')
     else:
         print('WARNING: no residuals cached — run scripts/run_backtest.py first. '
               'Falling back to a normal approximation, which misprices key numbers.')
@@ -86,8 +113,8 @@ def main():
         cover = g.home_cover_prob if g.spread_edge_pts > 0 else g.away_cover_prob
         mark = ' *' if g.stake > 0 else '  '
         print(f"  {g.away_team + ' @ ' + g.home_team:<20}"
-              f"{g.home_team + ' ' + format(g.fair_spread, '+.1f'):>10}"
-              f"{format(g.spread_line, '+.1f'):>9}"
+              f"{format_spread(g.home_team, g.fair_spread):>10}"
+              f"{format_spread(g.home_team, g.spread_line).split()[1]:>9}"
               f"{format(g.spread_edge_pts, '+.1f'):>8}"
               f"{cover:>7.1%}  {g.recommendation:<22}"
               f"{('$%.0f' % g.stake) if g.stake else '—':>7}{mark}")

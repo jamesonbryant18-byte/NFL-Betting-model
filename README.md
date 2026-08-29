@@ -58,8 +58,19 @@ team + QB power ratings  →  projected margin  →  cover / win probabilities
 - **De-vigging** happens before any edge is computed, using multiplicative,
   power, or Shin's method. Two sides at −110 sum to 104.8%; comparing a model
   against raw implied odds measures edge against a price shaded against you.
-- **Push probability** is modeled explicitly. Whole-number spreads push ~2.7%
-  of the time and that mass has to come out of both sides.
+- **Key numbers are modeled explicitly**, by exponential tilting of the
+  empirical margin distribution: start from the observed frequency of every
+  integer margin, then tilt it to the mean this game projects. Tilting shifts
+  the mean without smearing the shape, so the spikes survive. Football scores
+  in 3s and 7s — a game lands on exactly 3 about **4.7x** as often as on 4, and
+  the model reproduces 3.5x of that. Adding noise to a continuous projection
+  and rounding, which is what this did first, reports a flat push probability
+  at every line and is wrong by roughly 9x on a three-point spread.
+- **Live odds across six books** via `src/nflmodel/odds.py` (Action Network,
+  keyless), with ESPN as a DraftKings cross-check. Line shopping runs behind a
+  median-deviation guard: on a live Week 1 slate one book's feed was
+  sign-inverted and unguarded shopping reported a **phantom 3.0-point better
+  line**, which at a 1.5pt threshold manufactures a bet out of a data error.
 
 ## Quick start
 
@@ -108,19 +119,71 @@ monotonically as EPA weight rises (10.19 → 10.23 → 10.29 → 10.35). The rid
 opponent adjustment already captures what EPA was meant to add. The code stays
 parameterized so this is one config value away if it ever changes.
 
-## An important caveat about the benchmark
+**Separate offense/defense ratings were rejected.** Fitting a team's offense
+and defense as distinct parameters moved hold-out MAE by 0.0014 (paired
+t = -0.08) — a no-op. Worth understanding why: in a *margin* regression the
+offense and defense columns are algebraically identical, so the split is only
+even identified when fitting points-scored, and there it adds nothing.
 
-Every number here is measured against **closing** lines, because that is what
-nflverse stores. The closing line is the hardest forecast in sports to beat —
-it has absorbed all week's information and money.
+**Blowout dampening was rejected.** Capping margin-of-victory helped 0.023 pts
+(t = -1.83, not significant), and its premise is backwards anyway — the
+baseline's OLS slope on the tuning seasons is 1.087, meaning the model is
+*under*-confident, not inflated by blowouts.
 
-If you bet Tuesday openers rather than Sunday closers, you are playing a
-genuinely easier game, and this backtest does not measure that. It is not
-evidence the model beats openers; it is a limit on what was tested. The cheap
-way to find out is CLV: bet nothing, log the model's leans and the number
-available when you see them, compare against the close. Positive CLV over a
-few dozen games is real evidence. That is what the tracker's CLV columns are
-for, and it costs nothing to run.
+**480 subset hypotheses were tested. Zero survived.** Spread magnitude,
+home/away dog, week ranges, divisional, primetime, dome/outdoor, rest, season,
+and which side the model picked — none clears Bonferroni, BH-FDR, or a
+permutation max-z test. Only 1 of 48 subsets beats break-even in both eras
+where 12 would be expected if the model were genuinely bettable, and
+tuning-selected subsets have **zero** predictive value out of sample (r = -0.03).
+The model is below break-even across essentially the whole market, not merely
+on average. Subset filtering cannot rescue it.
+
+**The most decisive single result:** fitting a model directly to
+`result - spread_line` — the beat-the-line target — drives the optimal ridge
+penalty to infinity *even on the tuning seasons*. Where overfitting is not just
+allowed but rewarded, the best available action is still to not deviate from
+the closing line at all. And the blend curve says the same thing in one line:
+the tuning-optimal amount of this model to mix into the closing line makes the
+hold-out **worse** than the raw line. The optimal weight is zero.
+
+## The benchmark, and why openers do not rescue it
+
+Every number here is measured against **closing** lines. That provenance is
+verified, not assumed: against Sportsbook Reviews Online's open/close archives
+(3,766 games, 2007-2021), nflverse's `spread_line` sits **0.27 points from the
+close and 1.33 points from the open**, matching the close exactly 61% of the
+time versus 20% for the open.
+
+It is tempting to think betting Tuesday openers instead of Sunday closers
+would rescue the model. It would not, and the number is small enough to say so
+flatly: **the entire open-to-close accuracy gap is 0.14 points of MAE** (10.50
+vs 10.35). The model is 0.39 points worse than the close. Openers close about
+a third of that deficit — the model still loses to an opening line on raw
+accuracy, in both the tuning and hold-out samples.
+
+An ATS simulation against openers superficially looks profitable (55.3%, +5.4%
+ROI at a 3pt edge over 2013-2021). **That is a false positive** and it is worth
+naming why, because it is the exact trap this project is built to avoid: those
+seasons are mostly the tuning window, no threshold reaches p < 0.05, the clean
+2021 hold-out gives 49.70% and -5.09% ROI, and the "edge" is substantially just
+predicting the market's own open-to-close move (slope +0.349, t = +21.7).
+
+So: no demonstrated edge at any line, opening or closing.
+
+The cheap way to keep testing is CLV — log the model's leans and the number
+available when you see them, and compare against the close. Positive CLV over a
+few dozen games is real evidence. That costs nothing to run, and it is what the
+tracker's CLV columns are for.
+
+## Line shopping is worth more than the model
+
+Real spread juice ranges from about **+100 to -133**, not a flat -110, and half
+a point of spread is worth more than anything these ratings can find. The model
+has been measured at zero incremental signal; the number you get filled at has
+not. If you want an edge in this project, that is where it is — which is the
+argument for an Odds API key and multi-book coverage, not for more feature
+engineering.
 
 ## Layout
 
@@ -134,6 +197,7 @@ src/nflmodel/
   model.py        the prediction pipeline
   backtest.py     walk-forward validation
   excel.py        workbook builder
+  odds.py         live multi-book odds + guarded line shopping
 scripts/
   tune.py                 grid search on tuning seasons only
   run_backtest.py         hold-out validation, freezes parameters

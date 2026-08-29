@@ -22,8 +22,8 @@ from .adjustments import total_adjustment, adjustment_breakdown
 from .config import (ADJUSTMENTS, ADVISORY_MODE, MARKET, RATINGS, STAKING,
                      THRESHOLDS, Adjustments, Market, RatingsParams, Staking,
                      Thresholds)
-from .market import (MarginModel, american_to_prob, devig, kelly_stake,
-                     prob_to_american, vig_pct)
+from .market import (MarginModel, american_to_prob, devig, format_spread,
+                     kelly_stake, prob_to_american, vig_pct)
 from .ratings import (blend_with_prior, fit_market_ratings, fit_ratings_qb,
                       qb_value, ratings_table)
 
@@ -132,14 +132,20 @@ class NFLModel:
 
         return self
 
-    def set_residuals(self, residuals: np.ndarray) -> "NFLModel":
+    def set_residuals(self, residuals: np.ndarray,
+                      margins: np.ndarray | None = None) -> "NFLModel":
         """
-        Install the empirical residual distribution from the backtest. Without
-        this the model falls back to a normal curve, which misprices every game
-        sitting on a key number.
+        Install the empirical distributions used to turn a projected margin
+        into probabilities.
+
+        `margins` is the historical distribution of actual game margins, which
+        is what carries the 3-and-7 key-number structure. Pass it. Without it
+        the model falls back to smooth noise and reports a flat push
+        probability at every line, which is wrong by a factor of nine on a
+        three-point spread.
         """
         self.margin_model = MarginModel(
-            residuals=residuals, sigma=self.market_cfg.margin_sigma
+            residuals=residuals, sigma=self.market_cfg.margin_sigma, margins=margins
         )
         return self
 
@@ -188,9 +194,12 @@ class NFLModel:
             fair_h = fair_a = float("nan")
             ml_edge_h = ml_edge_a = float("nan")
 
+        hso, aso = g.get("home_spread_odds"), g.get("away_spread_odds")
+
         rec = self._recommend(
             projected, line, spread_edge, p_home, p_push, p_away,
             home_wp, h_ml, a_ml, ml_edge_h, ml_edge_a, home, away,
+            hso, aso,
         )
 
         return GameProjection(
@@ -213,7 +222,8 @@ class NFLModel:
     # -- bet selection -----------------------------------------------------
 
     def _recommend(self, projected, line, spread_edge, p_home, p_push, p_away,
-                   home_wp, h_ml, a_ml, ml_edge_h, ml_edge_a, home, away) -> dict:
+                   home_wp, h_ml, a_ml, ml_edge_h, ml_edge_a, home, away,
+                   home_spread_odds=None, away_spread_odds=None) -> dict:
         """
         Pick the best bet on the game, if any, and size it.
 
@@ -229,14 +239,27 @@ class NFLModel:
             if abs(spread_edge) >= t.spread_min_edge_pts:
                 side_home = spread_edge > 0
                 win_p = p_home if side_home else p_away
+
+                # Use the book's actual juice when we have it. Real spread
+                # prices run from about +100 to -133, and assuming a flat -110
+                # misstates break-even on every bet: -120 needs 54.5%, +100
+                # needs 50.0%.
+                odds = home_spread_odds if side_home else away_spread_odds
+                if odds is None or (isinstance(odds, float) and np.isnan(odds)):
+                    odds = -110.0
+                odds = float(odds)
+
                 stake, _ = kelly_stake(
-                    win_p, -110, self.staking.bankroll, self.staking, push_prob=p_push
+                    win_p, odds, self.staking.bankroll, self.staking, push_prob=p_push
                 )
-                side_line = line if side_home else -line
+                # `line` is home-favored-by; the side we are betting lays or
+                # takes the negation of it. format_spread owns that flip.
+                team = home if side_home else away
+                favored_by = line if side_home else -line
                 candidates.append({
                     "market": "SPREAD",
-                    "side": f"{home if side_home else away} {side_line:+.1f}",
-                    "odds": -110.0,
+                    "side": format_spread(team, favored_by),
+                    "odds": odds,
                     "edge_display": abs(spread_edge),
                     "stake": stake,
                     "priority": 2,
