@@ -25,8 +25,11 @@ def load_fitted():
     if not PARAMS_FILE.exists():
         return RATINGS, 40.0, None
     p = json.loads(PARAMS_FILE.read_text())
+    # Only apply keys the grid search actually optimized. Anything else in the
+    # file is a stale copy of a config value and must not win over config.py.
+    tuned = p.get('tuned_keys') or list(p['ratings'])
     ratings = replace(RATINGS, **{k: v for k, v in p['ratings'].items()
-                                  if k in RATINGS.__dataclass_fields__})
+                                  if k in tuned and k in RATINGS.__dataclass_fields__})
     return ratings, p.get('qb_lambda', 40.0), p
 
 
@@ -135,8 +138,10 @@ def main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUTPUT_DIR / f'NFL_Model_{args.season}_Week{week:02d}.xlsx'
     summary = fitted.get('backtest') if fitted else None
+    from nflmodel.market import points_to_prob_table
     build_workbook(slate, model.power_ratings(), args.season, week,
-                   backtest_summary=summary, path=str(path))
+                   backtest_summary=summary, path=str(path),
+                   pts_table=points_to_prob_table(model.margin_model))
     print(f'\n  workbook: {path}')
 
     slate.to_csv(OUTPUT_DIR / f'slate_{args.season}_wk{week:02d}.csv', index=False)

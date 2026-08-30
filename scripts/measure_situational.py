@@ -39,8 +39,11 @@ test('away rest edge 3+ days', d.rest_diff <= -3)
 test('wind >= 15mph (outdoor)', d.index.isin(out[out.wind >= 15].index))
 test('wind >= 20mph (outdoor)', d.index.isin(out[out.wind >= 20].index))
 test('cold < 32F (outdoor)', d.index.isin(out[out.temp < 32].index))
-test('away crosses 2+ zones west', d.tz >= 2)
-test('away crosses 2+ zones east', d.tz <= -2)
+# tz = home_offset - away_offset, negative = home further west.
+# tz >= 2 means the home stadium is EAST of the away stadium, i.e. the away
+# team travelled east. These two labels were previously swapped.
+test('away travelled EAST 2+ zones', d.tz >= 2)
+test('away travelled WEST 2+ zones', d.tz <= -2)
 test('week 17', d.week == 17)
 test('week 18', d.week == 18)
 test('divisional', d.div_game == 1)

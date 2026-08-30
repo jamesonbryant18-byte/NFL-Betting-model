@@ -29,8 +29,23 @@ from nflmodel.market import devig, american_to_prob
 TUNE_SEASONS = list(range(2013, 2021))
 HOLDOUT_SEASONS = list(range(2021, 2026))
 
+# The parameters tune.py searches. Only these get frozen; everything else in
+# config.py is a deliberate choice and must not be overridden by a stale file.
+TUNED_KEYS = ['ridge_lambda', 'recency_decay', 'epa_margin_weight',
+              'offseason_weeks_equiv']
 
-def run(df, seasons, params, qb_lambda):
+
+def run(df, seasons, params, qb_lambda, deployed=False):
+    """
+    Walk-forward over `seasons`.
+
+    deployed=True routes through NFLModel -- the exact object run_week.py uses,
+    market-prior blending included. Without this the backtest validates a bare
+    ridge fit while the weekly script ships something else, so the headline
+    number describes an estimator nobody runs.
+    """
+    from nflmodel.model import NFLModel
+
     rows = []
     for season in seasons:
         for week in sorted(df.loc[df.season == season, 'week'].unique()):
@@ -38,7 +53,14 @@ def run(df, seasons, params, qb_lambda):
                        & df.played & df.spread_line.notna()]
             if slate.empty:
                 continue
-            tr, qr, hfa = fit_ratings_qb(df, season, week, params, qb_lambda=qb_lambda)
+
+            if deployed:
+                m = NFLModel(params=params, qb_lambda=qb_lambda)
+                m.fit(df, season, week, market_games=df)   # fit() applies the as-of cutoff
+                tr, qr, hfa = m.team_ratings, m.qb_ratings, m.hfa
+            else:
+                tr, qr, hfa = fit_ratings_qb(df, season, week, params, qb_lambda=qb_lambda)
+
             for _, g in slate.iterrows():
                 proj = ((tr.get(g.home_team, 0.) + qb_value(qr, g.home_qb_name))
                         - (tr.get(g.away_team, 0.) + qb_value(qr, g.away_qb_name))
@@ -106,6 +128,13 @@ def main():
     print_report(res_tune, f'TUNING seasons {TUNE_SEASONS[0]}-{TUNE_SEASONS[-1]} (optimistic)')
     print_report(res_hold, f'HOLD-OUT seasons {HOLDOUT_SEASONS[0]}-{HOLDOUT_SEASONS[-1]} (honest)')
 
+    # The estimator run_week.py actually ships.
+    print('\n  Re-running hold-out through the DEPLOYED estimator (NFLModel,')
+    print('  market-prior blending included)...', flush=True)
+    bt_dep = run(df, HOLDOUT_SEASONS, params, qb_lambda, deployed=True)
+    res_dep = evaluate(bt_dep)
+    print_report(res_dep, 'HOLD-OUT — DEPLOYED model (what run_week.py runs)')
+
     ml = moneyline_eval(bt_hold)
     print()
     print('  MONEYLINE, hold-out, flat stakes, 3%+ de-vigged edge')
@@ -142,7 +171,13 @@ def main():
 
     PARAMS_FILE.parent.mkdir(parents=True, exist_ok=True)
     PARAMS_FILE.write_text(json.dumps({
-        'ratings': {k: getattr(params, k) for k in RATINGS.__dataclass_fields__},
+        # ONLY the keys the grid search actually optimized. Freezing the whole
+        # dataclass silently pinned hand-set judgment calls (market_prior_weight
+        # among them) to whatever they happened to be on the day the backtest
+        # last ran, and the stale file then overrode config.py at runtime.
+        'tuned_keys': TUNED_KEYS,
+        'ratings': {k: getattr(params, k) for k in TUNED_KEYS
+                    if k in RATINGS.__dataclass_fields__},
         'qb_lambda': qb_lambda,
         'backtest': {
             'seasons': f'{HOLDOUT_SEASONS[0]}-{HOLDOUT_SEASONS[-1]} (hold-out)',
@@ -155,6 +190,14 @@ def main():
             'verdict': verdict,
         },
         'residual_sd': float(resid.std()),
+        'deployed': {
+            'model_mae': res_dep['model_mae'],
+            'market_mae': res_dep['market_mae'],
+            'mean_abs_edge': res_dep['mean_abs_edge'],
+            'note': ('NFLModel with market-prior blending — the estimator '
+                     'run_week.py ships. Lower MAE here is increased deference '
+                     'to the market, not model improvement.'),
+        },
     }, indent=2))
     bt_all.to_parquet(CACHE_DIR / 'backtest_final.parquet', index=False)
 

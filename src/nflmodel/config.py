@@ -89,18 +89,23 @@ THRESHOLDS = Thresholds()
 
 @dataclass
 class RatingsParams:
+    # ── The four values below are FITTED. They are set to the grid-search
+    # winners so this file describes the model that actually runs; the frozen
+    # data/fitted_params.json should agree with them, not silently override.
+
     # Ridge penalty on team ratings. Higher = more shrinkage toward league
     # average, which matters enormously in the small-sample early season.
-    ridge_lambda: float = 12.0
+    ridge_lambda: float = 6.0
 
-    # Exponential recency decay. Weight of a game N weeks old is
-    # decay ** N. 0.97 ≈ half-life of ~23 weeks (a season and change).
-    recency_decay: float = 0.97
+    # Exponential recency decay. Weight of a game N weeks old is decay ** N.
+    recency_decay: float = 0.98
 
     # The regression target blends actual scoring margin with an EPA-implied
-    # margin. EPA is noisier week to week but far more predictive of the
-    # future, because it strips out turnover luck and garbage time.
-    epa_margin_weight: float = 0.65
+    # margin. FITTED TO ZERO: the grid search preferred pure scoring margin,
+    # and accuracy degrades monotonically as this rises (10.19 -> 10.35). The
+    # ridge's opponent adjustment already captures what EPA was meant to add.
+    # At zero, build_dataset skips the ~14MB/season play-by-play pull entirely.
+    epa_margin_weight: float = 0.0
 
     # Points of margin per unit of team EPA-per-play differential.
     # Fitted on 2010-2025: result = 30.6 * net_epa + 1.73
@@ -118,9 +123,9 @@ class RatingsParams:
     market_ridge_lambda: float = 1.0
 
     # An offseason is worth this many weeks of recency decay. Controls how
-    # much of last season carries into this one -- at decay 0.97 and 38 weeks,
-    # a game from the same week last year keeps ~31% weight.
-    offseason_weeks_equiv: float = 38.0
+    # much of last season carries into this one -- at decay 0.98 and 70 weeks,
+    # a game from the same week last year keeps ~24% weight.
+    offseason_weeks_equiv: float = 70.0
 
     # How much of the preseason prior comes from market-implied ratings
     # (backed out of posted spreads) vs. regressed prior-season performance.

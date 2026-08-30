@@ -107,12 +107,11 @@ def read_existing_bets(path: str) -> list[list]:
 
     rows = []
     for r in range(12, 501):
-        # Columns A-H are user-entered; I/J/L are formulas we rewrite.
-        vals = [ws.cell(row=r, column=c).value for c in range(1, 9)]
-        closing = ws.cell(row=r, column=11).value
-        model_edge = ws.cell(row=r, column=13).value
+        # A..I are user-entered; J/K/N/O are formulas we rewrite each run.
+        vals = [ws.cell(row=r, column=c).value for c in range(1, 10)]
+        extras = [ws.cell(row=r, column=c).value for c in (12, 13, 16)]
         if any(v not in (None, "") for v in vals):
-            rows.append(vals + [closing, model_edge])
+            rows.append(vals + extras)
     return rows
 
 
@@ -123,12 +122,13 @@ def build_workbook(
     week: int,
     backtest_summary: dict | None = None,
     path: str = "NFL_Betting_Model.xlsx",
+    pts_table: list | None = None,
 ) -> str:
     preserved = read_existing_bets(path)
 
     wb = Workbook()
 
-    _sheet_lists(wb)
+    _sheet_lists(wb, pts_table)
     _sheet_slate(wb, slate, season, week)
     _sheet_detail(wb, slate, season, week)
     _sheet_ratings(wb, ratings, season, week)
@@ -139,7 +139,7 @@ def build_workbook(
     return path
 
 
-def _sheet_lists(wb):
+def _sheet_lists(wb, pts_table=None):
     ws = wb.active
     ws.title = "Lists"
     ws.sheet_state = "hidden"
@@ -147,6 +147,14 @@ def _sheet_lists(wb):
         ws.cell(row=i, column=1, value=t)
     for i, v in enumerate(["W", "L", "Push"], start=1):
         ws.cell(row=i, column=2, value=v)
+
+    # Columns D:E — win-probability value of one point of spread, by line.
+    # Used by the tracker to convert points of CLV into probability. This is a
+    # lookup rather than a constant because the point crossing 3 is worth four
+    # times a point at 2.
+    for i, (line, per_pt) in enumerate(pts_table or [], start=1):
+        ws.cell(row=i, column=4, value=line)
+        ws.cell(row=i, column=5, value=per_pt)
 
 
 def _sheet_slate(wb, slate, season, week):
@@ -303,10 +311,11 @@ def _sheet_ratings(wb, ratings, season, week):
 def _sheet_tracker(wb, preserved=None):
     ws = wb.create_sheet("Bet Tracker")
     ws.tab_color = DARK_GOLD
-    set_widths(ws, {"A": 11, "B": 8, "C": 24, "D": 11, "E": 20, "F": 10, "G": 10,
-                    "H": 9, "I": 12, "J": 14, "K": 12, "L": 11, "M": 10})
+    set_widths(ws, {"A": 11, "B": 6, "C": 22, "D": 12, "E": 18, "F": 11, "G": 9,
+                    "H": 9, "I": 8, "J": 12, "K": 13, "L": 12, "M": 12,
+                    "N": 10, "O": 10, "P": 11})
 
-    apply_header(ws, "A1", "BET TRACKER", merge_to="M1", size=16)
+    apply_header(ws, "A1", "BET TRACKER", merge_to="P1", size=16)
     ws.row_dimensions[1].height = 30
     ws.row_dimensions[2].height = 8
 
@@ -314,11 +323,11 @@ def _sheet_tracker(wb, preserved=None):
     summary = [
         (4, "Starting Bankroll", STAKING.bankroll, '"$"#,##0.00'),
         (5, "Total Bets", "=COUNTA($A$12:$A$500)", None),
-        (6, "Record (W-L-P)", '=COUNTIF($H$12:$H$500,"W")&"-"&COUNTIF($H$12:$H$500,"L")&"-"&COUNTIF($H$12:$H$500,"Push")', None),
-        (7, "Win %", '=IFERROR(COUNTIF($H$12:$H$500,"W")/(COUNTIF($H$12:$H$500,"W")+COUNTIF($H$12:$H$500,"L")),0)', "0.0%"),
-        (8, "Total P&L", "=SUM($I$12:$I$500)", '"$"#,##0.00'),
-        (9, "ROI", "=IFERROR(SUM($I$12:$I$500)/SUM($G$12:$G$500),0)", "0.0%"),
-        (10, "Current Bankroll", "=$B$4+SUM($I$12:$I$500)", '"$"#,##0.00'),
+        (6, "Record (W-L-P)", '=COUNTIF($I$12:$I$500,"W")&"-"&COUNTIF($I$12:$I$500,"L")&"-"&COUNTIF($I$12:$I$500,"Push")', None),
+        (7, "Win %", '=IFERROR(COUNTIF($I$12:$I$500,"W")/(COUNTIF($I$12:$I$500,"W")+COUNTIF($I$12:$I$500,"L")),0)', "0.0%"),
+        (8, "Total P&L", "=SUM($J$12:$J$500)", '"$"#,##0.00'),
+        (9, "ROI", "=IFERROR(SUM($J$12:$J$500)/SUM($H$12:$H$500),0)", "0.0%"),
+        (10, "Current Bankroll", "=$B$4+SUM($J$12:$J$500)", '"$"#,##0.00'),
     ]
     for row, label, formula, fmt in summary:
         lc = ws.cell(row=row, column=1, value=label)
@@ -332,63 +341,87 @@ def _sheet_tracker(wb, preserved=None):
 
     # CLV summary — the metric that tells you if you're sharp before P&L can.
     ws.cell(row=4, column=4, value="Avg CLV").font = Font(bold=True, size=11)
-    clv = ws.cell(row=4, column=5, value='=IFERROR(AVERAGE($L$12:$L$500),"")')
+    clv = ws.cell(row=4, column=5, value='=IFERROR(AVERAGE($O$12:$O$500),"")')
     clv.font, clv.alignment, clv.number_format, clv.border = Font(bold=True, color=NAVY, size=12), center(), "0.00%", thin_border()
     ws.cell(row=5, column=4, value="Beat close %").font = Font(bold=True, size=11)
-    bc = ws.cell(row=5, column=5, value='=IFERROR(COUNTIF($L$12:$L$500,">0")/COUNT($L$12:$L$500),"")')
+    bc = ws.cell(row=5, column=5, value='=IFERROR(COUNTIF($O$12:$O$500,">0")/COUNT($O$12:$O$500),"")')
     bc.font, bc.alignment, bc.number_format, bc.border = Font(bold=True, color=NAVY, size=12), center(), "0.0%", thin_border()
-    ws.cell(row=6, column=4, value="↑ Positive CLV is the earliest real evidence of edge.").font = Font(italic=True, color=GREEN, size=10)
+    ws.cell(row=4, column=6, value="Avg CLV (pts)").font = Font(bold=True, size=11)
+    cp = ws.cell(row=4, column=7, value='=IFERROR(AVERAGE($N$12:$N$500),"")')
+    cp.font, cp.alignment, cp.number_format, cp.border = Font(bold=True, color=NAVY, size=12), center(), "+0.00;-0.00", thin_border()
+    ws.cell(row=6, column=4, value="↑ Positive CLV is the earliest real evidence of edge. For spreads, points is the honest unit.").font = Font(italic=True, color=GREEN, size=10)
     ws.merge_cells("D6:F6")
 
-    headers = ["Date", "Week", "Matchup", "Market", "Bet Side", "Odds", "Stake",
-               "Result", "P&L", "Bankroll", "Closing Odds", "CLV", "Model Edge"]
+    headers = ["Date", "Week", "Matchup", "Market", "Bet Side", "Line Taken",
+               "Odds", "Stake", "Result", "P&L", "Bankroll",
+               "Closing Line", "Closing Odds", "CLV (pts)", "CLV (%)",
+               "Model Edge"]
     _header_row(ws, 11, headers)
     ws.freeze_panes = "A12"
 
     dv = DataValidation(type="list", formula1='"W,L,Push"', allow_blank=True)
-    dv.sqref = "H12:H500"
+    dv.sqref = "I12:I500"
     ws.add_data_validation(dv)
 
-    for row in range(12, 501):
-        # P&L — handles push as zero, not as a loss.
-        ws.cell(row=row, column=9, value=(
-            f'=IF($H{row}="W",IF($F{row}<0,$G{row}*100/ABS($F{row}),$G{row}*$F{row}/100),'
-            f'IF($H{row}="L",-$G{row},IF($H{row}="Push",0,"")))'
-        )).number_format = '"$"#,##0.00'
-        ws.cell(row=row, column=10, value=(
-            f'=IF(COUNTA($A$12:$A{row})=0,"",$B$4+SUM($I$12:$I{row}))'
-        )).number_format = '"$"#,##0.00'
-        # CLV in probability points: your number vs the close. This is
-        # column 12 -- the one headed "CLV". It was previously written into
-        # column 13 ("Model Edge"), so the tracker showed CLV under the wrong
-        # label and left the real CLV column empty.
-        ws.cell(row=row, column=12, value=(
-            f'=IF(OR($F{row}="",$K{row}=""),"",'
-            f'IF($K{row}<0,-$K{row}/(-$K{row}+100),100/($K{row}+100))'
-            f'-IF($F{row}<0,-$F{row}/(-$F{row}+100),100/($F{row}+100)))'
-        )).number_format = "0.00%"
-        for col in (9, 10, 12):
-            c = ws.cell(row=row, column=col)
-            c.font, c.alignment, c.border, c.fill = Font(color="000000", size=11), center(), thin_border(), fill(LIGHT_GRAY)
-        for col in range(1, 9):
-            ws.cell(row=row, column=col).border = thin_border()
-        ws.cell(row=row, column=11).border = thin_border()
-        ws.cell(row=row, column=13).border = thin_border()
+    dv_mkt = DataValidation(type="list", formula1='"SPREAD,MONEYLINE"', allow_blank=True)
+    dv_mkt.sqref = "D12:D500"
+    ws.add_data_validation(dv_mkt)
 
-    ws.conditional_formatting.add("L12:L500", FormulaRule(
-        formula=["AND(L12<>\"\",L12>0)"], fill=fill(LIGHT_GREEN), font=Font(bold=True, color="1B5E20")))
-    ws.conditional_formatting.add("L12:L500", FormulaRule(
-        formula=["AND(L12<>\"\",L12<0)"], fill=fill(LIGHT_RED), font=Font(bold=True, color="B71C1C")))
+    for row in range(12, 501):
+        # J — P&L. A push returns the stake, so it is zero, not a loss.
+        ws.cell(row=row, column=10, value=(
+            f'=IF($I{row}="W",IF($G{row}<0,$H{row}*100/ABS($G{row}),$H{row}*$G{row}/100),'
+            f'IF($I{row}="L",-$H{row},IF($I{row}="Push",0,"")))'
+        )).number_format = '"$"#,##0.00'
+
+        # K — running bankroll
+        ws.cell(row=row, column=11, value=(
+            f'=IF(COUNTA($A$12:$A{row})=0,"",$B$4+SUM($J$12:$J{row}))'
+        )).number_format = '"$"#,##0.00'
+
+        # N — CLV in POINTS. Both numbers are quoted from your side, so
+        # taken-minus-close is signed correctly: +3.5 taken vs +1.5 close = +2.
+        ws.cell(row=row, column=14, value=(
+            f'=IF(OR($D{row}<>"SPREAD",$F{row}="",$L{row}=""),"",$F{row}-$L{row})'
+        )).number_format = "+0.0;-0.0"
+
+        # O — CLV in probability. Moneyline uses the two prices. Spread
+        # converts points via the per-line table on Lists!D:E, because the
+        # point that crosses 3 is worth four times a point at 2.
+        ws.cell(row=row, column=15, value=(
+            f'=IF($D{row}="MONEYLINE",'
+            f'IF(OR($G{row}="",$M{row}=""),"",'
+            f'IF($M{row}<0,-$M{row}/(-$M{row}+100),100/($M{row}+100))'
+            f'-IF($G{row}<0,-$G{row}/(-$G{row}+100),100/($G{row}+100))),'
+            f'IF($N{row}="","",'
+            f'$N{row}*IFERROR(VLOOKUP(ABS($F{row}),Lists!$D:$E,2,FALSE),0.03)))'
+        )).number_format = "0.00%"
+
+        for col in (10, 11, 14, 15):
+            c = ws.cell(row=row, column=col)
+            c.font, c.alignment, c.border, c.fill = (
+                Font(color="000000", size=11), center(), thin_border(), fill(LIGHT_GRAY))
+        for col in list(range(1, 10)) + [12, 13, 16]:
+            ws.cell(row=row, column=col).border = thin_border()
+
+    for rng in ("N12:N500", "O12:O500"):
+        col = rng[0]
+        ws.conditional_formatting.add(rng, FormulaRule(
+            formula=[f'AND({col}12<>"",{col}12>0)'], fill=fill(LIGHT_GREEN),
+            font=Font(bold=True, color="1B5E20")))
+        ws.conditional_formatting.add(rng, FormulaRule(
+            formula=[f'AND({col}12<>"",{col}12<0)'], fill=fill(LIGHT_RED),
+            font=Font(bold=True, color="B71C1C")))
 
     # Restore anything the user had already logged.
     for i, rec in enumerate(preserved or []):
         r = 12 + i
-        for c, v in enumerate(rec[:8], start=1):
+        for c, v in enumerate(rec[:9], start=1):      # A..I user-entered
             ws.cell(row=r, column=c, value=v)
-        if len(rec) > 8 and rec[8] is not None:
-            ws.cell(row=r, column=11, value=rec[8])
-        if len(rec) > 9 and rec[9] is not None:
-            ws.cell(row=r, column=13, value=rec[9])
+        for off, col in enumerate((12, 13, 16)):      # closing line/odds, model edge
+            idx = 9 + off
+            if len(rec) > idx and rec[idx] is not None:
+                ws.cell(row=r, column=col, value=rec[idx])
 
 
 def _sheet_reference(wb, backtest_summary):

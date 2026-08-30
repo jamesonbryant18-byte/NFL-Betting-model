@@ -213,12 +213,28 @@ def team_game_epa(seasons: list[int], refresh: bool = False) -> pd.DataFrame:
     return out
 
 
-def build_dataset(seasons: list[int], refresh: bool = False) -> pd.DataFrame:
+def build_dataset(seasons: list[int], refresh: bool = False,
+                  with_epa: bool | None = None) -> pd.DataFrame:
     """
     The modeling table: one row per game, with both teams' EPA attached.
+
+    with_epa=None (the default) decides automatically: the tuned model runs at
+    epa_margin_weight = 0, so the EPA columns are multiplied by zero and pulling
+    ~14MB of play-by-play per season is pure waste. Pass True to force it.
     """
+    from .config import RATINGS
+
+    if with_epa is None:
+        with_epa = RATINGS.epa_margin_weight != 0.0
+
     games = load_games(refresh=refresh)
     games = games[games["season"].isin(seasons)].copy()
+
+    if not with_epa:
+        for side in ("home", "away"):
+            for col in ("off_epa", "def_epa", "off_success", "def_success", "net_epa"):
+                games[f"{side}_{col}"] = float("nan")
+        return games
 
     epa = team_game_epa(seasons, refresh=refresh)
 

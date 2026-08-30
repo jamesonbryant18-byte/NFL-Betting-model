@@ -15,10 +15,17 @@ parameters were never tuned on:
 | | tuning seasons (2013-20) | hold-out (2021-25) |
 |---|---|---|
 | Model MAE | 10.19 pts | 10.15 pts |
+| **Deployed model MAE** (what `run_week.py` runs) | — | **10.08 pts** |
 | Closing line MAE | 10.02 pts | **9.76 pts** |
 | ATS @ 1.5pt edge | 53.2%, +1.6% ROI | **48.6%, −7.3% ROI** |
+| ATS @ 1.5pt, deployed | — | **50.1%, −4.3% ROI** |
 | ATS @ 3pt edge | 53.8%, +2.7% ROI | **48.5%, −7.3% ROI** |
 | Moneyline @ 3% edge | — | **38.8%, −9.5% ROI** |
+
+The "deployed" rows matter because they describe `NFLModel` with market-prior
+blending — the object `run_week.py` actually constructs. An earlier version of
+this backtest validated a bare ridge fit while the weekly script shipped
+something else, so the headline number described an estimator nobody ran.
 
 On the seasons used for tuning, this looks like a winning model. On unseen
 seasons it loses money at every threshold. That gap is what overfitting looks
@@ -33,6 +40,25 @@ Turning this into a bet-placing system takes one line (`ADVISORY_MODE = False`
 in `src/nflmodel/config.py`). Nothing in the code stops you. But you would be
 betting on a model that has been measured and does not beat the market, and
 you should know that before you do it rather than after.
+
+## A leak worth documenting
+
+While validating the deployed path, the market-prior blend briefly reported
+**56.5% ATS on the hold-out with z > 2** — a result that would have looked like
+a genuine, bettable edge.
+
+It was a bug. `fit_market_ratings` was being called without its as-of cutoff, so
+replaying a completed season let the preseason prior see every closing line in
+that year, including games that had not happened at the simulated moment. The
+leak moved ratings by 0.8 points and manufactured the entire result. With the
+cutoff applied the same configuration gives 50.1% and −4.3% ROI.
+
+Two things are worth taking from that. First, a leak does not announce itself —
+it announces success, which is exactly when scrutiny is weakest. Second, the
+fix that introduced it was a `str.replace` that silently matched nothing;
+`tests/test_model.py::test_deployed_model_is_leak_free` now asserts the full
+deployed path is invariant to whether future games exist in the input, because
+a comment claiming leak-freedom is worth nothing.
 
 ## What it does
 
@@ -100,7 +126,7 @@ rest and weather do, and the market knows. The test is whether the market
 | short week (either side) | −0.21 / −0.20 | −0.27 / −0.26 |
 | wind ≥ 15 mph | +0.16 | +0.24 |
 | cold < 32°F | +1.13 | +1.33 |
-| 2+ timezone crossing | +0.56 / −0.73 | +1.15 / −1.46 |
+| away travelled east / west 2+ zones | −0.73 / +0.56 | −1.46 / +1.15 |
 | Week 17 | +1.03 | +1.35 |
 | divisional game | −0.36 | −1.23 |
 | favorite of 10+ | +0.71 | +1.48 |

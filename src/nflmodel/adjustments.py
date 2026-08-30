@@ -97,10 +97,14 @@ def weather_adjustment(game, cfg: Adjustments = ADJUSTMENTS) -> float:
     if wind is None or pd.isna(wind) or wind <= cfg.wind_threshold_mph:
         return 0.0
 
-    # Compression shrinks the projected margin toward zero rather than pushing
-    # in a fixed direction -- bad weather helps whoever is behind on talent.
+    # Compression shrinks the projected margin toward ZERO. It must therefore
+    # depend on the sign of the margin: a fixed negative number would push an
+    # away-favored game further from zero, which is the opposite of the
+    # intended effect. Needs the current projection, so callers pass it in.
     excess = wind - cfg.wind_threshold_mph
-    return -excess * cfg.wind_margin_compression
+    shrink = min(1.0, excess * cfg.wind_margin_compression)
+    projected = game.get("_projected_margin", 0.0)
+    return -projected * shrink
 
 
 def motivation_adjustment(game, cfg: Adjustments = ADJUSTMENTS) -> float:
@@ -117,8 +121,16 @@ def motivation_adjustment(game, cfg: Adjustments = ADJUSTMENTS) -> float:
     return 0.0
 
 
-def total_adjustment(game, cfg: Adjustments = ADJUSTMENTS) -> float:
-    """Sum of all situational adjustments. Zero by default, by design."""
+def total_adjustment(game, cfg: Adjustments = ADJUSTMENTS,
+                     projected_margin: float = 0.0) -> float:
+    """
+    Sum of all situational adjustments. Zero by default, by design.
+
+    projected_margin is needed by the weather term, which shrinks a margin
+    toward zero rather than pushing in a fixed direction.
+    """
+    game = dict(game)
+    game["_projected_margin"] = projected_margin
     return (
         rest_adjustment(game, cfg)
         + travel_adjustment(game, cfg)
@@ -127,8 +139,11 @@ def total_adjustment(game, cfg: Adjustments = ADJUSTMENTS) -> float:
     )
 
 
-def adjustment_breakdown(game, cfg: Adjustments = ADJUSTMENTS) -> dict[str, float]:
+def adjustment_breakdown(game, cfg: Adjustments = ADJUSTMENTS,
+                         projected_margin: float = 0.0) -> dict[str, float]:
     """Per-factor detail, for showing your work on the dashboard."""
+    game = dict(game)
+    game["_projected_margin"] = projected_margin
     return {
         "rest": rest_adjustment(game, cfg),
         "travel": travel_adjustment(game, cfg),

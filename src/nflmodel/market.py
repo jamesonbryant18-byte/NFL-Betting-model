@@ -315,6 +315,42 @@ def kelly_stake(
     return float(stake), float(full_kelly)
 
 
+def spread_clv_points(line_taken: float, closing_line: float) -> float:
+    """
+    CLV for a spread bet, in points, signed toward the side you bet.
+
+    Both numbers are quoted from YOUR side (the number on your ticket), so a
+    bigger number is always better: +3.5 taken against a +1.5 close means you
+    got two extra points and CLV is +2.0.
+
+    Points are the right unit for a spread. Price-based CLV is blind here --
+    a bet taken at -110 that closes at -110 reads exactly 0.00% even if the
+    line moved two points across the key number 3, which is an enormous win.
+    """
+    return float(line_taken) - float(closing_line)
+
+
+def points_to_prob_table(margin_model: "MarginModel",
+                         lines=None) -> list[tuple[float, float]]:
+    """
+    Win-probability value of one point of spread, at each line.
+
+    Emphatically not a constant. A point at a line of 2 is worth about 2.0%,
+    while the point that crosses 3 is worth 8.1% -- four times as much --
+    because that is where the margin distribution spikes. Any CLV conversion
+    using a single average rate badly misprices exactly the movement that
+    matters most.
+    """
+    if lines is None:
+        lines = [x / 2 for x in range(0, 43)]     # 0 to 21 in half points
+    out = []
+    for L in lines:
+        at = margin_model.cover_prob(float(L), float(L))[0]
+        better = margin_model.cover_prob(float(L), float(L) - 1.0)[0]
+        out.append((float(L), max(0.0, better - at)))
+    return out
+
+
 def closing_line_value(bet_odds: float, closing_odds: float) -> float:
     """
     CLV in probability points: how much better your number was than the close.

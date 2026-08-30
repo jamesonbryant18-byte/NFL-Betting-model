@@ -247,3 +247,35 @@ def test_line_shopping_guard_rejects_outliers():
     assert not guarded.empty
     best = float(guarded.iloc[0]['best_home_spread'])
     assert best >= 1.0, f'outlier not rejected: best_home_spread={best}'
+
+
+def test_deployed_model_is_leak_free():
+    """
+    The FULL deployed path (NFLModel + market prior) must be invariant to
+    whether future games exist in the input.
+
+    This is the test that matters most in the repo. A missing as-of cutoff in
+    the market prior once moved ratings by 0.8 points and produced a 56% ATS
+    hold-out result that was entirely fabricated.
+    """
+    import pandas as pd
+    from nflmodel.model import NFLModel
+    from nflmodel.ratings import _time_index
+
+    if not (CACHE_DIR / 'dataset_2010_2025.parquet').exists():
+        pytest.skip('dataset not built')
+
+    df = pd.read_parquet(CACHE_DIR / 'dataset_2010_2025.parquet') \
+           .sort_values(['season', 'week']).reset_index(drop=True)
+    season, week = 2023, 10
+
+    full = NFLModel().fit(df, season, week, market_games=df)
+
+    cut = season * RATINGS.offseason_weeks_equiv + week
+    trunc = df[_time_index(df.season, df.week, RATINGS) < cut]
+    truncated = NFLModel().fit(trunc, season, week, market_games=trunc)
+
+    for team in full.team_ratings:
+        assert full.team_ratings[team] == pytest.approx(
+            truncated.team_ratings[team], abs=1e-9), f'{team} leaks future data'
+    assert full.hfa == pytest.approx(truncated.hfa, abs=1e-9)

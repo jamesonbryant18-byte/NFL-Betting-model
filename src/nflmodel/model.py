@@ -119,7 +119,15 @@ class NFLModel:
             ]
             games_played = len(played) / 16.0   # in team-weeks
 
-            market, market_hfa = fit_market_ratings(market_games, season, self.params)
+            # asof_week is mandatory here. Without it, replaying a completed
+            # season lets the market prior see every closing line in the year,
+            # including games that have not happened at the simulated moment.
+            # That leak moved ratings by 0.8 pts and fabricated a 56% ATS
+            # hold-out result -- the single most dangerous kind of bug in a
+            # betting model, because it looks like success.
+            market, market_hfa = fit_market_ratings(
+                market_games, season, self.params, asof_week=week
+            )
             if any(abs(v) > 1e-9 for v in market.values()):
                 self.team_ratings = blend_with_prior(
                     self.team_ratings, market, games_played, self.params
@@ -166,7 +174,7 @@ class NFLModel:
             - self.strength(away, g.get("away_qb_name"))
             + (0.0 if neutral else self.hfa)
         )
-        adj = total_adjustment(g, self.adjust_cfg)
+        adj = total_adjustment(g, self.adjust_cfg, projected_margin=base)
         projected = base + adj
 
         # ── Spread ──
@@ -295,13 +303,24 @@ class NFLModel:
             }
 
         best = sorted(candidates, key=lambda c: (-c["priority"], -c["edge_display"]))[0]
+
+        # A moneyline pick necessarily failed the spread threshold, so grading
+        # it on spread edge stamps every one of them 'Low'. Grade each market
+        # on its own scale.
+        if best["market"] == "MONEYLINE":
+            edge = max(x for x in (ml_edge_h, ml_edge_a) if not np.isnan(x))
+            conf = ("High" if edge >= t.ml_strong_edge
+                    else "Medium" if edge >= t.ml_min_edge else "Low")
+        else:
+            conf = self._confidence(spread_edge)
+
         return {
             "recommendation": f"BET {best['side']}",
             "bet_market": best["market"],
             "bet_side": best["side"],
             "bet_odds": best["odds"],
             "stake": best["stake"],
-            "confidence": self._confidence(spread_edge),
+            "confidence": conf,
         }
 
     def _confidence(self, spread_edge: float) -> str:
@@ -354,7 +373,14 @@ class NFLModel:
             stakes.append(allowed)
             running += allowed
         df["stake"] = stakes
-        df.loc[df["stake"] <= 0, "recommendation"] = "NO BET"
+
+        # Clear the bet fields too. Leaving a fully specified side and price
+        # next to a NO BET verdict is how a reader (or a script) ends up
+        # placing a bet the model declined.
+        killed = df["stake"] <= 0
+        df.loc[killed, "recommendation"] = "NO BET"
+        df.loc[killed, ["bet_market", "bet_side"]] = ""
+        df.loc[killed, "bet_odds"] = 0.0
 
         return df
 
