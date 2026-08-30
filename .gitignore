@@ -3,5 +3,9 @@ __pycache__/
 *.pyc
 data/cache/
 output/
+
+# The bet log is the one file here that cannot be regenerated -- everything
+# else rebuilds from nflverse. It is tracked deliberately.
+!data/bet_log.csv
 .DS_Store
 .env

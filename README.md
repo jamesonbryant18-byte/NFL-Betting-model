@@ -98,6 +98,11 @@ team + QB power ratings  →  projected margin  →  cover / win probabilities
   sign-inverted and unguarded shopping reported a **phantom 3.0-point better
   line**, which at a 1.5pt threshold manufactures a bet out of a data error.
 
+## Using it week to week
+
+See **[OPERATING.md](OPERATING.md)** for the weekly procedure, what to log, and
+the decision gate that determines whether this is ever worth betting.
+
 ## Quick start
 
 ```bash

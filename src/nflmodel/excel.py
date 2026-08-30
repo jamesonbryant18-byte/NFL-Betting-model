@@ -85,6 +85,47 @@ def _header_row(ws, row, labels, start_col=1):
 # BUILD
 # ─────────────────────────────────────────────
 
+BET_LOG_COLUMNS = [
+    "date", "week", "matchup", "market", "bet_side", "line_taken", "odds",
+    "stake", "result", "closing_line", "closing_odds", "model_edge",
+]
+
+
+def export_bet_log(rows: list[list], path) -> None:
+    """
+    Mirror the tracker to a plain CSV under version control.
+
+    The workbook lives in output/, which is gitignored because everything in
+    it regenerates -- except this. Hand-entered results and the numbers you
+    actually got filled at cannot be recovered from anywhere. Losing the
+    laptop should not lose the record, so it also lands in data/bet_log.csv
+    and gets committed.
+    """
+    import csv
+    from pathlib import Path
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(BET_LOG_COLUMNS)
+        for r in rows:
+            w.writerow(list(r) + [""] * (len(BET_LOG_COLUMNS) - len(r)))
+
+
+def import_bet_log(path) -> list[list]:
+    """Recover tracker rows from the CSV when the workbook is gone."""
+    import csv
+    from pathlib import Path
+
+    path = Path(path)
+    if not path.exists():
+        return []
+    with path.open() as fh:
+        rows = list(csv.reader(fh))
+    return [r for r in rows[1:] if any(v not in ("", None) for v in r)]
+
+
 def read_existing_bets(path: str) -> list[list]:
     """
     Pull manually-entered Bet Tracker rows out of a workbook we are about to
@@ -124,7 +165,11 @@ def build_workbook(
     path: str = "NFL_Betting_Model.xlsx",
     pts_table: list | None = None,
 ) -> str:
-    preserved = read_existing_bets(path)
+    from .config import REPO_ROOT
+    log_path = REPO_ROOT / "data" / "bet_log.csv"
+
+    # Prefer the workbook; fall back to the tracked CSV if output/ was wiped.
+    preserved = read_existing_bets(path) or import_bet_log(log_path)
 
     wb = Workbook()
 
@@ -136,6 +181,7 @@ def build_workbook(
     _sheet_reference(wb, backtest_summary)
 
     wb.save(path)
+    export_bet_log(preserved, log_path)
     return path
 
 
