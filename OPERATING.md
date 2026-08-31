@@ -1,5 +1,8 @@
 # Weekly operating procedure
 
+> Context for a fresh Claude session lives in `CLAUDE.md` (auto-loaded).
+> Technical detail and validation results are in `README.md`.
+
 The model ships in advisory mode because the hold-out backtest found no edge
 against closing lines. So the first several weeks are a **measurement
 exercise**, not a betting operation. This document is the procedure.

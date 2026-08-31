@@ -3,6 +3,11 @@
 Points-based power ratings for NFL spreads and moneylines, with walk-forward
 validation and bet tracking. Built for the 2026 season.
 
+> **Working on this with Claude?** `CLAUDE.md` is loaded automatically at the
+> start of every session and carries the full context: the verdict, every dead
+> end already measured, the bugs that have bitten this codebase, and the
+> decisions already made. You should not have to re-explain any of it.
+
 ## Read this first
 
 **The hold-out backtest found no edge against closing lines.** The model ships
@@ -242,6 +247,63 @@ All free, no API keys required:
 - `nflverse/nfldata` — schedules, closing spreads and moneylines, rest days,
   weather, starting QBs, 1999-present
 - `nflverse-data` — play-by-play with EPA, 1999-present
+
+## Parameter reference
+
+**Fitted** by grid search on the tuning seasons only (`scripts/tune.py`), then
+frozen to `data/fitted_params.json`. Only these four plus `qb_lambda` are
+frozen — everything else belongs to `config.py` and must not be overridden:
+
+| parameter | value | meaning |
+|---|---|---|
+| `ridge_lambda` | 6 | shrinkage on team ratings; interior optimum |
+| `recency_decay` | 0.98 | per-week weight decay |
+| `epa_margin_weight` | 0.0 | EPA share of the target — fitted to zero |
+| `offseason_weeks_equiv` | 70 | offseason gap; last season keeps ~24% weight |
+| `qb_lambda` | 20 | shrinkage on QB ratings (heavier — less data each) |
+
+**Judgment calls**, set on reasoning rather than fit:
+
+| parameter | value | why |
+|---|---|---|
+| `market_prior_weight` | 0.80 | Week 1 the model has seen no current-season football; the market has priced every offseason move |
+| `prior_decay_games` | 10 | market prior halves after ~10 games |
+| `market_ridge_lambda` | 1.0 | a posted spread is the market's point estimate, not a noisy observation of it |
+| `kelly_fraction` | 0.50 | ~¾ the growth of full Kelly at half the volatility |
+| `max_bet_pct` | 0.025 | hard per-bet cap |
+| `max_weekly_exposure_pct` | 0.10 | without it a model that likes 13 of 16 games risks a third of bankroll in an afternoon |
+| `spread_min_edge_pts` | 1.5 | points is the natural unit for a margin model |
+
+**Measured constants:** `epa_to_points` 30.6 and `epa_home_intercept` 1.73
+(from `result = 30.6·net_epa + 1.73`); `margin_sigma` 13.2 (residual SD vs the
+closing line, 1999-2025); `HFA_BASE` 1.70, refit at ~2.1 in use.
+
+## Bugs found and fixed
+
+A 54-agent adversarial audit ran on 2026-08-30. Every finding below was
+independently verified before being acted on. Recorded because several were
+silent, and silent bugs recur.
+
+| severity | bug | consequence |
+|---|---|---|
+| critical | Every displayed spread had the sign inverted | Printed `DET +7.0` for a 7-point favorite — the opposite side of every game |
+| critical | Market prior called without its as-of cutoff | Leaked a full season of closing lines; **fabricated a 56.5% ATS hold-out at z > 2** |
+| critical | QB decomposition inert in live output | QB names only exist for played games, so both sides fell to replacement and cancelled |
+| critical | Weekly re-run rebuilt the workbook from scratch | Destroyed every hand-logged bet on the Sunday run |
+| critical | CLV computed on price only | Read exactly 0.00% for a spread bet that moved two points across the key number 3 |
+| high | Backtest validated a different estimator than `run_week.py` ships | Headline number described a model nobody ran |
+| high | Push/cover probabilities blind to key numbers | Flat ~3.3% push at every line; reality is ~9× more at 3 than 4 |
+| medium | Whole dataclass frozen to `fitted_params.json` | `market_prior_weight` silently ran at a stale 0.5, not 0.80 |
+| medium | Spread bets assumed a flat −110 | Real juice is +100 to −133; reported ROI was slightly pessimistic |
+| medium | `weather_adjustment` returned a fixed negative | Pushed away-favored games *away* from zero — opposite of its docstring |
+| medium | `NO BET` rows kept a populated side and price | A reader or script could place a bet the model declined |
+| low | Moneyline leans graded on spread edge | Every one stamped "Low" confidence |
+| low | Timezone labels swapped in `measure_situational.py` | Would attribute future signal to the wrong direction |
+
+Two lessons worth keeping. **A leak announces itself as success, not as a
+bug** — which is exactly when scrutiny is weakest. And a `str.replace` that
+matched the wrong indentation once silently no-opped, so a fix was claimed in a
+commit message that had never landed; assert edits apply.
 
 ## Honest limits
 
