@@ -279,3 +279,265 @@ def test_deployed_model_is_leak_free():
         assert full.team_ratings[team] == pytest.approx(
             truncated.team_ratings[team], abs=1e-9), f'{team} leaks future data'
     assert full.hfa == pytest.approx(truncated.hfa, abs=1e-9)
+
+
+# ── quarterback identity & starter resolution ────────────────────
+
+def test_one_quarterback_gets_one_name():
+    """
+    The ratings fit keys quarterbacks by NAME, so a player spelled two ways is
+    two rated players splitting his starts -- and each half is likelier to
+    fall under min_qb_starts and be pooled into replacement level. nflverse
+    spells several starters both ways ("Mitch"/"Mitchell Trubisky") and
+    carries outright typos, so the id has to pick the name.
+    """
+    from nflmodel.data import load_games
+    g = load_games()
+    pairs = pd.concat([
+        g[['home_qb_id', 'home_qb_name']].rename(
+            columns={'home_qb_id': 'id', 'home_qb_name': 'name'}),
+        g[['away_qb_id', 'away_qb_name']].rename(
+            columns={'away_qb_id': 'id', 'away_qb_name': 'name'}),
+    ]).dropna()
+    spellings = pairs.groupby('id')['name'].nunique()
+    offenders = spellings[spellings > 1]
+    assert offenders.empty, f'{len(offenders)} quarterback(s) with split identities'
+
+
+def test_qb_override_actually_reaches_the_projection():
+    """
+    Regression test for a silently inert override.
+
+    The slate used to take its starters via fillna, which was correct only
+    while nflverse left the quarterback columns null for unplayed games. Once
+    nflverse began pre-filling the upcoming week, there was nothing to fill:
+    every resolved starter -- including an explicit --qb override -- was
+    discarded, and the documented override did nothing at all.
+
+    Swapping a starter for a replacement-level quarterback must move the
+    projected margin. If this test passes trivially, the QB path is dead.
+    """
+    from nflmodel.depth import resolve_starters, SOURCE_OVERRIDE
+
+    hist = pd.DataFrame({'played': []})
+    games = pd.DataFrame({'home_qb_id': [], 'home_qb_name': [],
+                          'away_qb_id': [], 'away_qb_name': []})
+
+    starters, source, _, _ = resolve_starters(
+        hist, games, 2026, 1,
+        slate_names={'KC': 'Patrick Mahomes'},
+        overrides={'KC': 'Somebody Else'},
+        use_depth_chart=False,
+    )
+    assert starters['KC'] == 'Somebody Else', 'override lost to the game file'
+    assert source['KC'] == SOURCE_OVERRIDE
+
+
+def test_starter_precedence_is_override_then_chart_then_file():
+    """Each layer must beat the one below it, and only that one."""
+    from nflmodel.depth import (resolve_starters, SOURCE_SLATE,
+                                SOURCE_CARRY_FORWARD)
+    hist = pd.DataFrame({'played': []})
+    games = pd.DataFrame({'home_qb_id': [], 'home_qb_name': [],
+                          'away_qb_id': [], 'away_qb_name': []})
+
+    starters, source, _, _ = resolve_starters(
+        hist, games, 2026, 1,
+        slate_names={'KC': 'From File'},
+        use_depth_chart=False,
+    )
+    assert starters['KC'] == 'From File'
+    assert source['KC'] == SOURCE_SLATE
+
+    # An empty game-file entry must not shadow a real answer.
+    starters, source, _, _ = resolve_starters(
+        hist, games, 2026, 1,
+        slate_names={'KC': ''},
+        overrides={'KC': 'Real Guy'},
+        use_depth_chart=False,
+    )
+    assert starters['KC'] == 'Real Guy'
+
+
+# ── straight-up picks ────────────────────────────────────────────
+
+def test_ranking_picks_the_side_the_probability_favors():
+    from nflmodel.report import straight_up_ranking
+    slate = pd.DataFrame([
+        {'home_team': 'KC', 'away_team': 'DEN', 'home_win_prob': 0.72,
+         'projected_margin': 7.0, 'home_ml': -260, 'away_ml': 210,
+         'spread_line': 6.5},
+        {'home_team': 'NYG', 'away_team': 'DAL', 'home_win_prob': 0.41,
+         'projected_margin': -3.5, 'home_ml': 140, 'away_ml': -165,
+         'spread_line': -3.0},
+    ])
+    r = straight_up_ranking(slate)
+    assert list(r.winner) == ['KC', 'DAL'], 'winner must follow win probability'
+    assert list(r['rank']) == [1, 2]
+    assert (r.win_prob.diff().dropna() <= 0).all(), 'must be sorted by confidence'
+    # Margin is reported from the winner's side, so it is never negative for
+    # a pick the model is actually making.
+    assert (r.proj_margin > 0).all()
+
+
+def test_probability_and_margin_disagreement_is_called_a_coin_flip():
+    """
+    Probability comes from tilting the empirical margin distribution, not from
+    the point estimate, so the two can point opposite ways inside a tenth of a
+    point. Ranking that as a confident pick would imply precision the model
+    does not have.
+    """
+    from nflmodel.report import straight_up_ranking
+    slate = pd.DataFrame([
+        {'home_team': 'HOU', 'away_team': 'BUF', 'home_win_prob': 0.5002,
+         'projected_margin': -0.085, 'home_ml': -105, 'away_ml': -115,
+         'spread_line': -1.5},
+    ])
+    r = straight_up_ranking(slate)
+    assert r.loc[0, 'confidence'] == 'coin flip'
+
+
+def test_depth_chart_cannot_see_past_the_kickoff():
+    """
+    Leak regression.
+
+    The depth chart file holds every daily snapshot of a season, so taking
+    "the most recent" one means taking a January snapshot when replaying an
+    October week -- handing the model the starting quarterbacks for games it
+    is about to predict. This was live: replaying 2025 week 5 assumed eight
+    quarterbacks who were, in fact, the ones who started, because the snapshot
+    came from after the season.
+
+    Every snapshot the resolver uses must predate the week's first kickoff.
+    """
+    from nflmodel.depth import depth_chart_starters
+    from nflmodel.data import load_games
+
+    games = load_games()
+    wk = games[(games.season == 2025) & (games.week == 5)]
+    if wk.empty or wk.gameday.isna().all():
+        pytest.skip('2025 week 5 not in the game file')
+    kickoff = pd.to_datetime(wk.gameday).min()
+
+    _, snapshot, _ = depth_chart_starters(2025, 5, asof=kickoff)
+    if snapshot is None:
+        pytest.skip('depth charts unavailable offline')
+
+    stamp = pd.to_datetime(snapshot, utc=True)
+    assert stamp < pd.Timestamp(kickoff).tz_localize('UTC'), (
+        f'depth chart snapshot {stamp} is not earlier than kickoff {kickoff}')
+
+
+def test_archive_refuses_to_rewrite_a_locked_week():
+    """
+    A prediction rewritten after the games are played is not a prediction.
+    The archive is the only record that can ever settle whether this model
+    works, so a locked week must be immutable.
+    """
+    import json, tempfile, pathlib
+    import nflmodel.archive as A
+
+    with tempfile.TemporaryDirectory() as tmp:
+        real = A.ARCHIVE_DIR
+        A.ARCHIVE_DIR = pathlib.Path(tmp)
+        try:
+            ranked = pd.DataFrame([{'rank': 1, 'winner': 'KC', 'loser': 'DEN',
+                                    'matchup': 'DEN @ KC', 'at_home': True,
+                                    'win_prob': 0.7, 'proj_margin': 6.0,
+                                    'moneyline': -250, 'market_favorite': True,
+                                    'confidence': 'solid', 'consistent': True}])
+            slate = pd.DataFrame([{'recommendation': 'NO BET'}])
+            assert A.archive_week(ranked, slate, {'KC': 'X'}, {'KC': 'y'}, 2026, 3)
+            A.lock_week(2026, 3)
+            # A second write must be refused now that the week is locked.
+            assert not A.archive_week(ranked, slate, {'KC': 'CHANGED'},
+                                      {'KC': 'y'}, 2026, 3)
+            meta = json.loads((pathlib.Path(tmp) / '2026' /
+                               'week03_meta.json').read_text())
+            assert meta['starters']['KC'] == 'X', 'locked week was overwritten'
+        finally:
+            A.ARCHIVE_DIR = real
+
+
+def test_archive_refuses_to_backfill_a_week_that_already_kicked_off():
+    """
+    A replayed week must not enter the picks archive.
+
+    Re-running a completed week produces picks that were never published and
+    never risked anything: the slate's results are already known and the code
+    generating them is today's. Writing those to picks/ would manufacture a
+    track record out of hindsight, and the workbook's Bet Log would then
+    present it as real history. Only --archive-anyway may override.
+    """
+    import pathlib
+    import tempfile
+
+    import nflmodel.archive as A
+
+    games = pd.DataFrame({
+        "season": [2025, 2025],
+        "week": [5, 5],
+        "gameday": pd.to_datetime(["2025-10-05", "2025-10-06"]),
+    })
+    ranked = pd.DataFrame([{"rank": 1, "winner": "KC", "loser": "DEN",
+                            "matchup": "DEN @ KC", "at_home": True,
+                            "win_prob": 0.7, "proj_margin": 6.0,
+                            "moneyline": -250, "market_favorite": True,
+                            "confidence": "solid", "consistent": True}])
+    slate = pd.DataFrame([{"recommendation": "NO BET"}])
+
+    with tempfile.TemporaryDirectory() as tmp:
+        real = A.ARCHIVE_DIR
+        A.ARCHIVE_DIR = pathlib.Path(tmp)
+        try:
+            assert A.kickoff_has_passed(games, 2025, 5)
+            # A past week with no existing archive is a rebuild: refuse.
+            assert not A.archive_week(ranked, slate, {"KC": "X"}, {"KC": "y"},
+                                      2025, 5, games=games)
+            assert not (pathlib.Path(tmp) / "2025" / "week05_picks.csv").exists()
+            # Explicit override still works, for a week that really was published.
+            assert A.archive_week(ranked, slate, {"KC": "X"}, {"KC": "y"},
+                                  2025, 5, games=games, force=True)
+            # An upcoming week is unaffected.
+            future = games.assign(season=2099, gameday=pd.to_datetime(
+                ["2099-10-05", "2099-10-06"]))
+            assert not A.kickoff_has_passed(future, 2099, 5)
+            assert A.archive_week(ranked, slate, {"KC": "X"}, {"KC": "y"},
+                                  2099, 5, games=future)
+        finally:
+            A.ARCHIVE_DIR = real
+
+
+def test_bet_explanations_state_what_has_to_happen():
+    """The 'why' line is what Jameson bets from; its cover arithmetic must be exact."""
+    from nflmodel.model import explain_bet
+    # Dog getting 8.5: covers unless the favorite wins by 9+.
+    assert "CLE wins or loses by 8 or less" in explain_bet("SPREAD", "CLE", "TB", 6.5, ticket=8.5)
+    # Favorite laying 8.5 needs a 9-point win.
+    assert "TB wins by 9+" in explain_bet("SPREAD", "TB", "TB", 10.0, ticket=-8.5)
+    # Whole numbers push.
+    assert "wins by 4+ (push at 3)" in explain_bet("SPREAD", "KC", "KC", 5.0, ticket=-3.0)
+    assert "loses by 2 or less (push at 3)" in explain_bet("SPREAD", "NO", "DET", 1.0, ticket=3.0)
+    assert "ATL wins or loses by 1 or less" in explain_bet("SPREAD", "ATL", "ATL", 1.0, ticket=1.5)
+    ml = explain_bet("MONEYLINE", "MIA", "SF", 11.0, odds=600, model_p=0.24, market_p=0.14)
+    assert "still picks SF" in ml and "upset" in ml
+
+
+def test_bet_is_tagged_against_the_straight_up_pick():
+    """A dog getting points the model still expects to lose is a value bet, not its pick."""
+    from nflmodel.model import NFLModel, WITH_PICK, AGAINST_PICK
+    m = NFLModel()
+    m.team_ratings = {"TB": 3.0, "CLE": -2.0}
+    m.hfa = 1.5
+    game = dict(game_id="x", week=2, home_team="TB", away_team="CLE", spread_line=8.5,
+                home_moneyline=-375, away_moneyline=300, home_qb_name=None, away_qb_name=None)
+    p = m.project(game)
+    assert p.projected_margin > 0 and p.projected_margin < 8.5
+    assert p.bet_side.startswith("CLE +8.5"), p.bet_side
+    assert p.bet_type == AGAINST_PICK
+    assert "Model: TB by" in p.bet_why and "CLE wins or loses by 8 or less" in p.bet_why
+
+    game["spread_line"] = 1.0                     # now TB -1: the model's side is TB itself
+    p = m.project(game)
+    assert p.bet_side.startswith("TB"), p.bet_side
+    assert p.bet_type == WITH_PICK

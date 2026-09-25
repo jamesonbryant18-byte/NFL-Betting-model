@@ -35,13 +35,13 @@ TRAIN_SEASON_END = 2025
 # BANKROLL & STAKING  [YOURS]
 # ─────────────────────────────────────────────
 
-# ADVISORY MODE — the default, and deliberately so.
+# ADVISORY MODE — turned OFF by Jameson on 2026-09-14 (decision mode).
 #
 # The hold-out backtest found no edge against closing lines (see README).
-# In advisory mode the model still computes and shows everything, but it
-# reports LEANs rather than BETs and stakes nothing. Flip this to False to
-# stake real money; nothing else changes.
-ADVISORY_MODE = True
+# In advisory mode the model computes everything but reports LEANs and stakes
+# nothing. With it False the model reports BETs with half-Kelly stakes under
+# the caps below. Set back to True to return to paper trading.
+ADVISORY_MODE = False
 
 
 @dataclass
@@ -237,6 +237,21 @@ ODDS_API_MARKETS = "spreads,h2h"
 
 # Books to pull. Empty list = all available; we always flag the best number.
 BOOKS: list = []
+
+# The one book Jameson bets at, all season (chosen 2026-09-25). When set, every
+# line and price the model is measured against comes from this book alone --
+# no consensus, no best-of-six shopping table. The ML de-vig pair is therefore
+# always a matched pair from one book. None restores consensus + shopping.
+MY_BOOK = "fanduel"  # or None
+
+# Weekly self-tune, live since 2026-09-25. Per-team EWMA of this season's
+# prediction error (src/nflmodel/selftune.py), deliberately gentle:
+#   alpha        0.15  -- moves 15% toward recent error, not 50-100%
+#   max_game_adj 1.0   -- no game's projection moves more than 1 point
+# Hold-out 2021-25 at these settings: MAE 10.075 vs 10.079 frozen (noise-level,
+# not a win), average move 0.58 pts. The aggressive settings (alpha >= 0.25,
+# no ceiling) measurably hurt; see IMPROVEMENT.md. alpha = 0 turns it off.
+SELFTUNE = dict(alpha=0.15, half_life=3.0, cap=7.0, max_game_adj=1.0)
 
 # ─────────────────────────────────────────────
 # VALIDATION BAR

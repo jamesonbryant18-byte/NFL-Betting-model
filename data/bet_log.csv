@@ -1,2 +1,5 @@
 date,week,matchup,market,bet_side,line_taken,odds,stake,result,closing_line,closing_odds,model_edge
-9/13/2026,,MIA @ LV,SPREAD,MIA +3.5,3.5,-110,50,,,,
+2026-09-17 00:00:00,2,DET @ BUF,MONEYLINE,AWAY ,,,5,,,,
+2026-09-20 00:00:00,2,CAR @ ATL,SPREAD,HOME,2.5,,5,,,,
+2026-09-20 00:00:00,2,JAX @ DEN,SPREAD,AWAY ,2.5,,5,,,,
+2026-09-20 00:00:00,2,CLE @ TB,SPREAD,AWAY ,8.5,,5,,,,

@@ -34,10 +34,36 @@ is 1.07.
 The tuning seasons (2013-20) showed 53.2% ATS and +1.6% ROI. That gap *is* the
 overfitting, made visible. Never quote tuning-season numbers as results.
 
-**Do not turn `ADVISORY_MODE` off on your own initiative.** It is one line in
-`config.py` and it is Jameson's decision, not yours.
+**Jameson turned `ADVISORY_MODE` off on 2026-09-14** (decision mode: BETs with
+half-Kelly stakes). That was his call, made after seeing the numbers above; do
+not flip it back on your own initiative either. Week 1 review: 11-5 straight
+up once Monday night was graded (inside the noise band), leans 3-6, one input error (ATL starter changed
+after the Wednesday run). No ratings parameters were changed on one week.
 
 ---
+
+## 1b. Self-improvement — read IMPROVEMENT.md
+
+Jameson asked for continuous week-to-week self-improvement (2026-09-22). It was
+built (`selftune.py`), measured, and **rejected**: hold-out MAE goes 10.079
+frozen -> 11.065 at full strength, degrading monotonically, and value picks get
+worse at every setting. `alpha=0.1` is a no-op (paired t=-0.08, p=0.93). It
+fails on the tuning seasons too.
+
+The mechanism, which is the useful part: the weekly refit ALREADY moves a team
+in the direction the self-tuner wants, 69% of the time (r=+0.45, n=2,688
+team-weeks). But the ridge moves the rating ~0.05 pts per 1 pt of residual,
+because most of one game's surprise is noise. The self-tuner adds the raw
+residual on top, unshrunk. It is not adaptation vs no adaptation — it is the
+same adaptation applied twice, the second time without the shrinkage.
+
+`recency_decay` is the legitimate knob for "react more to recent form" and it
+is already at its measured optimum (0.98; 0.90/0.95/0.99/1.00 are all worse).
+
+**The gate is evidence, not the calendar.** A change ships any day of the
+season if it improves out-of-sample accuracy. What never clears the bar is a
+16-game weekly scoreboard. Process defects (wrong QB, stale line, missing game)
+are fixed immediately and need no gate.
 
 ## 2. Dead ends — do NOT redo these
 
@@ -92,14 +118,34 @@ noise being averaged away. Take the accuracy, never call it model improvement.
    wrong indentation silently no-opped, and a fix was claimed in a commit
    message that had never landed. Assert the target exists before writing.
 
-4. **QB names are only populated for PLAYED games.** An upcoming slate has
-   none, which silently collapses the QB term to replacement on both sides
-   where it cancels out — making the whole decomposition inert.
-   `ratings.projected_starters()` carries them forward. Week 1 uses the prior
-   season's *most frequent* starter **excluding Week 18**, because Week 18 is
-   where playoff teams rest everyone (naive last-starter gave KC "Chris
-   Oladokun" instead of Mahomes). Neither can know offseason moves — use
-   `--qb TEAM="Name"`.
+4. **QB starters, and the fillna trap.** This used to read "nflverse only
+   populates QB names for PLAYED games." **That is no longer true** — as of
+   2026 nflverse pre-fills the starters for the upcoming week, and it fills
+   all 32 correctly.
+
+   That change silently broke the override. The slate took its starters via
+   `fillna`, so once the columns arrived populated there was nothing to fill:
+   every resolved starter *and every explicit `--qb` override* was discarded.
+   Verified against the committed code — `--qb KC="Chris Oladokun"` moved the
+   KC line by exactly 0.0 points. It now **assigns** rather than fills, and
+   `test_qb_override_actually_reaches_the_projection` fails if the path ever
+   goes dead again.
+
+   Starters now resolve through `depth.resolve_starters()`, four layers deep:
+   `--qb` override → published depth chart (nflverse's daily ESPN pull,
+   timestamped) → the game file's own value → `ratings.projected_starters()`
+   carry-forward. Where the depth chart and the game file disagree, the run
+   prints a WARNING naming both rather than picking silently.
+
+   Names resolve **by player id, never by string**. The depth chart says
+   "Michael Penix Jr." where the game file says "Michael Penix"; a string
+   match returns replacement level without complaining. `--starters` prints
+   all 32 with their source.
+
+   The carry-forward remains the last resort and is the only layer blind to
+   the offseason: checked against the live 2026 Week 1 depth charts it was
+   wrong for 7 of 32 teams (ATL, CLE, LV, MIA, MIN, NO, NYJ). It was never
+   consulted for that slate, because the game file was already right.
 
 5. **Only grid-searched keys may be frozen** to `data/fitted_params.json`.
    Freezing the whole dataclass once pinned hand-set judgment values —
@@ -109,8 +155,19 @@ noise being averaged away. Take the accuracy, never call it model improvement.
 6. **macOS Accelerate BLAS emits spurious FP warnings** on large matmuls.
    Inputs were audited and are clean. Suppressed with `np.errstate`; ignore.
 
-7. **`site.api.espn.com` intermittently 403s.**
-   `sports.core.api.espn.com` is reliable. Always send a User-Agent.
+7. **ESPN's hosts want OPPOSITE User-Agent behaviour.** This was recorded
+   backwards. Measured 2026-09-09, repeatedly:
+
+   | host | with a browser UA | with no UA |
+   |---|---|---|
+   | `site.api.espn.com` | **403** | 200 |
+   | `site.web.api.espn.com` | **200** | 200 |
+   | `sports.core.api.espn.com` | 200 | 200 |
+
+   So "always send a User-Agent" is wrong for `site.api` specifically.
+   `espn._get_json` tries `site.web.api` with a UA and falls back to
+   `site.api` without one. `cdn.espn.com/core/...?xhr=1` returns HTTP 202
+   with an empty body and is useless.
 
 ---
 
@@ -133,6 +190,14 @@ is half-Kelly, 2.5% per bet, 10% per week.
 
 Full detail in `README.md`. Weekly procedure in `OPERATING.md`.
 
+The **workbook** (`excel.py`) is the human interface: Picks, Weekly Slate,
+Model Picks %, Game Detail (a dropdown matchup picker driven by INDEX/MATCH
+into a hidden `Model Data` sheet), Team Stats, Power Ratings, Bet Tracker,
+Bet Log, Rosters, Injuries, Reference. `model.components()` exposes the terms
+behind a projection for display and feeds nothing back. Rosters and injuries
+come from `espn.py`/`teamstats.py`; graded history from `history.py`; the
+tracker's merge-across-runs from `betlog.py`.
+
 ---
 
 ## 5. Commands
@@ -141,9 +206,16 @@ Full detail in `README.md`. Weekly procedure in `OPERATING.md`.
 .venv/bin/python -W ignore scripts/run_week.py                 # next unplayed week
 .venv/bin/python -W ignore scripts/run_week.py --week 5
 .venv/bin/python -W ignore scripts/run_week.py --qb LV="Name"  # override a starter
+.venv/bin/python -W ignore scripts/run_week.py --starters       # print all 32 starters + source
+.venv/bin/python -W ignore scripts/run_week.py --no-depth-chart # ignore depth charts
+.venv/bin/python -W ignore scripts/run_week.py --archive-anyway # archive a week that already kicked off
 .venv/bin/python -W ignore -m pytest tests/ -q                 # 24 invariant tests
 .venv/bin/python -W ignore scripts/run_backtest.py             # revalidate + refreeze
 .venv/bin/python -W ignore scripts/measure_situational.py      # re-test situational factors
+.venv/bin/python -W ignore scripts/grade.py --save             # grade every prediction this season
+.venv/bin/python -W ignore scripts/grade.py --diagnose --scope all   # systematic error hunt (FDR-corrected)
+.venv/bin/python -W ignore scripts/selftune_sweep.py           # does weekly self-tuning help? (no)
+.venv/bin/python -W ignore scripts/run_week.py --no-live-odds  # skip the multi-book pull
 .venv/bin/python -W ignore scripts/tune.py                     # grid search (~7 min)
 ```
 
@@ -215,13 +287,31 @@ and has not taken it up.
 
 ## 9. Known gaps / open items
 
-- `odds.py` is written and validated but **not yet wired into `run_week.py`** —
-  the weekly run still uses nflverse's stored `spread_line` rather than live
-  multi-book numbers. This is the most useful next piece of work.
-- No test covers `excel.py`, `backtest.py`, or `data.py` directly.
+- ~~`odds.py` not wired in~~ **DONE 2026-09-22.** `shop.attach_live_odds()`
+  now runs by default in `run_week.py`: six books, the *median* becomes the
+  market number, best price per side rides along, `--no-live-odds` opts out,
+  and a dead feed degrades to the stored line instead of killing the week.
+  On the first live run the stored nflverse line was already stale on 3 of 16
+  games (PHI@CHI by 1.5 pts, which added a bet). **The de-vig pair must stay
+  matched to one book** — mixing the best price from each side shrinks the
+  overround (4.30% -> 2.34% on a real Week 3 pair) and inflates every edge.
+  Guarded by `test_devig_pair_is_never_mixed_across_books`.
+- A quarterback below `min_qb_starts` silently becomes replacement level
+  (-1.87 pts). `run_week.py` now WARNS when a slate starter is unrated —
+  2026 Week 3 CHI/Tyson Bagent (5 career starts) was driving a bet off that
+  assumption. Depth-chart names also differ from game-file names
+  ("Michael Penix Jr." vs "Michael Penix"), so anything passing a name to
+  `qb_value()` by string can hit replacement without complaining.
+- No test covers `excel.py` or `backtest.py` directly. `teamstats.py`,
+  `betlog.py` and `history.py` each have one (117+ tests total).
 - CLV for spreads converts points→probability via a per-line lookup written to
-  the workbook's `Lists` sheet; moneyline CLV uses prices. Both work, but no
-  real bets have been logged yet to validate end to end.
-- Depth-chart integration for projected starters is not built; Week 1 QBs are
-  carried forward from 2025 and will be wrong for any offseason move.
+  the workbook's `Lists` sheet; moneyline CLV uses prices. `betlog.clv_for_row`
+  reproduces the same arithmetic in Python and the two were checked to agree.
+  Still no real settled bet has exercised it end to end.
+- The **injury-burden term ships at zero** and the roster feed is reporting
+  only. See `scripts/measure_injuries.py`: pooled it looks like the best factor
+  in the repo, but it fails season-clustering, loses money in six of twelve
+  seasons, and stale absences carry more signal than fresh ones — backwards for
+  an injury story, and a sign it proxies team quality. Re-test it
+  prospectively against CLV rather than re-running the pooled regression.
 - `HFA_TEAM_DELTAS` and several config knobs are declared but unused.

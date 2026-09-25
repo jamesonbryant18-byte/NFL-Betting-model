@@ -105,6 +105,23 @@ team + QB power ratings  →  projected margin  →  cover / win probabilities
 
 ## Using it week to week
 
+The loop starts with grading last week, not with picking this week:
+
+```bash
+.venv/bin/python -W ignore scripts/review_week.py   # grade last week FIRST
+.venv/bin/python -W ignore scripts/run_week.py      # then build the new slate
+```
+
+Every week's picks are archived to `picks/<season>/` and tracked in git, scored
+later exactly as published rather than rebuilt. `review_week.py` prints each
+result next to the range an unchanged model would produce, because a 16-game
+week cannot distinguish a good model from a bad one and tuning on it destroys
+the model. It reports process errors — a wrong starting quarterback, a missing
+game — separately, because those are worth fixing whether or not the pick won.
+
+Full procedure in [OPERATING.md](OPERATING.md).
+
+
 See **[OPERATING.md](OPERATING.md)** for the weekly procedure, what to log, and
 the decision gate that determines whether this is ever worth betting.
 
@@ -119,8 +136,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python -m pytest tests/ -q              # 18 invariant tests
 ```
 
-Output lands in `output/` as a terminal report, a CSV, and an Excel workbook
-(Weekly Slate / Game Detail / Power Ratings / Bet Tracker / Reference).
+Output lands in `output/` as a terminal report, a CSV, and an Excel workbook.
 
 ## What was tested and rejected
 
@@ -232,14 +248,49 @@ src/nflmodel/
   adjustments.py  situational factors (all measured to zero — read the header)
   model.py        the prediction pipeline
   backtest.py     walk-forward validation
-  excel.py        workbook builder
   odds.py         live multi-book odds + guarded line shopping
+  depth.py        who is starting at quarterback, four sources deep
+  espn.py         live rosters and injury designations
+  roster.py       availability, and the injury-burden term (ships at zero)
+  teamstats.py    records, point differential, rosters and injured lists
+  archive.py      the tracked record of what was published, when
+  betlog.py       reading and merging the hand-entered bet tracker
+  history.py      grading every archived pick and lean
+  report.py       the straight-up ranking
+  excel.py        workbook builder
 scripts/
   tune.py                 grid search on tuning seasons only
   run_backtest.py         hold-out validation, freezes parameters
   run_week.py             weekly slate + workbook
+  review_week.py          grade last week before making new picks
   measure_situational.py  re-test situational factors
+  measure_injuries.py     re-test the injury-burden term
 ```
+
+## The workbook
+
+`run_week.py` writes `output/NFL_Model_<season>_Week<NN>.xlsx`:
+
+| sheet | what it answers |
+|---|---|
+| **Picks** | who wins every game, ranked by confidence, with the assumed starting QBs |
+| **Weekly Slate** | date, kickoff, moneylines, spread, total, model line, edge, verdict |
+| **Model Picks %** | model win probability per side against the de-vigged market price |
+| **Game Detail** | pick a game from a dropdown; see the ratings, QB terms, home field, market prior, cover/push and moneyline edges behind it |
+| **Team Stats** | record, points for/against, differential, ATS, rating, starting QB, roster by position group, injured list with expected returns |
+| **Power Ratings** | the fitted ratings entering the week |
+| **Bet Tracker** | what you would take and the number you saw; CLV and P&L calculate |
+| **Bet Log** | every pick and lean ever published, graded, with running accuracy overall and by tier |
+| **Rosters / Injuries** | the player-level detail, one row each, filterable |
+| **Reference & Glossary** | what every term means, and what the validation actually found |
+
+Every sheet has a frozen header and a filter. The Bet Tracker is the only
+irreplaceable thing in the workbook: it is merged across every weekly file and
+mirrored to `data/bet_log.csv`, so re-running never loses a hand-entered bet.
+
+Rosters and injuries come from ESPN with nflverse as a fallback, and reach
+nothing but the display — the model has exactly one player-level term, the
+quarterback.
 
 ## Data
 

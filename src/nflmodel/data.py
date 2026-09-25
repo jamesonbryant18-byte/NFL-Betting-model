@@ -84,6 +84,51 @@ def _is_stale(path: Path, ttl_hours: float = CACHE_TTL_HOURS) -> bool:
 # GAMES / SCHEDULE / CLOSING LINES
 # ─────────────────────────────────────────────
 
+def qb_identity_map(df: pd.DataFrame) -> dict[str, str]:
+    """
+    gsis_id -> the canonical spelling of that quarterback's name.
+
+    nflverse spells the same player several ways across seasons -- "Mitch
+    Trubisky" and "Mitchell Trubisky", "Gardner Minshew" and "Gardner
+    Minshew II", "Michael Penix" and "Michael Penix Jr." -- and carries a
+    handful of outright typos ("Kurt Waner", "Justin Herbery"). The player id
+    is stable where the name is not, so the id picks the name.
+
+    The canonical spelling is the most frequent one for that id, which keeps
+    the label a human recognizes while merging the history under it.
+    """
+    pairs = pd.concat([
+        df[["home_qb_id", "home_qb_name"]].rename(
+            columns={"home_qb_id": "id", "home_qb_name": "name"}),
+        df[["away_qb_id", "away_qb_name"]].rename(
+            columns={"away_qb_id": "id", "away_qb_name": "name"}),
+    ]).dropna()
+    if pairs.empty:
+        return {}
+    return (pairs.groupby("id")["name"]
+                 .agg(lambda s: s.value_counts().idxmax())
+                 .to_dict())
+
+
+def _canonicalize_qb_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Collapse every spelling of a quarterback onto one name.
+
+    This is not cosmetic. The ratings fit keys quarterbacks by NAME, so two
+    spellings of one player are two separate rated players splitting his
+    starts between them -- and each half is likelier to fall under
+    min_qb_starts and get pooled into replacement level. It also breaks the
+    join against depth charts, which use the fuller spelling.
+    """
+    canon = qb_identity_map(df)
+    if not canon:
+        return df
+    for side in ("home", "away"):
+        mapped = df[f"{side}_qb_id"].map(canon)
+        df[f"{side}_qb_name"] = mapped.fillna(df[f"{side}_qb_name"])
+    return df
+
+
 def load_games(refresh: bool = False) -> pd.DataFrame:
     """
     Every NFL game 1999-present with closing lines and context.
@@ -104,6 +149,9 @@ def load_games(refresh: bool = False) -> pd.DataFrame:
 
     df["home_team"] = _normalize_team(df["home_team"])
     df["away_team"] = _normalize_team(df["away_team"])
+
+    # One quarterback, one name -- see _canonicalize_qb_names.
+    df = _canonicalize_qb_names(df)
 
     # Derived fields used throughout the model.
     df["played"] = df["result"].notna()

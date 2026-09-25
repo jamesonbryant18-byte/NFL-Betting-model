@@ -13,6 +13,7 @@ The chain is:
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -24,8 +25,8 @@ from .config import (ADJUSTMENTS, ADVISORY_MODE, MARKET, RATINGS, STAKING,
                      Thresholds)
 from .market import (MarginModel, american_to_prob, devig, format_spread,
                      kelly_stake, prob_to_american, vig_pct)
-from .ratings import (blend_with_prior, fit_market_ratings, fit_ratings_qb,
-                      qb_value, ratings_table)
+from .ratings import (REPLACEMENT_QB, blend_with_prior, fit_market_ratings,
+                      fit_ratings_qb, qb_value, ratings_table)
 
 
 @dataclass
@@ -61,8 +62,54 @@ class GameProjection:
     stake: float
     confidence: str
 
+    # Whether the bet is on the team the model picks to win, and why, in plain
+    # words. Set in project(); blank on NO BET rows.
+    bet_type: str = ""
+    bet_why: str = ""
+    # Weekly self-tune nudge already included in projected_margin (points,
+    # home perspective). 0 when self-tune is off.
+    selftune_adj: float = 0.0
+
     def as_row(self) -> dict:
         return {k: v for k, v in self.__dict__.items()}
+
+
+WITH_PICK = "ON MODEL'S PICK"
+AGAINST_PICK = "VALUE — AGAINST PICK"
+
+
+def explain_bet(market, team, pick, pick_margin, ticket=None, odds=None,
+                model_p=None, market_p=None) -> str:
+    """
+    One sentence saying what has to happen for a bet to win and why the
+    model wants it.
+
+    `ticket` is the spread number as printed on the bet for `team` (+8.5 when
+    getting points, -3.0 when laying). `model_p` / `market_p` are that team's
+    win chance from the model and from the de-vigged price.
+    """
+    if market == "SPREAD" and ticket is not None:
+        head = f"Model: {pick} by {abs(pick_margin):.1f}."
+        n = float(ticket)
+        whole = n.is_integer()
+        if n < 0:
+            cond = f"{team} wins by {math.floor(-n) + 1}+"
+        elif n > 0:
+            k = math.ceil(n) - 1
+            cond = f"{team} wins or loses by {k} or less" if k > 0 else f"{team} wins"
+        else:
+            cond = f"{team} wins"
+        if whole and n != 0:
+            cond += f" (push at {abs(n):.0f})"
+        return f"{head} {team} {n:+g} — bet wins if {cond}."
+    if market == "MONEYLINE" and model_p is not None and market_p is not None:
+        if team == pick:
+            return (f"Model gives {team} {model_p:.0%} to win; the {odds:+.0f} price "
+                    f"only assumes {market_p:.0%}. Bet wins if {team} wins.")
+        return (f"Model still picks {pick} to win, but gives {team} {model_p:.0%} — "
+                f"the {odds:+.0f} price assumes only {market_p:.0%}. "
+                f"Bet wins only if {team} pulls the upset.")
+    return ""
 
 
 class NFLModel:
@@ -89,6 +136,9 @@ class NFLModel:
         self.hfa: float = 0.0
         self.margin_model = MarginModel(sigma=market_cfg.margin_sigma)
         self.market_prior_weight_used = 0.0
+        # Weekly self-tune (selftune.live_corrections). Empty = frozen model.
+        self.team_adjust: dict[str, float] = {}
+        self.max_tune: float | None = None
 
     # -- fitting -----------------------------------------------------------
 
@@ -161,6 +211,59 @@ class NFLModel:
         """A team's rating including its quarterback."""
         return self.team_ratings.get(team, 0.0) + qb_value(self.qb_ratings, qb)
 
+    def components(self, game) -> dict:
+        """
+        The pieces a projection is made of, for display only.
+
+        project() collapses team rating, quarterback, home field and the
+        market prior into one number. A reader deciding whether to trust a
+        lean needs to see those pieces separately -- in Week 1 most of the
+        "rating" is the market's own preseason opinion, and a quarterback the
+        fit has never seen sits at replacement level whether or not that is
+        true of him. This recomputes exactly the terms project() uses and
+        returns them unblended. Nothing here feeds back into a projection;
+        it is additive and changes no math.
+
+        Market probabilities are de-vigged the same way project() does, so the
+        edge shown on the workbook is the edge the model actually acted on.
+        """
+        g = game if isinstance(game, dict) else game.to_dict()
+        home, away = g["home_team"], g["away_team"]
+        neutral = bool(g.get("neutral", False))
+        home_qb, away_qb = g.get("home_qb_name"), g.get("away_qb_name")
+
+        def known(name) -> bool:
+            return isinstance(name, str) and name in self.qb_ratings
+
+        h_ml, a_ml = g.get("home_moneyline"), g.get("away_moneyline")
+        h_ml = None if h_ml is None or pd.isna(h_ml) else float(h_ml)
+        a_ml = None if a_ml is None or pd.isna(a_ml) else float(a_ml)
+        if h_ml is not None and a_ml is not None:
+            fair_h, fair_a = devig(h_ml, a_ml, self.market_cfg.devig_method)
+            vig = vig_pct(h_ml, a_ml)
+        else:
+            fair_h = fair_a = vig = float("nan")
+
+        return {
+            "home_team_rating": float(self.team_ratings.get(home, 0.0)),
+            "away_team_rating": float(self.team_ratings.get(away, 0.0)),
+            "home_qb": home_qb if isinstance(home_qb, str) else "",
+            "away_qb": away_qb if isinstance(away_qb, str) else "",
+            "home_qb_adj": float(qb_value(self.qb_ratings, home_qb)),
+            "away_qb_adj": float(qb_value(self.qb_ratings, away_qb)),
+            "home_qb_known": known(home_qb),
+            "away_qb_known": known(away_qb),
+            "replacement_qb_value": float(self.qb_ratings.get(REPLACEMENT_QB, 0.0)),
+            "home_strength": float(self.strength(home, home_qb)),
+            "away_strength": float(self.strength(away, away_qb)),
+            "hfa_used": 0.0 if neutral else float(self.hfa),
+            "neutral": neutral,
+            "market_prior_weight": float(self.market_prior_weight_used),
+            "market_home_prob": float(fair_h),
+            "market_away_prob": float(fair_a),
+            "vig_pct": float(vig),
+        }
+
     # -- projection --------------------------------------------------------
 
     def project(self, game) -> GameProjection:
@@ -175,7 +278,10 @@ class NFLModel:
             + (0.0 if neutral else self.hfa)
         )
         adj = total_adjustment(g, self.adjust_cfg, projected_margin=base)
-        projected = base + adj
+        tune = self.team_adjust.get(home, 0.0) - self.team_adjust.get(away, 0.0)
+        if self.max_tune is not None:
+            tune = float(np.clip(tune, -self.max_tune, self.max_tune))
+        projected = base + adj + tune
 
         # ── Spread ──
         line = g.get("spread_line")
@@ -210,6 +316,23 @@ class NFLModel:
             hso, aso,
         )
 
+        # Tag the bet against the straight-up pick (report.straight_up_ranking
+        # picks by win probability, so this does too).
+        pick_home = home_wp >= 0.5
+        pick = home if pick_home else away
+        side_team = rec["bet_side"].split()[0] if rec["bet_side"] else ""
+        if side_team:
+            bet_home = side_team == home
+            rec["bet_type"] = WITH_PICK if bet_home == pick_home else AGAINST_PICK
+            rec["bet_why"] = explain_bet(
+                rec["bet_market"], side_team, pick,
+                projected if pick_home else -projected,
+                ticket=(None if line is None else (-line if bet_home else line)),
+                odds=rec["bet_odds"],
+                model_p=home_wp if bet_home else 1.0 - home_wp,
+                market_p=(fair_h if bet_home else fair_a),
+            )
+
         return GameProjection(
             game_id=g.get("game_id", ""),
             home_team=home, away_team=away, week=int(g.get("week", 0)),
@@ -224,6 +347,7 @@ class NFLModel:
             home_ml_fair=prob_to_american(home_wp),
             away_ml_fair=prob_to_american(1.0 - home_wp),
             ml_edge_home=ml_edge_h, ml_edge_away=ml_edge_a,
+            selftune_adj=tune,
             **rec,
         )
 
@@ -379,7 +503,7 @@ class NFLModel:
         # placing a bet the model declined.
         killed = df["stake"] <= 0
         df.loc[killed, "recommendation"] = "NO BET"
-        df.loc[killed, ["bet_market", "bet_side"]] = ""
+        df.loc[killed, ["bet_market", "bet_side", "bet_type", "bet_why"]] = ""
         df.loc[killed, "bet_odds"] = 0.0
 
         return df

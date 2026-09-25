@@ -1,0 +1,175 @@
+"""
+archive.py — the permanent record of what the model said, and when.
+
+output/ is gitignored and every file in it can be rebuilt from nflverse. That
+is fine for a workbook and fatal for a prediction. Rebuilding Week 3's picks in
+December scores them against lines the model never saw, injuries that had not
+happened, and a ratings fit trained on the games being predicted. The rebuilt
+file would look like a forecast and would actually be a memory.
+
+So the picks are written once, to a tracked directory, and never regenerated.
+An archived week is append-only: re-running the same week refuses to overwrite
+a file whose games have already kicked off.
+
+Layout:
+    picks/<season>/week<NN>_picks.csv    straight-up ranking, as published
+    picks/<season>/week<NN>_leans.csv    where the model disagreed with a price
+    picks/<season>/week<NN>_meta.json    when it ran, which QBs it assumed
+"""
+
+from __future__ import annotations
+
+import json
+import pathlib
+from datetime import datetime, timezone
+
+import pandas as pd
+
+from .config import REPO_ROOT
+
+ARCHIVE_DIR = REPO_ROOT / "picks"
+
+# Columns of the slate worth keeping. The full slate has intermediate
+# probability columns that are reproducible from these.
+LEAN_COLS = [
+    "game_id", "home_team", "away_team", "spread_line", "projected_margin",
+    "fair_spread", "spread_edge_pts", "home_win_prob", "home_ml", "away_ml",
+    "ml_edge_home", "ml_edge_away", "recommendation", "bet_market",
+    "bet_side", "bet_odds", "confidence", "bet_type", "bet_why",
+    # Live-book provenance. Without these the CLV measurement compares the
+    # close against one book's Tuesday number rather than the best price
+    # actually on offer, which understates what the week was really worth.
+    # Absent when the odds feed was down or --no-live-odds was passed.
+    "odds_source", "n_books", "stored_spread_line",
+    "best_home_spread", "best_home_spread_book",
+    "best_away_spread", "best_away_spread_book",
+    "best_home_ml", "best_home_ml_book",
+    "best_away_ml", "best_away_ml_book",
+    "selftune_adj",
+]
+
+
+def week_dir(season: int) -> "pathlib.Path":
+    d = ARCHIVE_DIR / str(season)
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def kickoff_has_passed(games, season: int, week: int) -> bool:
+    """
+    Has the first game of this week already started?
+
+    Used to refuse archiving a week after the fact. The check is on the
+    EARLIEST kickoff, not the last: once any game has begun, a set of picks
+    written now is no longer a forecast for the full slate.
+    """
+    if games is None or not len(games):
+        return False
+    try:
+        wk = games[(games["season"] == season) & (games["week"] == week)]
+        if wk.empty or wk["gameday"].isna().all():
+            return False
+        first = pd.to_datetime(wk["gameday"]).min()
+        return bool(pd.Timestamp(first) < pd.Timestamp(datetime.now().date()))
+    except Exception:
+        return False
+
+
+def archive_week(ranked, slate, starters, qb_source, season: int, week: int,
+                 force: bool = False, games=None) -> bool:
+    """
+    Write this week's picks to the tracked archive.
+
+    Returns True if written. Refuses in two cases, both for the same reason --
+    the archive is the only record that can ever settle whether this model
+    works, and it is worth nothing if it can be written after the fact:
+
+      1. The week is locked, i.e. review_week.py has already graded it.
+      2. The week's first game has already kicked off and no archive exists.
+         That is a REPLAY. Its picks were generated with today's code against
+         a slate whose results are known, and while the ratings fit is
+         leak-guarded, the picks were never published and never risked
+         anything. Letting them into picks/ would manufacture a track record
+         out of hindsight and the Bet Log would then show it as real history.
+
+    Re-running before kickoff (lines moved, a starter changed) does update the
+    archive, because that is still a forecast. `force=True` overrides both
+    refusals and exists for backfilling a week that genuinely was published.
+    """
+    d = week_dir(season)
+    picks_path = d / f"week{week:02d}_picks.csv"
+    meta_path = d / f"week{week:02d}_meta.json"
+
+    if not force and not picks_path.exists() and kickoff_has_passed(games, season, week):
+        print(f'  archive: {season} week {week} has already kicked off and was '
+              f'never published — not archiving a rebuilt prediction. '
+              f'(scripts/run_week.py --archive-anyway overrides.)')
+        return False
+
+    if picks_path.exists() and not force:
+        try:
+            prior = json.loads(meta_path.read_text())
+            if prior.get("locked"):
+                print(f'  archive: week {week} is locked (games have started) '
+                      f'— not overwriting {picks_path.name}')
+                return False
+        except Exception:
+            pass
+
+    keep = [c for c in LEAN_COLS if c in slate.columns]
+    # LEAN in advisory mode, BET in decision mode: both are the model's priced call.
+    leans = slate[slate["recommendation"].str.match(r"^(LEAN|BET) ")][keep]
+    leans_path = d / f"week{week:02d}_leans.csv"
+
+    # A mid-week re-run only covers games not yet played. Carry the published
+    # rows for the rest forward untouched, so Thursday's pick is never lost.
+    if picks_path.exists() and not force:
+        prior = pd.read_csv(picks_path)
+        carried = prior[~prior["matchup"].isin(ranked["matchup"])]
+        if len(carried):
+            ranked = pd.concat([carried, ranked], ignore_index=True)
+        if leans_path.exists():
+            pl = pd.read_csv(leans_path)
+            pl = pl[~pl["game_id"].isin(slate["game_id"])]
+            if len(pl):
+                leans = pd.concat([pl, leans], ignore_index=True)
+
+    ranked.to_csv(picks_path, index=False)
+    leans.to_csv(leans_path, index=False)
+
+    meta = {
+        "season": season,
+        "week": week,
+        "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "n_games": int(len(ranked)),
+        "n_leans": int(len(leans)),
+        "starters": {t: starters[t] for t in sorted(starters)},
+        "starter_source": {t: qb_source.get(t, "?") for t in sorted(starters)},
+        # Set by review_week.py once the games are played. Until then the week
+        # is still a forecast and may legitimately be refreshed.
+        "locked": False,
+    }
+    meta_path.write_text(json.dumps(meta, indent=2) + "\n")
+    print(f'  archived: picks/{season}/week{week:02d}_*.csv')
+    return True
+
+
+def load_archived(season: int, week: int):
+    """The picks as published, or (None, None) if that week was never run."""
+    d = ARCHIVE_DIR / str(season)
+    p, l = d / f"week{week:02d}_picks.csv", d / f"week{week:02d}_leans.csv"
+    if not p.exists():
+        return None, None
+    picks = pd.read_csv(p)
+    leans = pd.read_csv(l) if l.exists() else pd.DataFrame()
+    return picks, leans
+
+
+def lock_week(season: int, week: int) -> None:
+    """Mark a week final so a later run cannot quietly rewrite its picks."""
+    meta_path = ARCHIVE_DIR / str(season) / f"week{week:02d}_meta.json"
+    if not meta_path.exists():
+        return
+    meta = json.loads(meta_path.read_text())
+    meta["locked"] = True
+    meta_path.write_text(json.dumps(meta, indent=2) + "\n")
