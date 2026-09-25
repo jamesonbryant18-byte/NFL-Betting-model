@@ -288,7 +288,7 @@ tracker from that CSV.
 - All lines and prices come from **FanDuel only** (`config.MY_BOOK`). No
   consensus, no shopping table. A game FanDuel is not carrying falls back to
   the stored line with a WARNING — check FanDuel by hand for that one.
-- Weekly self-tune is ON (`config.SELFTUNE`, max 1 pt per game). The SELF-TUNE
+- Weekly self-tune is ON (`config.SELFTUNE`): learns from EPA margin, max 0.5 pt per game. The SELF-TUNE
   block in the run output shows every nudge. See IMPROVEMENT.md for what it
   is and is not worth.
 - Re-running mid-week (after TNF) re-prices only games not yet started; the

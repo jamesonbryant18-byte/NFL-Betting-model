@@ -98,3 +98,26 @@ def test_blowout_is_clipped_before_it_is_learned(tmp_path):
     corr, _ = live_corrections(g, 2026, 3, alpha=1.0, cap=99.0,
                                resid_clip=7.0, archive_dir=tmp_path)
     assert abs(corr["BBB"] + 7.0) < 1e-9 and abs(corr["AAA"] - 7.0) < 1e-9
+
+
+def test_epa_signal_learns_from_play_quality_not_the_score(tmp_path):
+    pd.DataFrame([dict(matchup="AAA @ BBB", winner="BBB", proj_margin=3.0)]) \
+        .to_csv(tmp_path / "week01_picks.csv", index=False)
+    g = _games()
+    g["game_id"] = ["g1", "g2"]
+    # BBB won by 20 (score says +17 miss) but only out-played AAA by 5 EPA
+    corr, used = live_corrections(g, 2026, 3, alpha=1.0, cap=99.0,
+                                  archive_dir=tmp_path, signal="epa",
+                                  epa_margins={"g1": 5.0})
+    assert used.residual.tolist() == [2.0]
+    assert abs(corr["BBB"] - 2.0) < 1e-9
+
+
+def test_epa_signal_skips_games_without_play_by_play(tmp_path):
+    pd.DataFrame([dict(matchup="AAA @ BBB", winner="BBB", proj_margin=3.0)]) \
+        .to_csv(tmp_path / "week01_picks.csv", index=False)
+    g = _games()
+    g["game_id"] = ["g1", "g2"]
+    corr, used = live_corrections(g, 2026, 3, alpha=1.0, archive_dir=tmp_path,
+                                  signal="epa", epa_margins={})
+    assert used.empty and all(v == 0 for v in corr.values())

@@ -232,10 +232,11 @@ def main():
         corr, tune_used = live_corrections(
             games, args.season, week, alpha=SELFTUNE['alpha'],
             half_life=SELFTUNE['half_life'], cap=SELFTUNE['cap'],
-            resid_clip=SELFTUNE.get('resid_clip'))
+            resid_clip=SELFTUNE.get('resid_clip'),
+            signal=SELFTUNE.get('signal', 'score'))
         model.team_adjust = corr
         model.max_tune = SELFTUNE.get('max_game_adj')
-        print(f"self-tune: alpha {SELFTUNE['alpha']}, max "
+        print(f"self-tune: {SELFTUNE.get('signal', 'score')} signal, alpha {SELFTUNE['alpha']}, max "
               f"{SELFTUNE.get('max_game_adj')} pt/game, from "
               f"{len(tune_used)} graded game(s) this season")
 

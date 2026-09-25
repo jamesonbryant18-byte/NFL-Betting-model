@@ -198,11 +198,20 @@ def walk_forward_adaptive(
 
 def live_corrections(games: pd.DataFrame, season: int, week: int,
                      alpha: float, half_life: float = 3.0, cap: float = 7.0,
-                     resid_clip: float | None = None, archive_dir=None):
+                     resid_clip: float | None = None, archive_dir=None,
+                     signal: str = "score", epa_margins: dict | None = None):
     """
     The live version of the loop above: per-team corrections for `week`, built
     from this season's ARCHIVED projections (what the model actually published)
     against the actual results of weeks strictly before `week`.
+
+    signal="score" learns from (actual margin - projection). signal="epa"
+    learns from (EPA margin - projection): how well the teams actually PLAYED,
+    play by play, rather than the scoreboard. The ratings are re-fit on every
+    score each week, so a score-based nudge counts last Sunday twice; EPA is
+    information the ratings do not use. See IMPROVEMENT.md (2026-09-25).
+    `epa_margins` maps game_id -> home offensive EPA sum minus away's; built
+    from play-by-play when not given.
 
     Returns (team -> points to add, table of the residuals used). Teams with no
     graded games get nothing. The per-game ceiling is applied by the caller,
@@ -215,6 +224,8 @@ def live_corrections(games: pd.DataFrame, season: int, week: int,
     used = []
     played = games[(games.season == season) & (games.week < week)
                    & games.played & games.result.notna()]
+    if signal == "epa" and epa_margins is None:
+        epa_margins = epa_margins_for(season)
     for wk in sorted(played.week.unique()):
         f = d / f"week{int(wk):02d}_picks.csv"
         if not f.exists():
@@ -228,7 +239,13 @@ def live_corrections(games: pd.DataFrame, season: int, week: int,
                 continue
             # picks.csv is winner-perspective; convert to home margin.
             proj = float(r.proj_margin) if str(r.winner) == home else -float(r.proj_margin)
-            resid = float(g.result.iloc[0]) - proj
+            if signal == "epa":
+                target = (epa_margins or {}).get(g.game_id.iloc[0])
+                if target is None or pd.isna(target):
+                    continue
+            else:
+                target = float(g.result.iloc[0])
+            resid = float(target) - proj
             mem.observe(float(wk), home, away, resid)
             used.append(dict(week=int(wk), home=home, away=away,
                              projected=proj, actual=float(g.result.iloc[0]),
@@ -236,3 +253,13 @@ def live_corrections(games: pd.DataFrame, season: int, week: int,
     teams = set(games.home_team) | set(games.away_team)
     corr = {t: alpha * mem.correction(t, float(week)) for t in teams}
     return corr, pd.DataFrame(used)
+
+
+def epa_margins_for(season: int) -> dict:
+    """game_id -> home offensive EPA sum minus away offensive EPA sum."""
+    from .data import load_pbp
+    p = load_pbp(season)
+    sc = p[p.play_type.isin(["pass", "run"]) & p.posteam.notna() & p.epa.notna()]
+    tot = sc.groupby(["game_id", "posteam", "home_team"]).epa.sum().reset_index()
+    tot["sign"] = np.where(tot.posteam == tot.home_team, 1.0, -1.0)
+    return (tot.epa * tot.sign).groupby(tot.game_id).sum().to_dict()

@@ -244,18 +244,18 @@ BOOKS: list = []
 # always a matched pair from one book. None restores consensus + shopping.
 MY_BOOK = "fanduel"  # or None
 
-# Weekly self-tune, live since 2026-09-25. Per-team EWMA of this season's
-# prediction error (src/nflmodel/selftune.py), deliberately gentle:
-#   alpha        0.15  -- moves 15% toward recent error, not 50-100%
-#   max_game_adj 1.0   -- no game's projection moves more than 1 point
-# Hold-out 2021-25 at these settings: MAE 10.075 vs 10.079 frozen (noise-level,
-# not a win), average move 0.58 pts. The aggressive settings (alpha >= 0.25,
-# no ceiling) measurably hurt; see IMPROVEMENT.md. alpha = 0 turns it off.
-#   resid_clip   7.0   -- one game can teach at most a 7-point miss, so a
-#                        35-14 upset does not rewrite a team (added 2026-09-25;
-#                        improved MAE on BOTH the hold-out and tuning blocks)
-SELFTUNE = dict(alpha=0.15, half_life=3.0, cap=7.0, max_game_adj=1.0,
-                resid_clip=7.0)
+# Weekly self-tune, live since 2026-09-25. Learns from each team's EPA margin
+# (how well it actually played, play by play) vs what the model projected --
+# NOT from the final score, which the weekly ratings re-fit already uses.
+#   signal       "epa"  -- "score" is the old version
+#   alpha        1.0    -- full strength is safe here; the ceiling sets the dose
+#   max_game_adj 0.5    -- no game moves more than half a point
+#   resid_clip   14.0   -- one game can teach at most a 14-point EPA miss
+# Measured (scripts/adjust_lab.py, 2013-2020 pick, 2021-2025 confirm): at a
+# 0.5-pt ceiling all 27 EPA variants improved hold-out accuracy; bigger
+# ceilings made it worse. Value picks were NOT improved. See IMPROVEMENT.md.
+SELFTUNE = dict(signal="epa", alpha=1.0, half_life=3.0, cap=99.0,
+                max_game_adj=0.5, resid_clip=14.0)
 
 # ─────────────────────────────────────────────
 # VALIDATION BAR

@@ -195,6 +195,55 @@ ATL 35-14 over a 6-point GB favourite) cannot rewrite a team. Swept clip
   chose to run the tune on everything. Recorded here so the choice is clear
   when CLV is reviewed.
 
+### SHIPPED — self-tune learns from EPA, not the score (2026-09-25)
+
+Why the score-based tune could not work: the ratings are re-fit on every game
+every week, so last Sunday's score is already in them. Nudging by the same
+score counts it twice. An adjustment can only help if it learns from
+information the ratings do not use.
+
+`scripts/adjust_lab.py` (on frozen walk-forward projections from
+`scripts/build_base_projections.py`) tested six signals × shrinkage × ceiling
+× strength = 180 configs, choosing on 2013-2020 and confirming on 2021-2025:
+score, score minus turnover luck, score minus fumble luck, EPA margin,
+EPA/score blend, and result vs the closing line.
+
+- Only **EPA margin** (how well each team played, play by play) improved
+  accuracy on both blocks broadly. Fine grid (half-life 3/6/10, clip 7/14/none,
+  alpha 0.5/1/2) by per-game ceiling, share of 27 configs improving hold-out MAE:
+  **0.5 pt: 27/27** (mean −0.012) · 1.0: 15/27 · 1.5: 6/27 · 2.0: 1/27.
+- The "diminishing returns" is about the SIZE of the move, not the strength of
+  learning. At a 0.5-pt ceiling alpha 0.5, 1 and 2 are indistinguishable.
+- Value picks (ATS ≥ 1.5 vs close) are **not** improved: 10/27 configs better
+  on hold-out, mean −0.23 pts. An early hl3/clip7 slice showed +0.5-0.8 ATS; the
+  grid showed it was a lucky slice.
+- Per-season: 7 of 13 seasons improve. Shuffling which team gets each EPA
+  residual makes it clearly worse (40/40 shuffles), so the signal is real
+  information — just small.
+
+Shipped: `SELFTUNE = signal epa, alpha 1.0, half-life 3, clip 14, ceiling 0.5`.
+
+### REJECTED — weather × team style (2026-09-25)
+
+Jameson's hypothesis: a pass-reliant offense with a weak run game
+underperforms in rain/snow/wind. `scripts/fetch_weather_history.py` pulls the
+gamebook weather line (precipitation) for 2016-2025; `scripts/weather_style_test.py`
+builds each offense's pre-game pass-minus-rush EPA/play and tests
+bad-weather × style-difference against the model's and the market's misses.
+
+| | 2016-20 (fit) | 2021-25 (hold-out) |
+|---|---|---|
+| bad weather (precip or wind ≥ 15), n | 177 | 164 |
+| slope vs model miss | **+13.1 (t +2.1)** — pass teams did BETTER | −1.9 (t −0.3) |
+| precip only, n | 81 | 78 |
+| slope vs model miss | +6.5 (t +0.8) | −8.3 (t −0.9) |
+
+Opposite of the hypothesis in the fit block, gone in the hold-out; applying
+the fit slope made hold-out bad-weather MAE worse (9.99 → 10.29). Also checked
+"skip value bets in bad weather": 53.6% in 2016-20, 42.3% in 2021-25 — does
+not replicate. Nothing shipped. (Cold ≤ 32°F showed 39.6% on 53 value picks;
+post-hoc and small — watch, don't act.)
+
 ### REJECTED — shrink or extend the model's deviations (2026-09-22)
 
 The claim the flagged segments actually encode. Discovery block 2010-2020,
