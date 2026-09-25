@@ -88,3 +88,13 @@ def test_midweek_rerun_keeps_published_rows_for_played_games(tmp_path, monkeypat
     assert out.loc["ATL @ GB", "proj_margin"] == 4.0     # published, untouched
     assert out.loc["KC @ MIA", "proj_margin"] == 7.0     # re-priced
     assert pd.read_csv(tmp_path / "week03_leans.csv").game_id.tolist() == ["2026_03_ATL_GB"]
+
+
+def test_blowout_is_clipped_before_it_is_learned(tmp_path):
+    pd.DataFrame([dict(matchup="AAA @ BBB", winner="BBB", proj_margin=3.0)]) \
+        .to_csv(tmp_path / "week01_picks.csv", index=False)
+    g = _games()
+    g.loc[0, "result"] = -30.0                      # 33-point miss
+    corr, _ = live_corrections(g, 2026, 3, alpha=1.0, cap=99.0,
+                               resid_clip=7.0, archive_dir=tmp_path)
+    assert abs(corr["BBB"] + 7.0) < 1e-9 and abs(corr["AAA"] - 7.0) < 1e-9

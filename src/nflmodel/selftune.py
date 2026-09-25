@@ -61,17 +61,24 @@ from .ratings import fit_ratings_qb, qb_value
 class ResidualMemory:
     """Per-team exponentially-weighted memory of recent prediction error."""
 
-    def __init__(self, half_life: float = 3.0, cap: float = 7.0):
+    def __init__(self, half_life: float = 3.0, cap: float = 7.0,
+                 resid_clip: float | None = None):
         if half_life <= 0:
             raise ValueError("half_life must be positive")
         self.decay = 0.5 ** (1.0 / half_life)
         self.cap = cap
+        # Per-game ceiling on what one result can teach. A 35-14 upset of a
+        # 6-point favourite is a 27-point miss; clipped at 7 it counts as
+        # "the model was off by a touchdown", not as a new truth about a team.
+        self.resid_clip = resid_clip
         # team -> list of (time_index, signed_residual)
         self._obs: dict[str, list[tuple[float, float]]] = defaultdict(list)
         self._league: list[tuple[float, float]] = []
 
     def observe(self, t: float, home: str, away: str, residual: float) -> None:
         """Record one played game's residual against both teams."""
+        if self.resid_clip is not None:
+            residual = float(np.clip(residual, -self.resid_clip, self.resid_clip))
         self._obs[home].append((t, residual))
         self._obs[away].append((t, -residual))
         self._league.append((t, residual))
@@ -112,6 +119,7 @@ def walk_forward_adaptive(
     half_life: float = 3.0,
     cap: float = 7.0,
     max_adj: float | None = None,
+    resid_clip: float | None = None,
     adapt_hfa: bool = False,
     hfa_alpha: float = 0.5,
     carry_offseason: bool = False,
@@ -127,7 +135,7 @@ def walk_forward_adaptive(
     from .model import NFLModel
 
     df = df.sort_values(["season", "week"]).reset_index(drop=True)
-    mem = ResidualMemory(half_life=half_life, cap=cap)
+    mem = ResidualMemory(half_life=half_life, cap=cap, resid_clip=resid_clip)
     rows = []
 
     for season in seasons:
@@ -190,7 +198,7 @@ def walk_forward_adaptive(
 
 def live_corrections(games: pd.DataFrame, season: int, week: int,
                      alpha: float, half_life: float = 3.0, cap: float = 7.0,
-                     archive_dir=None):
+                     resid_clip: float | None = None, archive_dir=None):
     """
     The live version of the loop above: per-team corrections for `week`, built
     from this season's ARCHIVED projections (what the model actually published)
@@ -203,7 +211,7 @@ def live_corrections(games: pd.DataFrame, season: int, week: int,
     from .archive import week_dir
 
     d = archive_dir or week_dir(season)
-    mem = ResidualMemory(half_life=half_life, cap=cap)
+    mem = ResidualMemory(half_life=half_life, cap=cap, resid_clip=resid_clip)
     used = []
     played = games[(games.season == season) & (games.week < week)
                    & games.played & games.result.notna()]

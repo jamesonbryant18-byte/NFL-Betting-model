@@ -251,7 +251,11 @@ MY_BOOK = "fanduel"  # or None
 # Hold-out 2021-25 at these settings: MAE 10.075 vs 10.079 frozen (noise-level,
 # not a win), average move 0.58 pts. The aggressive settings (alpha >= 0.25,
 # no ceiling) measurably hurt; see IMPROVEMENT.md. alpha = 0 turns it off.
-SELFTUNE = dict(alpha=0.15, half_life=3.0, cap=7.0, max_game_adj=1.0)
+#   resid_clip   7.0   -- one game can teach at most a 7-point miss, so a
+#                        35-14 upset does not rewrite a team (added 2026-09-25;
+#                        improved MAE on BOTH the hold-out and tuning blocks)
+SELFTUNE = dict(alpha=0.15, half_life=3.0, cap=7.0, max_game_adj=1.0,
+                resid_clip=7.0)
 
 # ─────────────────────────────────────────────
 # VALIDATION BAR

@@ -180,6 +180,21 @@ Week 3: a 1-point nudge flips marginal games across the bet threshold (added
 ARI ML, NE +2.5, IND ML; dropped PIT +3.5; MIA spread became MIA ML).
 Set `alpha = 0` to turn it off.
 
+**Blowout guard, same day (`resid_clip = 7`).** Each game's miss is clipped
+to ±7 points before the memory learns from it, so one upset (Week 3 TNF,
+ATL 35-14 over a 6-point GB favourite) cannot rewrite a team. Swept clip
+{4, 7, 10, 14} × alpha {0.1–0.4} with the 1-pt ceiling:
+
+- MAE: clipping helps a little in BOTH blocks (alpha 0.15, clip 7: hold-out
+  10.073 vs 10.079; tuning 10.138 vs 10.148). Kept.
+- Value picks (ATS on edges ≥ 1.5 vs the close): no setting beat the frozen
+  model on the hold-out (48.5–50.1% vs 50.13%); on the tuning seasons all
+  settings were slightly above (52.7–53.4% vs 52.5%). Opposite signs across
+  blocks, ±1.8% standard error: **the self-tune does not improve value bets.**
+- Offered "tune the winners only, value bets on the frozen model"; Jameson
+  chose to run the tune on everything. Recorded here so the choice is clear
+  when CLV is reviewed.
+
 ### REJECTED — shrink or extend the model's deviations (2026-09-22)
 
 The claim the flagged segments actually encode. Discovery block 2010-2020,

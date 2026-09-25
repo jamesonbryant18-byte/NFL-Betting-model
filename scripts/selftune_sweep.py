@@ -83,6 +83,8 @@ def main():
     ap.add_argument('--cap', type=float, default=7.0)
     ap.add_argument('--max-adj', type=float, default=None,
                     help='ceiling on the per-game correction, in points')
+    ap.add_argument('--resid-clip', type=float, default=None,
+                    help='ceiling on what one game can teach, in points')
     ap.add_argument('--adapt-hfa', action='store_true')
     ap.add_argument('--carry-offseason', action='store_true')
     ap.add_argument('--fast', action='store_true',
@@ -122,7 +124,7 @@ def main():
         bt = walk_forward_adaptive(
             df, seasons, params=params, qb_lambda=qb_lambda,
             alpha=a, half_life=args.half_life, cap=args.cap,
-            max_adj=args.max_adj,
+            max_adj=args.max_adj, resid_clip=args.resid_clip,
             adapt_hfa=args.adapt_hfa, carry_offseason=args.carry_offseason,
             deployed=not args.fast, verbose=False)
         s = score(bt)

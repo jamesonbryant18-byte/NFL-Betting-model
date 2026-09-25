@@ -231,7 +231,8 @@ def main():
         from nflmodel.selftune import live_corrections
         corr, tune_used = live_corrections(
             games, args.season, week, alpha=SELFTUNE['alpha'],
-            half_life=SELFTUNE['half_life'], cap=SELFTUNE['cap'])
+            half_life=SELFTUNE['half_life'], cap=SELFTUNE['cap'],
+            resid_clip=SELFTUNE.get('resid_clip'))
         model.team_adjust = corr
         model.max_tune = SELFTUNE.get('max_game_adj')
         print(f"self-tune: alpha {SELFTUNE['alpha']}, max "
