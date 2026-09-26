@@ -121,3 +121,30 @@ def test_epa_signal_skips_games_without_play_by_play(tmp_path):
     corr, used = live_corrections(g, 2026, 3, alpha=1.0, archive_dir=tmp_path,
                                   signal="epa", epa_margins={})
     assert used.empty and all(v == 0 for v in corr.values())
+
+
+def test_selftune_learns_against_its_own_projection_not_the_trend_fix(tmp_path):
+    pd.DataFrame([dict(matchup="AAA @ BBB", winner="BBB", proj_margin=5.0, trend_adj=2.0)]) \
+        .to_csv(tmp_path / "week01_picks.csv", index=False)
+    corr, used = live_corrections(_games(), 2026, 3, alpha=1.0, cap=99.0, archive_dir=tmp_path)
+    assert used.projected.tolist() == [3.0]            # 5.0 shipped minus the 2.0 trend fix
+
+
+def test_archive_keeps_pre_fix_margin_and_carried_publish_time(tmp_path, monkeypatch):
+    import json
+    monkeypatch.setattr(archive, "week_dir", lambda s: tmp_path)
+    cols = dict(rank=1, loser="x", at_home=True, win_prob=.6, moneyline=-150,
+                market_favorite=True, confidence="lean", consistent=True)
+    pd.DataFrame([dict(matchup="ATL @ GB", winner="GB", proj_margin=6.2, **cols)]) \
+        .to_csv(tmp_path / "week03_picks.csv", index=False)
+    (tmp_path / "week03_meta.json").write_text(json.dumps(
+        {"generated_utc": "2026-09-22T19:43:23+00:00", "locked": False}))
+    ranked = pd.DataFrame([dict(matchup="KC @ MIA", winner="KC", proj_margin=10.4, **cols)])
+    slate = pd.DataFrame([dict(game_id="2026_03_KC_MIA", home_team="MIA", away_team="KC",
+                               recommendation="NO BET", projected_margin=-10.4,
+                               trend_adj=-1.5, selftune_adj=-0.5, spread_line=-10.5)])
+    archive.archive_week(ranked, slate, {}, {}, 2026, 3)
+    out = pd.read_csv(tmp_path / "week03_picks.csv").set_index("matchup")
+    assert out.loc["KC @ MIA", "raw_margin"] == -8.4
+    meta = json.loads((tmp_path / "week03_meta.json").read_text())
+    assert meta["carried"]["ATL @ GB"]["generated_utc"] == "2026-09-22T19:43:23+00:00"

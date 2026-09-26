@@ -418,6 +418,11 @@ def build_history(games: Optional[pd.DataFrame], tracker_rows,
             lean = lean_idx.get((home, away))
             lean_result = grade_lean(lean, game) if lean is not None else ""
 
+            # A game carried forward by a mid-week rerun keeps the time it
+            # was actually published, not the rerun's.
+            carried = (meta.get("carried") or {}).get(matchup) or {}
+            row_generated = _text(carried.get("generated_utc") or generated)
+
             matched = match_bets(bets, season, week, matchup, gameday)
             first = matched[0] if matched else None
             clv_pts, clv_prob = clv_for_row(first, pts_table) if first else (None, None)
@@ -460,7 +465,7 @@ def build_history(games: Optional[pd.DataFrame], tracker_rows,
                 "clv_prob": clv_prob,
                 "model_edge": first["model_edge"] if first else None,
                 "locked": locked,
-                "generated_utc": generated,
+                "generated_utc": row_generated,
             })
 
     hist = pd.DataFrame(rows, columns=HISTORY_COLUMNS)

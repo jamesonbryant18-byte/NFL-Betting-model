@@ -239,6 +239,12 @@ def live_corrections(games: pd.DataFrame, season: int, week: int,
                 continue
             # picks.csv is winner-perspective; convert to home margin.
             proj = float(r.proj_margin) if str(r.winner) == home else -float(r.proj_margin)
+            # Learn against what the self-tune itself shipped (its closed loop),
+            # not against the trend fixes layered on top -- otherwise the nudge
+            # spends its budget undoing them.
+            ta = r.get("trend_adj") if hasattr(r, "get") else None
+            if ta is not None and pd.notna(ta):
+                proj -= float(ta)
             if signal == "epa":
                 target = (epa_margins or {}).get(g.game_id.iloc[0])
                 if target is None or pd.isna(target):

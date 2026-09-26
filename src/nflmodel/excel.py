@@ -326,6 +326,7 @@ def build_workbook(
     team_stats: dict | None = None,
     games: pd.DataFrame | None = None,
     model_meta: dict | None = None,
+    trends_state: dict | None = None,
 ) -> str:
     log_path = REPO_ROOT / "data" / "bet_log.csv"
     model_meta = model_meta or {}
@@ -357,6 +358,7 @@ def build_workbook(
     _sheet_ratings(wb, ratings, season, week)
     _sheet_tracker(wb, preserved)
     _sheet_history(wb, history, season, week)
+    _sheet_miss_report(wb, trends_state)
     _sheet_rosters(wb, team_stats)
     _sheet_injuries(wb, team_stats)
     _sheet_reference(wb, backtest_summary, model_meta)
@@ -410,6 +412,8 @@ MODEL_DATA_COLS = [
     ("projected_margin", "Projected margin (home − away)"), ("fair_spread", "Fair spread"),
     ("model_line", "Model line"), ("spread_edge_pts", "Edge (pts)"),
     ("situational_adj", "Situational adj"),
+    ("selftune_adj", "Self-tune adj"), ("trend_adj", "Trend fixes adj"),
+    ("trend_notes", "Trend fixes"), ("wx_label", "Weather (forecast)"),
     ("home_cover_prob", "Home cover %"), ("push_prob", "Push %"),
     ("away_cover_prob", "Away cover %"), ("model_side", "Model side (spread)"),
     ("model_side_cover", "Model side cover %"),
@@ -496,6 +500,10 @@ def _model_rows(slate: pd.DataFrame) -> list[dict]:
             "model_line": format_spread(home, fair) if fair is not None else "—",
             "spread_edge_pts": edge,
             "situational_adj": _num(d.get("situational_adj")),
+            "selftune_adj": _num(d.get("selftune_adj")) or 0.0,
+            "trend_adj": _num(d.get("trend_adj")) or 0.0,
+            "trend_notes": _text(d.get("trend_notes")),
+            "wx_label": _text(d.get("wx_label")),
             "home_cover_prob": hcp, "push_prob": _num(d.get("push_prob")),
             "away_cover_prob": acp, "model_side": side, "model_side_cover": side_cover,
             "home_win_prob": hwp, "away_win_prob": None if hwp is None else 1.0 - hwp,
@@ -707,7 +715,7 @@ def _sheet_picks(wb, ranked, season, week, starters=None, qb_source=None):
 SLATE_HEADERS = ["#", "Date", "Kickoff (ET)", "Matchup", "Away", "Home", "Away ML", "Home ML",
                  "Spread (Vegas)", "Juice H / A", "Total", "Model Line", "Edge (pts)",
                  "Model Side", "Side Cover %", "Push %", "Home Win %", "Conf",
-                 "Recommendation", "Odds", "Stake"]
+                 "Recommendation", "Odds", "Stake", "Weather (forecast)", "Trend fixes"]
 SLATE_MATCHUP_COL = "D"        # the picker's dropdown reads this column
 SLATE_EDGE_COL = "M"
 SLATE_REC_COL = "S"
@@ -731,7 +739,7 @@ def _sheet_slate(wb, slate, season, week, model_meta) -> int:
     ws.tab_color = NAVY
     set_widths(ws, {"A": 5, "B": 9, "C": 13, "D": 16, "E": 7, "F": 7, "G": 9, "H": 9,
                     "I": 13, "J": 13, "K": 8, "L": 12, "M": 10, "N": 11, "O": 12,
-                    "P": 8, "Q": 10, "R": 9, "S": 19, "T": 8, "U": 9})
+                    "P": 8, "Q": 10, "R": 9, "S": 19, "T": 8, "U": 9, "V": 30, "W": 44})
 
     apply_header(ws, "A1", f"NFL BETTING MODEL — {season} WEEK {week}",
                  merge_to=f"{SLATE_LAST_COL}1", size=16)
@@ -764,13 +772,14 @@ def _sheet_slate(wb, slate, season, week, model_meta) -> int:
             edge, side, cover, _num(d.get("push_prob")), _num(d.get("home_win_prob")),
             _text(d.get("confidence")), _text(d.get("recommendation")),
             _num(d.get("bet_odds")) or None, _num(d.get("stake")) or None,
+            _text(d.get("wx_label")), _text(d.get("trend_notes")),
         ])
 
     last = _write_table(
         ws, 3, SLATE_HEADERS, rows,
         formats={2: "ddd m/d", 7: "+0;-0", 8: "+0;-0", 11: "0.0", 13: "+0.0;-0.0",
                  15: "0.0%", 16: "0.0%", 17: "0.0%", 20: "+0;-0", 21: '"$"#,##0'},
-        aligns={4: "left", 19: "left"}, bold_cols=(13, 14, 19),
+        aligns={4: "left", 19: "left", 22: "left", 23: "left"}, bold_cols=(13, 14, 19),
     )
 
     if last > 3:
@@ -826,8 +835,9 @@ def _sheet_slate(wb, slate, season, week, model_meta) -> int:
             value="→ Spread (Vegas) and Model Line read like a ticket for the home team. Edge is "
                   "the model's disagreement with Vegas in points, shaded by size; Model Side is the "
                   "team that edge favours and Side Cover % is that team's chance of covering. Total "
-                  "is the market's number only — this model does not project totals. Odds are "
-                  "DraftKings closing-style lines from nflverse; shop the number before logging.")
+                  "is the market's number only — this model does not project totals. Lines and "
+                  "prices are FanDuel's (the book Jameson bets at). Trend fixes are the consistent "
+                  "miss-reasons the model corrects for — see the Miss Report sheet.")
     ws.cell(row=note, column=1).font = Font(italic=True, color=GREEN, size=10)
     ws.merge_cells(start_row=note, start_column=1, end_row=note, end_column=len(SLATE_HEADERS))
     ws.row_dimensions[note].height = 30
@@ -1022,10 +1032,14 @@ def _sheet_detail(wb, slate, season, week, slate_last, model_meta):
          "Fitted at ~2 points, not 3; zero at a neutral site."),
         ("Situational adjustments", lk("situational_adj"), "", lk("situational_adj"), "+0.00;-0.00",
          "Rest, weather, travel, divisional, late-season — all measured against the closing line and all ship at zero."),
+        ("Weekly self-tune (EPA)", lk("selftune_adj"), "", lk("selftune_adj"), "+0.00;-0.00",
+         "Nudge from how well each team has actually played (EPA) vs what the model projected. Max 0.5 pt."),
+        ("Trend fixes", lk("trend_adj"), "", lk("trend_adj"), "+0.00;-0.00",
+         '=IFERROR(' + idx("trend_notes") + ',"")'),
         ("Market prior weight", lk("market_prior_weight"), "", "", "0%",
          "Share of each team rating that is the market's own preseason opinion. High in Week 1 by design; decays as games are played."),
         ("PROJECTED MARGIN", "", "", lk("projected_margin"), "+0.00;-0.00",
-         "Rating net + QB net + home field + situational. This is the number every probability below comes from."),
+         "Rating net + QB net + home field + situational + self-tune + trend fixes. This is the number every probability below comes from."),
     ]
     for k, (label, h, a, nt, fmt, note) in enumerate(drivers, start=1):
         rr = hdr + k
@@ -1633,6 +1647,7 @@ def _sheet_history(wb, hist, season, week):
 SHEET_GUIDE = [
     ("Picks", "Every game as a straight-up winner ranked by win probability, with the assumed starting quarterbacks. Predictions, not bets."),
     ("Weekly Slate", "Every game with date, kickoff, moneylines, spread, total, the model's line, the edge (shaded by size) and the verdict. NO BET rows are grayed."),
+    ("Miss Report", "Why the model gets games wrong: the reasons it now corrects for (consistent in 2013-2020 AND 2021+), the ones it is watching, the underdog win-rate check, and this season's misses with luck-vs-model."),
     ("Model Picks %", "Model win probability for each side (sums to 100%) next to the de-vigged market probability, so the disagreement is visible per side."),
     ("Game Detail", "The matchup picker: choose a game from the dropdown and every cell looks up that game — ratings, QB terms, home field, market prior, cover/push, moneyline edges, the ticket."),
     ("Team Stats", "One row per team: record, points for/against, differential, ATS record, rating and rank, starting QB and where that name came from, roster by position group, the injured list with expected returns."),
@@ -1641,6 +1656,116 @@ SHEET_GUIDE = [
     ("Bet Log", "One row per game: who the model picked, who won, whether it was right, the model's bet and your bet with results. Win rate of the model's picks and of its value picks at the top."),
     ("Rosters / Injuries", "The player-level detail behind Team Stats, one row per player, filterable."),
 ]
+
+
+# ─────────────────────────────────────────────
+# MISS REPORT
+# ─────────────────────────────────────────────
+
+MISS_STATUS_TEXT = {"confirmed": "FIXED — in the model", "watching": "watching",
+                    "absorbed": "covered by the fixes already in",
+                    "no pattern": "no pattern",
+                    "rejected": "made 2021+ worse alongside the others"}
+
+
+def _sheet_miss_report(wb, state):
+    """
+    Why the model misses, from data/trends.json (scripts/miss_report.py).
+
+    A reason is only corrected when it shows up in 2013-2020 AND again in
+    2021 onward. One game, or one week, never changes the model.
+    """
+    ws = wb.create_sheet("Miss Report")
+    ws.tab_color = "C62828"
+    set_widths(ws, {"A": 52, "B": 11, "C": 13, "D": 13, "E": 13, "F": 13, "G": 14, "H": 44})
+    apply_header(ws, "A1", "MISS REPORT — why the model gets games wrong, and what it corrects",
+                 merge_to="H1", size=16)
+    ws.row_dimensions[1].height = 30
+    if not state:
+        _banner(ws, 2, "No trend check yet. Run scripts/miss_report.py after a week is graded.",
+                "H", height=24)
+        return
+    h = state.get("history", {})
+    _banner(ws, 2, f"Checked {h.get('n_games', 0):,} graded games ({h.get('first_season')}-"
+                   f"{h.get('last_season')}, incl. {h.get('current_season_graded', 0)} of this "
+                   f"season's picks), run {str(state.get('generated_utc', ''))[:10]}. A reason is "
+                   "fixed only when it shows up in 2013-2020 AND again in 2021+ — one game or one "
+                   "week never moves the model. Effects are points vs the model's projection, "
+                   "for the team named in the reason.", "H", height=46)
+
+    row = 4
+    mt = state.get("margin_trends", [])
+    fmt_pts = "+0.0;-0.0"
+
+    def trend_rows(rows):
+        out = []
+        for r in rows:
+            out.append([r["text"], r.get("n_disc", 0) + r.get("n_conf", 0),
+                        r.get("effect_disc"), r.get("effect_conf"),
+                        r.get("n_season", 0), r.get("effect_season"),
+                        r.get("live_shift") if r.get("status") == "confirmed" else None,
+                        MISS_STATUS_TEXT.get(r.get("status"), r.get("status"))])
+        return out
+
+    headers = ["Reason", "Games", "2013-2020", "2021+", "This season (games)",
+               "This season", "Correction", "Status"]
+    for title, statuses in (("FIXES IN THE MODEL NOW", ("confirmed",)),
+                            ("WATCHING — showed up, but not consistently enough to change the model",
+                             ("watching", "absorbed", "rejected"))):
+        apply_section(ws, f"A{row}", title, merge_to=f"H{row}")
+        rows = trend_rows([r for r in mt if r.get("status") in statuses])
+        if statuses == ("confirmed",):
+            cal = state.get("calibration", {})
+            if cal.get("status") == "confirmed":
+                rows.append(["Moneyline win % for underdogs (overrated — see below)", cal.get("n_conf", 0)
+                             + cal.get("n_disc", 0), None, None, None, None, None,
+                             "FIXED — recalibrated"])
+            from .config import THRESHOLDS
+            trend_cap = (state.get("bet_filters") or {}).get("ml_max_underdog")
+            cap = min(THRESHOLDS.ml_max_underdog, trend_cap or 10 ** 6)
+            source = "learned cap" if trend_cap and trend_cap <= THRESHOLDS.ml_max_underdog \
+                else "Jameson's rule (set in config)"
+            rows.append([f"Longshot moneylines: none longer than +{cap}", None, None, None,
+                         None, None, None, f"ON — {source}"])
+        last = _write_table(ws, row + 1, headers, rows or [["none"] + [None] * 7],
+                            formats={3: fmt_pts, 4: fmt_pts, 6: fmt_pts, 7: fmt_pts},
+                            aligns={1: "left", 8: "left"}, freeze=False, autofilter=False)
+        row = last + 2
+
+    cal = state.get("calibration", {})
+    if cal.get("table"):
+        apply_section(ws, f"A{row}", "LONGSHOT CHECK — how often underdogs actually won",
+                      merge_to=f"H{row}")
+        rows = [[f"{t['block']}: underdog {t['bucket']}", t["n"], t["actual"], t["market"],
+                 t["model"], t["model_fixed"], None, None] for t in cal["table"]]
+        last = _write_table(ws, row + 1, ["Underdog price", "Games", "Actually won",
+                                          "Market said", "Model said (old)", "Model says (fixed)",
+                                          "", ""], rows,
+                            formats={3: "0.0%", 4: "0.0%", 5: "0.0%", 6: "0.0%"},
+                            aligns={1: "left"}, freeze=False, autofilter=False)
+        row = last + 2
+
+    misses = state.get("misses", [])
+    apply_section(ws, f"A{row}", "THIS SEASON'S MISSES — picked the wrong winner",
+                  merge_to=f"H{row}")
+    rows = [[f"Wk {m['week']}: {m['matchup']}", m["pick"], m["projected"], m["actual"],
+             None, None, m.get("luck", ""), m.get("reasons", "")] for m in misses]
+    last = _write_table(ws, row + 1, ["Game", "Picked", "Projected", "Actual", "", "",
+                                      "Luck or model?", "Conditions present"],
+                        rows or [["none yet"] + [None] * 7],
+                        formats={3: fmt_pts, 4: fmt_pts}, aligns={1: "left", 7: "left", 8: "left"},
+                        freeze=False, autofilter=False)
+    _fit_row_heights(ws, row + 2, last, {7: 13, 8: 44})
+    row = last + 2
+
+    none = [r["text"] for r in mt if r.get("status") == "no pattern"]
+    if none:
+        apply_section(ws, f"A{row}", "TESTED, NO PATTERN (the line or the model already handles these)",
+                      merge_to=f"H{row}")
+        ws.cell(row=row + 1, column=1, value="; ".join(none)).alignment = Alignment(
+            wrap_text=True, vertical="top")
+        ws.merge_cells(start_row=row + 1, start_column=1, end_row=row + 1, end_column=8)
+        ws.row_dimensions[row + 1].height = 60
 
 
 def _sheet_reference(wb, backtest_summary, model_meta=None):

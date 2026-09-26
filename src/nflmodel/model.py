@@ -69,6 +69,9 @@ class GameProjection:
     # Weekly self-tune nudge already included in projected_margin (points,
     # home perspective). 0 when self-tune is off.
     selftune_adj: float = 0.0
+    # Correction from confirmed miss-trends (trends.py), already included in
+    # projected_margin. 0 when no trend applies to this game.
+    trend_adj: float = 0.0
 
     def as_row(self) -> dict:
         return {k: v for k, v in self.__dict__.items()}
@@ -139,6 +142,11 @@ class NFLModel:
         # Weekly self-tune (selftune.live_corrections). Empty = frozen model.
         self.team_adjust: dict[str, float] = {}
         self.max_tune: float | None = None
+        # Confirmed miss-trend fixes (trends.py / data/trends.json).
+        # game_adjust: game_id -> points added to the home side.
+        # calibration: {a, b} recalibration of home win probability.
+        self.game_adjust: dict[str, float] = {}
+        self.calibration: dict | None = None
 
     # -- fitting -----------------------------------------------------------
 
@@ -281,7 +289,8 @@ class NFLModel:
         tune = self.team_adjust.get(home, 0.0) - self.team_adjust.get(away, 0.0)
         if self.max_tune is not None:
             tune = float(np.clip(tune, -self.max_tune, self.max_tune))
-        projected = base + adj + tune
+        trend = float(self.game_adjust.get(g.get("game_id", ""), 0.0))
+        projected = base + adj + tune + trend
 
         # ── Spread ──
         line = g.get("spread_line")
@@ -296,6 +305,12 @@ class NFLModel:
 
         # ── Moneyline ──
         home_wp = self.margin_model.win_prob(projected)
+        if self.calibration:
+            # The model's spreads are compressed, so raw win probabilities
+            # overrate long underdogs (+401 dogs: said 25%, won 12-13%).
+            # Recalibrated to what actually happened; see trends.py.
+            from .trends import calibrate
+            home_wp = float(calibrate(home_wp, self.calibration))
         h_ml, a_ml = g.get("home_moneyline"), g.get("away_moneyline")
         h_ml = None if h_ml is None or pd.isna(h_ml) else float(h_ml)
         a_ml = None if a_ml is None or pd.isna(a_ml) else float(a_ml)
@@ -348,6 +363,7 @@ class NFLModel:
             away_ml_fair=prob_to_american(1.0 - home_wp),
             ml_edge_home=ml_edge_h, ml_edge_away=ml_edge_a,
             selftune_adj=tune,
+            trend_adj=trend,
             **rec,
         )
 

@@ -38,6 +38,15 @@ def load_fitted():
     return ratings, p.get('qb_lambda', 40.0), p
 
 
+def _trends_state():
+    """The full trend-check result for the workbook's Miss Report sheet."""
+    try:
+        from nflmodel.trends import TRENDS_FILE
+        return json.loads(TRENDS_FILE.read_text()) if TRENDS_FILE.exists() else None
+    except Exception:
+        return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--season', type=int, default=CURRENT_SEASON)
@@ -53,6 +62,8 @@ def main():
                          'the consensus of six books is a better market number '
                          'than any single one, and the best available price is '
                          'worth more than the ratings.')
+    ap.add_argument('--no-weather', action='store_true',
+                    help='skip the kickoff weather forecast (Open-Meteo)')
     ap.add_argument('--no-depth-chart', action='store_true',
                     help='ignore published depth charts and carry the previous starter '
                          'forward instead (the pre-2026 behaviour)')
@@ -221,6 +232,17 @@ def main():
                   f"falling back to the stored nflverse line (DraftKings only). "
                   f"Line shopping is off for this run.")
 
+    # Kickoff forecast for every outdoor game. Shown with the picks, archived
+    # with them, and used by the confirmed weather trends (if any). A dead
+    # feed degrades to "forecast unavailable" -- never takes the week down.
+    forecast = {}
+    if not args.no_weather:
+        try:
+            from nflmodel.weather import forecast_slate
+            forecast = forecast_slate(slate_games)
+        except Exception as e:
+            print(f'WARNING: weather forecast skipped ({e})')
+
     model = NFLModel(params=params, qb_lambda=qb_lambda)
     model.fit(hist, args.season, week, market_games=games)
 
@@ -272,6 +294,43 @@ def main():
               f'the model is using replacement level ({repl:+.2f} pts). Any bet '
               f'on this game rests on that assumption.')
 
+    # Confirmed miss-trend fixes (data/trends.json, rebuilt weekly by
+    # scripts/miss_report.py). Only reasons the model has CONSISTENTLY missed
+    # on -- in 2013-2020 and again in 2021+ -- ever reach this point. Two
+    # passes, because one confirmed trend ("model far from the line") needs
+    # the model's own projection to know whether it applies.
+    trend_notes, trend_state = {}, {}
+    try:
+        from nflmodel import trends as _trends
+        trend_state = _trends.load_active()
+    except Exception as e:
+        print(f'WARNING: trend fixes unavailable ({e})')
+    if trend_state:
+        first = model.project_slate(slate_games)
+        # The trends were learned on the frozen model's projection, so the
+        # "far from the line" test must see the projection without the
+        # self-tune nudge too (audit 2026-09-26).
+        first = first.assign(projected_margin=first.projected_margin
+                             - first.get('selftune_adj', 0.0))
+        f = _trends.live_features(
+            slate_games.merge(first[['game_id', 'projected_margin']], on='game_id'),
+            games, args.season, starters, forecast)
+        shifts, notes = _trends.game_shifts(f, trend_state)
+        model.game_adjust = dict(zip(f.game_id, shifts))
+        trend_notes = dict(zip(f.game_id, notes))
+        model.calibration = trend_state.get('calibration')
+        cap = trend_state.get('ml_max_underdog')
+        if cap is not None and cap < model.thresholds.ml_max_underdog:
+            from dataclasses import replace as _replace
+            model.thresholds = _replace(model.thresholds, ml_max_underdog=cap)
+        print(f"trend fixes: {len(trend_state.get('margin', []))} margin fix(es), "
+              f"win-prob calibration {'ON' if model.calibration else 'off'}, "
+              f"moneyline dogs capped at +{model.thresholds.ml_max_underdog} "
+              f"(trend check run {str(trend_state.get('generated_utc', '?'))[:10]})")
+    else:
+        print('WARNING: no data/trends.json -- run scripts/miss_report.py; '
+              'no miss-trend fixes applied')
+
     slate = model.project_slate(slate_games)
 
     # Display and explanation columns, joined on game_id so the slate's
@@ -295,7 +354,14 @@ def main():
         on='game_id', how='left')
     parts = pd.DataFrame([dict(game_id=g['game_id'], **model.components(g))
                           for _, g in slate_games.iterrows()])
+    # components() also returns 'neutral'; merging it twice produced
+    # neutral_x/neutral_y and the workbook called the Rio game a DAL home game.
+    parts = parts.drop(columns=[c for c in parts.columns
+                                if c in slate.columns and c != 'game_id'])
     slate = slate.merge(parts, on='game_id', how='left')
+    slate['trend_notes'] = slate.game_id.map(trend_notes).fillna('')
+    from nflmodel.weather import forecast_columns
+    slate = forecast_columns(slate, forecast)
 
     # ── terminal report ──
     print()
@@ -413,6 +479,36 @@ def main():
                   f"{g.selftune_adj:+5.1f}  (toward {fav})")
         print()
 
+    # ── trend fixes: consistent miss-reasons the model now corrects for ──
+    if trend_state:
+        print('  TREND FIXES  (reasons the model has consistently missed on, '
+              '2013-2020 AND 2021+)')
+        for r in trend_state.get('margin', []):
+            print(f"    {r['text']:<58} {r['live_shift']:+.1f} pts")
+        if model.calibration:
+            print('    Moneyline win % recalibrated (the model overrated long underdogs)')
+        print(f"    No moneyline underdogs longer than +{model.thresholds.ml_max_underdog}")
+        touched = slate[slate.trend_adj.abs() >= 0.05] if 'trend_adj' in slate.columns else slate.iloc[0:0]
+        for _, g in touched.reindex(touched.trend_adj.abs().sort_values(ascending=False).index).iterrows():
+            side = g.home_team if g.trend_adj > 0 else g.away_team
+            print(f"      {g.away_team + ' @ ' + g.home_team:<14}{g.trend_adj:+5.1f} toward {side:<4} "
+                  f"{g.trend_notes}")
+        watch = trend_state.get('watching', [])
+        if watch:
+            print('    watching, not applied (not consistent yet): '
+                  + ', '.join(w['text'].lower() for w in watch[:6]))
+        print()
+
+    # ── weather: every outdoor game with conditions worth knowing ──
+    if forecast:
+        notable = slate[slate.wx_windy | slate.wx_precip | slate.wx_cold]
+        print('  WEATHER  (kickoff forecast; the line already moves for weather)')
+        if notable.empty:
+            print('    nothing notable -- no wind 15+, rain/snow, or freezing temps outdoors')
+        for _, g in notable.iterrows():
+            print(f"    {g.away_team + ' @ ' + g.home_team:<14}{g.wx_label}")
+        print()
+
     # ── straight-up winners, ranked by confidence ──
     ranked = straight_up_ranking(slate)
     print()
@@ -426,7 +522,15 @@ def main():
     # It runs BEFORE the workbook so the Bet Log / History sheet can include
     # this week's picks alongside every earlier week's.
     archive_week(ranked, slate, starters, qb_source, args.season, week,
-                 force=args.archive_anyway, games=games)
+                 force=args.archive_anyway, games=games,
+                 extra_meta=dict(
+                     weather={k: {x: v.get(x) for x in ('label', 'temp_f', 'wind_mph',
+                                                         'precip_prob', 'windy', 'precip', 'cold')}
+                              for k, v in forecast.items()},
+                     trend_fixes=dict(generated_utc=trend_state.get('generated_utc'),
+                                      margin=[r['key'] for r in trend_state.get('margin', [])],
+                                      calibration=bool(model.calibration),
+                                      ml_max_underdog=int(model.thresholds.ml_max_underdog))))
 
     # Rosters, injuries and records for the Team Stats sheet. Reporting only;
     # nothing here reaches the ratings. A feed outage degrades to an empty
@@ -456,7 +560,8 @@ def main():
                    backtest_summary=summary, path=str(path),
                    pts_table=points_to_prob_table(model.margin_model),
                    ranked=ranked, starters=starters, qb_source=qb_source,
-                   team_stats=team_stats, games=games, model_meta=model_meta)
+                   team_stats=team_stats, games=games, model_meta=model_meta,
+                   trends_state=_trends_state())
     print(f'\n  workbook: {path}')
 
     slate.to_csv(OUTPUT_DIR / f'slate_{args.season}_wk{week:02d}.csv', index=False)

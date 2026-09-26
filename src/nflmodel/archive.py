@@ -45,7 +45,7 @@ LEAN_COLS = [
     "best_away_spread", "best_away_spread_book",
     "best_home_ml", "best_home_ml_book",
     "best_away_ml", "best_away_ml_book",
-    "selftune_adj",
+    "selftune_adj", "trend_adj", "trend_notes", "wx_label",
 ]
 
 
@@ -76,7 +76,7 @@ def kickoff_has_passed(games, season: int, week: int) -> bool:
 
 
 def archive_week(ranked, slate, starters, qb_source, season: int, week: int,
-                 force: bool = False, games=None) -> bool:
+                 force: bool = False, games=None, extra_meta: dict | None = None) -> bool:
     """
     Write this week's picks to the tracked archive.
 
@@ -121,11 +121,37 @@ def archive_week(ranked, slate, starters, qb_source, season: int, week: int,
     leans = slate[slate["recommendation"].str.match(r"^(LEAN|BET) ")][keep]
     leans_path = d / f"week{week:02d}_leans.csv"
 
+    # The projection BEFORE the trend fixes and the self-tune nudge, for every
+    # game. The trend check learns from this, never from the fixed number --
+    # otherwise next week it would fix its own fixes (audit 2026-09-26).
+    ranked = ranked.copy()
+    has_teams = {"away_team", "home_team"} <= set(slate.columns) and "matchup" in ranked.columns
+    s_ = slate.assign(matchup=slate["away_team"] + " @ " + slate["home_team"]).set_index("matchup") \
+        if has_teams else pd.DataFrame()
+    for col in ("trend_adj", "selftune_adj", "spread_line"):
+        if col in s_.columns:
+            ranked[col] = ranked["matchup"].map(s_[col])
+    if "projected_margin" in s_.columns:
+        home_margin = ranked["matchup"].map(s_["projected_margin"])
+        ranked["raw_margin"] = (home_margin - ranked.get("trend_adj", 0).fillna(0)
+                                - ranked.get("selftune_adj", 0).fillna(0))
+
     # A mid-week re-run only covers games not yet played. Carry the published
-    # rows for the rest forward untouched, so Thursday's pick is never lost.
+    # rows for the rest forward untouched, so Thursday's pick is never lost --
+    # and keep WHEN it was published (audit: the rerun stamped it with its own
+    # time and trend state, two days after the game).
+    carried_meta = {}
     if picks_path.exists() and not force:
         prior = pd.read_csv(picks_path)
+        try:
+            prior_meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+        except Exception:
+            prior_meta = {}
         carried = prior[~prior["matchup"].isin(ranked["matchup"])]
+        for m in carried["matchup"]:
+            carried_meta[m] = (prior_meta.get("carried") or {}).get(m) or dict(
+                generated_utc=prior_meta.get("generated_utc"),
+                trend_fixes=prior_meta.get("trend_fixes"))
         if len(carried):
             ranked = pd.concat([carried, ranked], ignore_index=True)
         if leans_path.exists():
@@ -149,6 +175,12 @@ def archive_week(ranked, slate, starters, qb_source, season: int, week: int,
         # is still a forecast and may legitimately be refreshed.
         "locked": False,
     }
+    # What else the model knew when it said this: the weather forecast and
+    # which miss-trend fixes were live.
+    if extra_meta:
+        meta.update(extra_meta)
+    if carried_meta:
+        meta["carried"] = carried_meta
     meta_path.write_text(json.dumps(meta, indent=2) + "\n")
     print(f'  archived: picks/{season}/week{week:02d}_*.csv')
     return True

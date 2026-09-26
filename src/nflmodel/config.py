@@ -78,7 +78,12 @@ class Thresholds:
     # Ignore moneylines longer than this — the model is not calibrated out
     # in the tails and the vig is punishing.
     ml_max_favorite: int = -350
-    ml_max_underdog: int = 600
+    # Jameson's longshot rule (2026-09-25): no moneyline underdogs longer than
+    # +250. Was +600. Even after the win-probability recalibration the model
+    # still overstates +401 dogs by 3-4 points (said 16%, won 12-13%), more
+    # than the 3% edge a bet needs, and its replayed +401 bets went 0-11.
+    # trends.py re-tests every price bucket weekly (data/trends.json).
+    ml_max_underdog: int = 250
 
 
 THRESHOLDS = Thresholds()
