@@ -195,6 +195,107 @@ ATL 35-14 over a 6-point GB favourite) cannot rewrite a team. Swept clip
   chose to run the tune on everything. Recorded here so the choice is clear
   when CLV is reviewed.
 
+### SHIPPED — miss-trend checker: fix REASONS, not games (2026-09-26)
+
+Jameson's design, in his words: don't "make the Falcons the #1 team because
+they looked good", but "if you are missing games because of some particular
+reason, that should be adjusted in the model" — e.g. "always picking the
+biggest underdog and it's consistently wrong".
+
+`src/nflmodel/trends.py`, run weekly by `scripts/miss_report.py`, writes
+`data/trends.json` (tracked); `run_week.py` applies whatever it marks
+confirmed. ~28 candidate reasons: line size, home/road dog, divisional,
+early/late season, rest, bye (13+ days), Thursday road, body clock, time
+zones, new QB (no start for the team in its last 4 games), inexperienced QB,
+after blowout win/loss, turnover luck, score-vs-EPA luck, wind, rain/snow,
+cold, pass-heavy offense in bad weather, low/high total, night games,
+neutral site, model far from the line, home field.
+
+**The gate, per reason** (rebuilt after the adversarial audit below):
+
+1. single-reason screen: Benjamini-Hochberg (FDR 10%) on 2013-2020, same
+   sign on 2021+, and the SHRUNK 2013-2020 effect lowers 2021+ error;
+2. joint SELECTION on 2013-2020 only: forward selection by
+   leave-one-season-out error (a reason must cut it by 0.002+ pts);
+3. joint PRUNE on 2021+: each selected reason must help 2021+ alongside the
+   others (drop-one); 2021+ can only remove reasons, never add them;
+4. the final set must beat the unfixed model on 2021+ with paired t >= 2;
+5. live values: ridge on every graded game, shrunk n/(n+170), a reason past
+   1.5 pt is FIXED at 1.5 and the rest refit around it; <= 2.0 pt per game.
+6. watch-list reasons can be promoted PROSPECTIVELY (2013-2020 is frozen):
+   40+ live games since 2026, same sign as history, one-sided p < 0.05 —
+   then they still face step 3.
+
+**Result (2026-09-26, 3,595 graded games incl. 33 from 2026):** ONE margin
+fix survives — *when the model disagrees with the line by 3+ points, pull it
+1.5 pts toward the line* (2013-20 −3.0, 2021+ −5.5; 2021+ average miss
+10.13 → 10.02, paired t = 6.0). Big favorites (+2.3/+2.6), mid favorites,
+home dogs, divisional dogs, night favorites and new QB (−3.1/−2.0) are all
+real and consistent on their own but COVERED: once the line-disagreement fix
+is in, none of them improves 2021+. They are one cause — the model's
+compressed spreads (0.77 pt per point of market line) — seen through
+different windows. Late-season favorites was selected on 2013-2020 but made
+2021+ worse and was pruned. Honest reading: this is the model trusting the
+line more where it disagrees most, i.e. the known no-edge finding (README)
+surfacing as a trend. Capped at 1.5 so the model keeps an opinion.
+
+**Longshots:** dogs at +151 or longer are overrated in BOTH periods even
+after the margin fix (z = +6.9 and +5.1): +401 dogs said 23.7% / 24.7%, won
+11.5% / 13.2%. Symmetric recalibration of win probability,
+logit(p') = b·logit(p) (no intercept, so the pick always matches the margin
+sign and nothing is added at neutral sites), fit on 2013-2020 on top of the
+margin fix: +401 → 14.7% / 15.7%; 2021+ log loss 0.6297 → 0.6248. Confirmed
+by a TAIL test (the problem lives in the tail; an all-games t-test, t = 1.5,
+buries it). Plus Jameson's cap: no moneyline dogs longer than +250
+(`THRESHOLDS.ml_max_underdog`, was 600) — a hand-set rule, labeled as such.
+
+Replayed bets 2021+: underdog share 88% → 68%, moneylines longer than +250
+162 → 0, return −1.8% → −3.6% (noise; SE ~3%). **The fixes make predictions
+better and stop the longshot habit; they do not create an edge.**
+
+Watching, not applied: rest edge, inexperienced QB (−1.0/−0.9), after a
+21+ win (the ATL case: +1.6 then +0.3), score-beat-EPA luck, favorites in
+wind (+0.1/+2.7), favorites in rain/snow (+3.2/+2.0), pass-heavy offense in
+bad weather, low totals.
+
+### Adversarial audit of the trend checker (2026-09-26)
+
+Before the checker drove real bets, 11 agents audited it (leakage, signs,
+statistics, weather/workbook), each finding re-checked by a skeptic. Fixed:
+
+- **Fixes would have been applied twice from Week 4.** Archived picks hold
+  the post-fix margin; the next check treated it as raw. Now every archived
+  pick carries `raw_margin` (before trend fix and self-tune), `trend_adj`,
+  `selftune_adj` and the pick-time `spread_line`; the history uses
+  `raw_margin`; the EPA self-tune learns against its own shipped number minus
+  `trend_adj`. Verified: history == pre-fix margin, max diff 0.0.
+- **Set-level confirmation.** 4 of 7 "confirmed" reasons made 2021+ worse
+  individually → the per-reason gate above.
+- **Calibration intercept** put the 50% crossover at a +0.35 home margin
+  (pick disagreed with margin; home term at neutral sites) → symmetric fit.
+- **Clipped coefficients** ran a combination never fit → capped ridge.
+- **Live "far from the line" test** saw the self-tuned projection while
+  history was frozen → first pass subtracts `selftune_adj`.
+- **Weather**: live flags used the 4-hour max wind / mean temp vs history's
+  single kickoff reading → flags now use the kickoff hour (display keeps
+  the max). Gamebook "chance of rain"-style wording no longer counts as rain;
+  missing schedule wind/temp filled from the gamebook text. Paris, Munich and
+  Melbourne were coded as domes (all open-air) → fixed; Madrid retractable.
+- New-QB rule flagged a starter back from one missed game → "no start for
+  this team in its last 4 games". Off-bye was rest >= 10 (includes post-TNF
+  mini-rest) → >= 13.
+- Bet-type z-test exploded on zero-variance groups (12 straight losses =
+  p 0) → such groups are not evidence.
+- Workbook: Rio game labeled a DAL home game (duplicate `neutral` merge);
+  Game Detail drivers did not sum to the projection (now shows self-tune and
+  trend rows); the Miss Report called the hand-set +250 cap a learned fix.
+- Mid-week rerun stamped Thursday's carried pick with its own time and fix
+  state → `meta["carried"]` keeps the original publish time per game.
+
+Known and accepted: history uses observed kickoff weather while live uses a
+forecast (weather reasons are watch-only, so no live effect today); published
+2026 rows use the actual starter and closing line rather than pick-time values.
+
 ### SHIPPED — self-tune learns from EPA, not the score (2026-09-25)
 
 Why the score-based tune could not work: the ratings are re-fit on every game

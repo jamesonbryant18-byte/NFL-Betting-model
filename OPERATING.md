@@ -58,7 +58,34 @@ manufacture a finding. Anything it flags is a **candidate**, and the protocol
 for promoting a candidate into an actual change is `IMPROVEMENT.md`. Read that
 before touching a parameter.
 
-### Step 0b — decide whether to change anything
+### Step 0b — find the reasons the model keeps missing (and fix those)
+
+```bash
+.venv/bin/python -W ignore scripts/miss_report.py
+git add data/trends.json && git commit -m "trend check after week N" && git push
+```
+
+This is the model's "learn from mistakes" loop (added 2026-09-25/26, Jameson's
+design): go through every graded pick — 2013 onward plus this season's
+published picks — and look for a **reason** the model keeps getting games
+wrong. A reason is fixed only if it shows up in 2013-2020 AND again in 2021+,
+beyond what chance produces across ~28 tested reasons. One game never moves
+it: the ATL 35-14 Thursday-night upset does nothing on its own.
+
+It prints every reason with its effect in both periods and this season, the
+longshot win-rate check, the bet mix before/after the fixes, and this
+season's wrong picks with a luck-or-model verdict (did the team we picked
+out-play them and lose anyway?). It saves `data/trends.json`, which
+`run_week.py` applies. **Commit it** — it is the model's learned state.
+
+Statuses: FIXED (in the model), covered (real, but adds nothing once the
+fixes already in are applied), failed (made 2021+ worse alongside the
+others), watch (showed up but not consistently — including wind and
+rain/snow favorites as of Week 3), no pattern. A watch reason is promoted
+only prospectively: 40+ games predicted live, same sign as history,
+one-sided p < 0.05. Expect the FIXED list to change rarely.
+
+### Step 0c — decide whether to change anything else
 
 Almost always the answer is no, and the script says so explicitly. This is the
 part that protects the model from you:
@@ -101,17 +128,21 @@ week and are softest early; that gap is where closing line value comes from.
 Waiting until Sunday morning means betting into a number the market has
 already sharpened.
 
-The run now pulls **live prices from six books** and uses their median as the
-market number, instead of nflverse's single stored DraftKings line. Two things
-come out of that:
+The run pulls **live FanDuel lines and prices** (`config.MY_BOOK`, Jameson's
+only book since 2026-09-25) and measures the model against exactly those.
+It warns where FanDuel differs from nflverse's stored line, and falls back
+to the stored line for any game FanDuel is not carrying. `--no-live-odds`
+skips the pull. (Setting `MY_BOOK = None` restores the six-book consensus and
+the WHERE TO BET IT shopping table — he asked not to see that.)
 
-* a **WHERE TO BET IT** table naming the book with the best number on each
-  recommended bet. This is worth more than the ratings are — the model has been
-  measured at zero incremental signal, the price you get filled at has not.
-* a warning when the stored line and the live consensus disagree. On the first
-  live run (2026 Week 3) they disagreed on 3 of 16 games, one by 1.5 points.
+Three more blocks in the output:
 
-`--no-live-odds` falls back to the stored line, and so does a dead feed.
+* **TREND FIXES** — the confirmed miss-reasons from `data/trends.json`, and
+  exactly which games each one moved and by how much.
+* **WEATHER** — kickoff forecast (Open-Meteo, free) for every outdoor game
+  with wind 15+, rain/snow, or freezing temps. Weather also goes in the
+  workbook's Weekly Slate and into the picks archive.
+* **SELF-TUNE** — the small per-team EPA nudge (max 0.5 pt per game).
 
 Also read the **QB RISK** table before betting. It lists only the teams whose
 starter is genuinely in doubt, priced in points, so the one or two worth
@@ -273,6 +304,11 @@ Everything in git. `.venv/`, `data/cache/` and `output/` are all regenerable —
 the virtualenv from `requirements.txt`, the cache from nflverse, the workbook
 from the script.
 
+`data/trends.json` (the model's learned trend fixes) and `picks/` are tracked
+too. `data/cache/base_projections_2013_2025.parquet`, which the trend check
+reads, rebuilds with `scripts/build_base_projections.py` (about a minute);
+the weather history rebuilds itself from nflverse play-by-play.
+
 The one exception is the bet log, which is hand-entered and irreplaceable. It
 mirrors to `data/bet_log.csv`, which **is** tracked. Commit it periodically:
 
@@ -283,7 +319,7 @@ git add data/bet_log.csv && git commit -m "bet log through week N" && git push
 If `output/` is ever lost, the next run rebuilds the workbook and restores the
 tracker from that CSV.
 
-## Book and self-tune (2026-09-25)
+## Current setup (2026-09-26)
 
 - All lines and prices come from **FanDuel only** (`config.MY_BOOK`). No
   consensus, no shopping table. A game FanDuel is not carrying falls back to
@@ -293,3 +329,9 @@ tracker from that CSV.
   is and is not worth.
 - Re-running mid-week (after TNF) re-prices only games not yet started; the
   published rows for played games are carried forward unchanged.
+- Trend fixes ON (`data/trends.json`, rebuilt weekly by `miss_report.py`),
+  moneyline win % recalibrated, no moneyline underdogs longer than +250
+  (`THRESHOLDS.ml_max_underdog`, Jameson's rule).
+- "Redo the picks" means: delete that week's three files in `output/`
+  (`NFL_Model_2026_WeekNN.xlsx`, `picks_2026_wkNN.csv`, `slate_2026_wkNN.csv`)
+  and regenerate them with `run_week.py`.

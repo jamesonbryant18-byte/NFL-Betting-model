@@ -11,6 +11,65 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ---
 
+## 0. Where things stand (keep this section current)
+
+**Last updated 2026-09-26 (Sat before 2026 Week 3 Sunday).** Branch
+`week3-selftune-fanduel` merged to `main` and pushed.
+
+What changed 2026-09-25/26, all at Jameson's request:
+
+1. **FanDuel only.** `config.MY_BOOK = "fanduel"`: every line, spread juice and
+   moneyline pair comes from FanDuel (`shop._attach_single_book`). No
+   consensus, no best-of-six shopping table — he bets at one book and asked
+   not to be shown others.
+2. **Weekly self-tune, EPA version** (`selftune.py`, `config.SELFTUNE`): each
+   team is nudged by how well it actually PLAYED (EPA margin) vs what the
+   model projected, never by the final score (the weekly ratings refit
+   already uses scores, so a score nudge counts them twice). Max 0.5 pt per
+   game. Small, measured at +0.012 pt MAE on the hold-out.
+3. **Miss-trend checker** (`trends.py`, `scripts/miss_report.py`,
+   `data/trends.json`): the main "learn from mistakes" loop. Fixes a REASON
+   the model keeps missing on only if it holds in 2013-2020 AND 2021+ AND
+   earns its place alongside the other fixes (per-reason gate, audited).
+   As of 2026-09-26 exactly ONE margin fix is live: when the model disagrees
+   with the line by 3+ pts, pull it 1.5 toward the line (2021+ MAE
+   10.13 → 10.02, t = 6.0). Big/mid favorites, home dogs, night favorites
+   and new QB are real but COVERED by it (same cause: compressed spreads).
+   Full table, gate and audit in IMPROVEMENT.md.
+4. **Longshot fix.** Symmetric win-% recalibration (dogs +151 and longer are
+   overrated in both periods, z 6.9 / 5.1; +401 dogs said 25%, won 12-13%)
+   and Jameson's hand-set rule: no moneyline dogs longer than +250
+   (`THRESHOLDS.ml_max_underdog`). Underdog share of bets 88% → 68%.
+5. **Weather** (`weather.py`): Open-Meteo kickoff forecast for every outdoor
+   game, shown in the run output, the Weekly Slate and the archive; gamebook
+   rain/snow history 2016+ feeds the trend checker. Weather × team style (his
+   hypothesis: pass-heavy team in rain) was tested and REJECTED — sign
+   opposite in 2013-20, gone in 2021+. Wind and rain/snow favorites are on the
+   trend WATCH list; a watch reason is promoted only prospectively (40+ games
+   predicted live since 2026, same sign as history, one-sided p < 0.05) and
+   must still pass the 2021+ prune. Realistically that takes a season or more.
+6. **Workbook**: Weekly Slate gained Weather + Trend fixes columns; new
+   **Miss Report** sheet.
+7. Mid-week re-runs re-price only unstarted games; Thursday's published pick
+   is carried forward untouched.
+
+2026 season so far: Week 1 11-5 SU, Week 2 10-6 SU (locked), Week 3 TNF
+ATL 35-14 over GB (model picked GB). Week 3 Sunday/MNF overrides:
+`--qb WAS="Marcus Mariota" --qb CHI="Case Keenum"` (Bagent concussion,
+Williams doubtful; SEA back to Darnold from the depth chart). Week 3 bets as
+of Saturday after the audit fixes: CHI +4.5 $25, MIA +10.5 $25, NYG −138
+$25, IND +108 $16, BAL −178 $9. Tuesday's original Week 3 picks are in
+`picks/2026/superseded/`. An 11-agent adversarial audit of the new code ran
+2026-09-26; every finding is fixed or documented (IMPROVEMENT.md).
+
+**Jameson's working preferences:** he wants picks presented as every game's
+straight-up winner ranked by confidence, plus the bets. "Redo the week N
+picks" = delete that week's three files in `output/` and regenerate. He wants
+everything committed AND pushed to GitHub so the next session has it. He does
+NOT want the model to overreact to single games.
+
+---
+
 ## 1. The one thing that matters
 
 **This model has no demonstrated edge against NFL closing lines.** It ships in
@@ -44,11 +103,21 @@ after the Wednesday run). No ratings parameters were changed on one week.
 
 ## 1b. Self-improvement — read IMPROVEMENT.md
 
-Jameson asked for continuous week-to-week self-improvement (2026-09-22). It was
-built (`selftune.py`), measured, and **rejected**: hold-out MAE goes 10.079
-frozen -> 11.065 at full strength, degrading monotonically, and value picks get
-worse at every setting. `alpha=0.1` is a no-op (paired t=-0.08, p=0.93). It
-fails on the tuning seasons too.
+Two layers are LIVE since 2026-09-25/26 (see §0): the EPA per-team nudge
+(max 0.5 pt) and the miss-trend checker (`trends.py`). Weekly loop:
+`review_week.py --week N` → `miss_report.py` → commit `data/trends.json` →
+`run_week.py`. What follows is why the ORIGINAL design failed and must not be
+brought back.
+
+Jameson asked for continuous week-to-week self-improvement (2026-09-22). The
+first version — nudge each team by its raw SCORE residual — was built,
+measured, and **rejected**: hold-out MAE goes 10.079 frozen -> 11.065 at full
+strength, degrading monotonically, and value picks get worse at every setting.
+`alpha=0.1` is a no-op (paired t=-0.08, p=0.93). It fails on the tuning
+seasons too. Six signals x 180 configs were then tested
+(`scripts/adjust_lab.py`): only EPA margin helps, and only with a per-game
+ceiling (0.5 pt: 27/27 variants improve; 2 pt: 1/27). The size of the move,
+not the learning rate, is what hurts.
 
 The mechanism, which is the useful part: the weekly refit ALREADY moves a team
 in the direction the self-tuner wants, 69% of the time (r=+0.45, n=2,688
@@ -86,6 +155,10 @@ reaches the same answer.
 | ATS vs openers (looks like 55.3%!) | tuning-window artifact; clean 2021 hold-out gives 49.70%, −5.09% | **false positive** |
 | Beat-the-line regression | optimal ridge → ∞ *even on tuning seasons* | strongest evidence against any persistent-mispricing edge |
 | Blending model into the line | tuning-optimal weight makes hold-out **worse** than the raw line | optimal weight is zero |
+| Score-residual weekly self-tune | MAE 10.079 → 11.065 at full strength | rejected; replaced by EPA version (0.5 pt cap) |
+| Weather × team style (pass-heavy offense in rain/wind) | 2016-20 slope +13 (opposite sign), 2021-25 −1.9 (t −0.3) | rejected 2026-09-25 |
+| "Skip value bets in bad weather" | 53.6% (2016-20) vs 42.3% (2021-25) | does not replicate |
+| Inexperienced QB (<8 career starts) as a fix | −1.0 / −0.9 once starts are counted correctly | watch list only |
 
 Situational factors ship at **zero** in `config.Adjustments`. They are not
 missing — they were tested and rejected. Across ~15 hypotheses none reached
@@ -209,7 +282,13 @@ tracker's merge-across-runs from `betlog.py`.
 .venv/bin/python -W ignore scripts/run_week.py --starters       # print all 32 starters + source
 .venv/bin/python -W ignore scripts/run_week.py --no-depth-chart # ignore depth charts
 .venv/bin/python -W ignore scripts/run_week.py --archive-anyway # archive a week that already kicked off
-.venv/bin/python -W ignore -m pytest tests/ -q                 # 24 invariant tests
+.venv/bin/python -W ignore -m pytest tests/ -q                 # 179 tests
+.venv/bin/python -W ignore scripts/miss_report.py              # WEEKLY: trend check -> data/trends.json (commit it)
+.venv/bin/python -W ignore scripts/miss_report.py --no-save    # look without changing the model
+.venv/bin/python -W ignore scripts/build_base_projections.py   # rebuild cache the trend check reads (~1 min)
+.venv/bin/python -W ignore scripts/adjust_lab.py               # which self-tune signals help (EPA only)
+.venv/bin/python -W ignore scripts/weather_style_test.py       # weather x team style (rejected)
+.venv/bin/python -W ignore scripts/run_week.py --no-weather    # skip the Open-Meteo forecast
 .venv/bin/python -W ignore scripts/run_backtest.py             # revalidate + refreeze
 .venv/bin/python -W ignore scripts/measure_situational.py      # re-test situational factors
 .venv/bin/python -W ignore scripts/grade.py --save             # grade every prediction this season
@@ -263,7 +342,18 @@ Fresh machine: `python3 -m venv .venv && .venv/bin/pip install -r requirements.t
 - Bankroll $1,000, half-Kelly, 2.5% per-bet cap, 10% weekly cap.
 - **The plan is to paper-trade first**: log leans and the number available,
   accumulate CLV over ~40-50 picks (~6 weeks), then decide whether to bet.
-  See the decision gate in `OPERATING.md`.
+  See the decision gate in `OPERATING.md`. (He moved to decision mode
+  2026-09-14 anyway; he actually bets small, $5 a lean in Week 2.)
+- **One book: FanDuel** (2026-09-25). Do not show other books.
+- **Self-tune ON, gentle, EPA-based**, on everything (he chose "everything"
+  over "winners only" knowing it does not improve value picks).
+- **Trend fixes ON**: change the model for consistent miss-reasons only —
+  "don't make the Falcons #1 because they looked good once." Every new
+  statistical rule gets tried to be broken before it ships (he approved an
+  adversarial audit; it caught a fix-applied-twice bug and set-level
+  confirmation).
+- **Longshot cap +250** on moneyline underdogs and win-% recalibration.
+- **Weather**: shown and fed to the trend checker; no hand-set adjustment.
 
 He also has a separate MLB model (`MLB-Betting-model-`) whose de-vig bug
 (comparing against raw implied odds) is still unfixed — he was offered a fix
@@ -287,6 +377,18 @@ and has not taken it up.
 
 ## 9. Known gaps / open items
 
+- **2026-09-25: FanDuel-only mode supersedes the paragraph below** for live
+  runs (`MY_BOOK`). The shopping code is kept for `MY_BOOK = None`.
+- "Model far from the line" is a discrete fix (applies at |model − line| ≥ 3,
+  1.5-pt pull), so a 2.9-pt disagreement is untouched while 3.0 becomes 1.5.
+  Tested in that form; a continuous version would converge on the line
+  itself (the known no-edge result) and remove nearly every bet.
+- Forecast wind is Open-Meteo 10 m open-field wind; historical wind is the
+  gamebook's stadium reading. Same 15 mph threshold for both; forecast may
+  run a little high. Retractable roofs never count as "outdoors" for flags.
+- The trend check's history is the frozen walk-forward backtest; it does not
+  include the EPA nudge. Fine at 0.5 pt, but rebuild base projections if the
+  ratings engine itself changes.
 - ~~`odds.py` not wired in~~ **DONE 2026-09-22.** `shop.attach_live_odds()`
   now runs by default in `run_week.py`: six books, the *median* becomes the
   market number, best price per side rides along, `--no-live-odds` opts out,

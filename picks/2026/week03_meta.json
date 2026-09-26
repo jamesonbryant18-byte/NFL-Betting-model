@@ -1,9 +1,9 @@
 {
   "season": 2026,
   "week": 3,
-  "generated_utc": "2026-09-25T14:35:41+00:00",
+  "generated_utc": "2026-09-26T16:44:36+00:00",
   "n_games": 16,
-  "n_leans": 4,
+  "n_leans": 5,
   "starters": {
     "ARI": "Jacoby Brissett",
     "ATL": "Michael Penix",
@@ -72,5 +72,156 @@
     "TEN": "depth chart",
     "WAS": "override"
   },
-  "locked": false
+  "locked": false,
+  "weather": {
+    "2026_03_LAC_BUF": {
+      "label": "67\u00b0F, wind 15 mph (gusts 26), 25% rain",
+      "temp_f": 66.75,
+      "wind_mph": 15.2,
+      "precip_prob": 25.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_CAR_CLE": {
+      "label": "68\u00b0F, wind 12 mph",
+      "temp_f": 67.94999999999999,
+      "wind_mph": 12.3,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_NYJ_DET": {
+      "label": "dome",
+      "temp_f": null,
+      "wind_mph": null,
+      "precip_prob": null,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_HOU_IND": {
+      "label": "72\u00b0F, wind 7 mph (retractable roof)",
+      "temp_f": 71.6,
+      "wind_mph": 7.0,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_NE_JAX": {
+      "label": "86\u00b0F, wind 5 mph",
+      "temp_f": 86.42500000000001,
+      "wind_mph": 4.9,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_KC_MIA": {
+      "label": "82\u00b0F, wind 5 mph",
+      "temp_f": 82.4,
+      "wind_mph": 5.0,
+      "precip_prob": 1.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_TEN_NYG": {
+      "label": "64\u00b0F, wind 20 mph (gusts 41), 37% rain",
+      "temp_f": 64.025,
+      "wind_mph": 19.5,
+      "precip_prob": 37.0,
+      "windy": true,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_CIN_PIT": {
+      "label": "70\u00b0F, wind 14 mph",
+      "temp_f": 70.225,
+      "wind_mph": 13.7,
+      "precip_prob": 7.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_SEA_WAS": {
+      "label": "65\u00b0F, wind 14 mph (gusts 30), 34% rain",
+      "temp_f": 64.75,
+      "wind_mph": 13.6,
+      "precip_prob": 34.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_ARI_SF": {
+      "label": "67\u00b0F, wind 13 mph",
+      "temp_f": 67.0,
+      "wind_mph": 13.2,
+      "precip_prob": 1.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_MIN_TB": {
+      "label": "81\u00b0F, wind 5 mph",
+      "temp_f": 80.8,
+      "wind_mph": 5.3,
+      "precip_prob": 1.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_BAL_DAL": {
+      "label": "71\u00b0F, wind 6 mph (gusts 18)",
+      "temp_f": 71.475,
+      "wind_mph": 6.2,
+      "precip_prob": 15.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_LV_NO": {
+      "label": "dome",
+      "temp_f": null,
+      "wind_mph": null,
+      "precip_prob": null,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_LA_DEN": {
+      "label": "74\u00b0F, wind 15 mph (gusts 31)",
+      "temp_f": 73.8,
+      "wind_mph": 15.1,
+      "precip_prob": 6.0,
+      "windy": true,
+      "precip": false,
+      "cold": false
+    },
+    "2026_03_PHI_CHI": {
+      "label": "63\u00b0F, wind 4 mph",
+      "temp_f": 62.900000000000006,
+      "wind_mph": 4.4,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    }
+  },
+  "trend_fixes": {
+    "generated_utc": "2026-09-26T16:44:01+00:00",
+    "margin": [
+      "model_far_from_market"
+    ],
+    "calibration": true,
+    "ml_max_underdog": 250
+  },
+  "carried": {
+    "ATL @ GB": {
+      "generated_utc": "2026-09-22T19:43:23+00:00",
+      "trend_fixes": null
+    }
+  }
 }
