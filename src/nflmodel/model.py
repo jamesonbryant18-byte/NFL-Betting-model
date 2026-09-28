@@ -72,6 +72,9 @@ class GameProjection:
     # Correction from confirmed miss-trends (trends.py), already included in
     # projected_margin. 0 when no trend applies to this game.
     trend_adj: float = 0.0
+    # Game factors beyond ratings/QB/home (factors.live_factor_shifts):
+    # non-QB injuries, efficiency, rest. Already included in projected_margin.
+    factor_adj: float = 0.0
 
     def as_row(self) -> dict:
         return {k: v for k, v in self.__dict__.items()}
@@ -147,6 +150,8 @@ class NFLModel:
         # calibration: {a, b} recalibration of home win probability.
         self.game_adjust: dict[str, float] = {}
         self.calibration: dict | None = None
+        # Game factors (config.FACTORS): game_id -> points added to the home side.
+        self.factor_adjust: dict[str, float] = {}
 
     # -- fitting -----------------------------------------------------------
 
@@ -290,7 +295,8 @@ class NFLModel:
         if self.max_tune is not None:
             tune = float(np.clip(tune, -self.max_tune, self.max_tune))
         trend = float(self.game_adjust.get(g.get("game_id", ""), 0.0))
-        projected = base + adj + tune + trend
+        factor = float(self.factor_adjust.get(g.get("game_id", ""), 0.0))
+        projected = base + adj + tune + trend + factor
 
         # ── Spread ──
         line = g.get("spread_line")
@@ -364,6 +370,7 @@ class NFLModel:
             ml_edge_home=ml_edge_h, ml_edge_away=ml_edge_a,
             selftune_adj=tune,
             trend_adj=trend,
+            factor_adj=factor,
             **rec,
         )
 

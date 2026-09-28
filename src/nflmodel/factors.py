@@ -47,9 +47,38 @@ PRIOR_KEEP = 0.6               # and is regressed 40% to league average
 
 # ---------------------------------------------------------------- efficiency
 
+WIDE_URL = ("https://github.com/nflverse/nflverse-data/releases/download/pbp/"
+            "play_by_play_{season}.parquet")
+WIDE_COLS = ["game_id", "season", "week", "season_type", "posteam", "defteam", "home_team",
+             "away_team", "epa", "success", "play_type", "pass", "rush", "sack", "qb_hit",
+             "yards_gained", "yardline_100", "down", "drive", "fixed_drive",
+             "fixed_drive_result", "posteam_score", "defteam_score", "interception",
+             "fumble_lost", "penalty", "qb_dropback", "touchdown", "pass_touchdown",
+             "rush_touchdown", "air_yards", "qtr", "wp", "game_seconds_remaining",
+             "drive_inside20"]
+
+
+def load_wide_pbp(season: int, refresh: bool = False) -> pd.DataFrame:
+    """Play-by-play with the columns factors need. Current season refreshes every 12h."""
+    import time
+    from .config import CURRENT_SEASON
+    WIDE_DIR.mkdir(parents=True, exist_ok=True)
+    path = WIDE_DIR / f"pbp_wide_{season}.parquet"
+    stale = not path.exists() or (season >= CURRENT_SEASON
+                                  and time.time() - path.stat().st_mtime > 12 * 3600)
+    if refresh or stale:
+        try:
+            d = pd.read_parquet(WIDE_URL.format(season=season))
+            d[[c for c in WIDE_COLS if c in d.columns]].to_parquet(path, index=False)
+        except Exception:
+            if not path.exists():
+                raise
+    return pd.read_parquet(path)
+
+
 def _team_games(season: int) -> pd.DataFrame:
     """One row per team per game with that team's OFFENSIVE numbers."""
-    p = pd.read_parquet(WIDE_DIR / f"pbp_wide_{season}.parquet")
+    p = load_wide_pbp(season)
     for c in ("posteam", "defteam", "home_team", "away_team"):
         p[c] = _normalize_team(p[c])
 
@@ -120,7 +149,7 @@ def _pregame_mean(tg: pd.DataFrame, cols: list[str], prior: pd.DataFrame | None,
     return out
 
 
-def team_efficiency(seasons) -> pd.DataFrame:
+def team_efficiency(seasons, current: bool = False) -> pd.DataFrame:
     """
     Pregame opponent-adjusted efficiency for every team-game in `seasons`.
 
@@ -151,6 +180,18 @@ def team_efficiency(seasons) -> pd.DataFrame:
             adj[f"o_{st}"] = tg[f"o_{st}"] - (np.nan_to_num(opp_d, nan=lg[f"d_{st}"]) - lg[f"d_{st}"])
             adj[f"d_{st}"] = tg[f"d_{st}"] - (np.nan_to_num(opp_o, nan=lg[f"o_{st}"]) - lg[f"o_{st}"])
         pre_adj = _pregame_mean(adj, allc, prior_adj, lg)
+        if current and s == seasons[-1]:
+            # Going into the NEXT game: last season's prior plus every game so far.
+            n = adj.groupby("team").size()
+            cur = {}
+            teams = n.index
+            for c in allc:
+                raw_pr = (prior_adj[c].reindex(teams) if prior_adj is not None
+                          else pd.Series(np.nan, index=teams)).fillna(lg[c])
+                pr = lg[c] + PRIOR_KEEP * (raw_pr - lg[c])
+                tot = adj.groupby("team")[c].apply(lambda x: x.fillna(lg[c]).sum())
+                cur[c] = (PRIOR_GAMES * pr + tot) / (PRIOR_GAMES + n)
+            return pd.DataFrame(cur)
         if s in seasons:
             frames.append(pre_adj)
         # Full-season adjusted averages become next season's prior.
@@ -356,7 +397,7 @@ POS_GROUP = {
 INJ_GROUPS = ["ol", "wr", "rb", "dl", "lb", "db"]
 
 
-def _injury_features(g: pd.DataFrame, seasons) -> pd.DataFrame:
+def _injury_features(g: pd.DataFrame, seasons, live_week: int | None = None) -> pd.DataFrame:
     """Starter-equivalents out by position group (QB excluded), home minus away."""
     from .roster import (player_importance, load_injuries, OUT_DESIGNATIONS,
                          UNAVAILABLE_STATUS)
@@ -372,6 +413,11 @@ def _injury_features(g: pd.DataFrame, seasons) -> pd.DataFrame:
             parts.append(i[["week", "team", "gsis_id", "position"]])
         try:
             ro = load_weekly_rosters(s)
+            if live_week is not None:
+                # Upcoming week: the roster file only runs through last week.
+                # Each player's LATEST status stands for this week.
+                ro = (ro[ro.week <= live_week].sort_values("week")
+                        .drop_duplicates("gsis_id", keep="last").assign(week=live_week))
             ro = ro[ro.status.isin(UNAVAILABLE_STATUS)].dropna(subset=["gsis_id"])
             parts.append(ro[["week", "team", "gsis_id", "position"]])
         except Exception:
@@ -569,3 +615,72 @@ FAMILIES2 = {
     "referee": ["ref_home"],
     "unit_clusters": ["uc_ol2", "uc_db2", "uc_wr2", "uc_dl2"],
 }
+
+
+# ============================================================ live (2026-09-28)
+
+def _pregame_net_epa(eff: pd.DataFrame, team: str) -> float:
+    """Own offense EPA/play minus what own defense allows; 0 if unknown."""
+    if team not in eff.index:
+        return 0.0
+    return float(eff.at[team, "o_epa"] - eff.at[team, "d_epa"])
+
+
+def team_efficiency_current(season: int) -> pd.DataFrame:
+    """Opponent-adjusted efficiency per team going into its next game."""
+    try:
+        return team_efficiency([season], current=True)
+    except Exception:
+        # No games yet this season: last season's full-year numbers, as the prior.
+        return team_efficiency([season - 1], current=True)
+
+
+def live_factor_shifts(slate_games: pd.DataFrame, season: int, week: int,
+                       weights: dict) -> pd.DataFrame:
+    """
+    Points added to the HOME side for each upcoming game, from the factors in
+    config.FACTORS. Same definitions as the lab that measured them
+    (scripts/factor_lab.py): nothing is computed differently live.
+
+    Returns game_id, factor_inj, factor_epa, factor_rest, factor_adj, factor_notes.
+    """
+    g = slate_games.copy()
+    g["season"], g["week"] = season, week
+    rows = pd.DataFrame({"game_id": g.game_id.to_numpy()})
+
+    # Non-QB injuries: starter-equivalents out, away minus home (+ = home healthier).
+    try:
+        inj = _injury_features(g.reset_index(drop=True), [season], live_week=week)
+        inj_total = inj["inj_total"].to_numpy()
+    except Exception as e:                                   # noqa: BLE001
+        print(f"WARNING: injury factor unavailable ({e}); using 0")
+        inj_total = np.zeros(len(g))
+
+    # Efficiency: net EPA/play, home minus away, opponent-adjusted.
+    try:
+        eff = team_efficiency_current(season)
+        epa = np.array([_pregame_net_epa(eff, h) - _pregame_net_epa(eff, a)
+                        for h, a in zip(g.home_team, g.away_team)])
+    except Exception as e:                                   # noqa: BLE001
+        print(f"WARNING: efficiency factor unavailable ({e}); using 0")
+        epa = np.zeros(len(g))
+
+    rest = (g.home_rest - g.away_rest).clip(-7, 7).fillna(0).to_numpy() \
+        if {"home_rest", "away_rest"} <= set(g.columns) else np.zeros(len(g))
+
+    rows["factor_inj"] = weights.get("inj_total", 0.0) * inj_total
+    rows["factor_epa"] = weights.get("eff_epa", 0.0) * epa
+    rows["factor_rest"] = weights.get("rt_rest_diff", 0.0) * rest
+    rows["factor_adj"] = rows[["factor_inj", "factor_epa", "factor_rest"]].sum(axis=1)
+    rows["_inj_raw"], rows["_epa_raw"], rows["_rest_raw"] = inj_total, epa, rest
+
+    notes = []
+    for (_, r), h, a in zip(rows.iterrows(), g.home_team, g.away_team):
+        bits = []
+        for col, label in (("factor_inj", "injuries"), ("factor_epa", "efficiency"),
+                           ("factor_rest", "rest")):
+            if abs(r[col]) >= 0.1:
+                bits.append(f"{label} {r[col]:+.1f} {h if r[col] > 0 else a}")
+        notes.append("; ".join(bits))
+    rows["factor_notes"] = notes
+    return rows

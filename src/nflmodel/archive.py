@@ -46,6 +46,7 @@ LEAN_COLS = [
     "best_home_ml", "best_home_ml_book",
     "best_away_ml", "best_away_ml_book",
     "selftune_adj", "trend_adj", "trend_notes", "wx_label",
+    "factor_adj", "factor_inj", "factor_epa", "factor_rest", "factor_notes",
 ]
 
 
@@ -128,13 +129,15 @@ def archive_week(ranked, slate, starters, qb_source, season: int, week: int,
     has_teams = {"away_team", "home_team"} <= set(slate.columns) and "matchup" in ranked.columns
     s_ = slate.assign(matchup=slate["away_team"] + " @ " + slate["home_team"]).set_index("matchup") \
         if has_teams else pd.DataFrame()
-    for col in ("trend_adj", "selftune_adj", "spread_line"):
+    for col in ("trend_adj", "selftune_adj", "factor_adj", "factor_inj",
+                "factor_epa", "factor_rest", "factor_notes", "spread_line"):
         if col in s_.columns:
             ranked[col] = ranked["matchup"].map(s_[col])
     if "projected_margin" in s_.columns:
         home_margin = ranked["matchup"].map(s_["projected_margin"])
-        ranked["raw_margin"] = (home_margin - ranked.get("trend_adj", 0).fillna(0)
-                                - ranked.get("selftune_adj", 0).fillna(0))
+        zero = pd.Series(0.0, index=ranked.index)
+        ranked["raw_margin"] = home_margin - sum(
+            ranked.get(c, zero).fillna(0) for c in ("trend_adj", "selftune_adj", "factor_adj"))
 
     # A mid-week re-run only covers games not yet played. Carry the published
     # rows for the rest forward untouched, so Thursday's pick is never lost --

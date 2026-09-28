@@ -62,6 +62,8 @@ def main():
                          'the consensus of six books is a better market number '
                          'than any single one, and the best available price is '
                          'worth more than the ratings.')
+    ap.add_argument('--no-factors', action='store_true',
+                    help='skip the game factors (injuries, efficiency, rest)')
     ap.add_argument('--no-weather', action='store_true',
                     help='skip the kickoff weather forecast (Open-Meteo)')
     ap.add_argument('--no-depth-chart', action='store_true',
@@ -299,6 +301,21 @@ def main():
     # on -- in 2013-2020 and again in 2021+ -- ever reach this point. Two
     # passes, because one confirmed trend ("model far from the line") needs
     # the model's own projection to know whether it applies.
+    # Game factors beyond ratings/QB/home field (config.FACTORS, measured in
+    # scripts/factor_lab.py): non-QB injuries, efficiency, rest.
+    factor_rows = pd.DataFrame()
+    if not args.no_factors:
+        from nflmodel.config import FACTORS
+        from nflmodel.factors import live_factor_shifts
+        try:
+            factor_rows = live_factor_shifts(slate_games, args.season, week, FACTORS)
+            model.factor_adjust = dict(zip(factor_rows.game_id, factor_rows.factor_adj))
+            print(f"game factors: injuries x{FACTORS['inj_total']}, efficiency "
+                  f"x{FACTORS['eff_epa']}, rest x{FACTORS['rt_rest_diff']} "
+                  f"(largest move {factor_rows.factor_adj.abs().max():.1f} pts)")
+        except Exception as e:                                   # noqa: BLE001
+            print(f'WARNING: game factors skipped ({e})')
+
     trend_notes, trend_state = {}, {}
     try:
         from nflmodel import trends as _trends
@@ -311,7 +328,8 @@ def main():
         # "far from the line" test must see the projection without the
         # self-tune nudge too (audit 2026-09-26).
         first = first.assign(projected_margin=first.projected_margin
-                             - first.get('selftune_adj', 0.0))
+                             - first.get('selftune_adj', 0.0)
+                             - first.get('factor_adj', 0.0))
         f = _trends.live_features(
             slate_games.merge(first[['game_id', 'projected_margin']], on='game_id'),
             games, args.season, starters, forecast)
@@ -360,6 +378,10 @@ def main():
                                 if c in slate.columns and c != 'game_id'])
     slate = slate.merge(parts, on='game_id', how='left')
     slate['trend_notes'] = slate.game_id.map(trend_notes).fillna('')
+    if len(factor_rows):
+        slate = slate.merge(factor_rows[['game_id', 'factor_inj', 'factor_epa',
+                                         'factor_rest', 'factor_notes']],
+                            on='game_id', how='left')
     from nflmodel.weather import forecast_columns
     slate = forecast_columns(slate, forecast)
 
@@ -477,6 +499,18 @@ def main():
             fav = g.home_team if g.selftune_adj > 0 else g.away_team
             print(f"    {g.away_team + ' @ ' + g.home_team:<14}"
                   f"{g.selftune_adj:+5.1f}  (toward {fav})")
+        print()
+
+    # ── game factors: what injuries, efficiency and rest added ──
+    if 'factor_adj' in slate.columns and slate.factor_adj.abs().max() > 0:
+        print('  GAME FACTORS  (points added beyond ratings, QB and home field)')
+        for _, g in slate.reindex(slate.factor_adj.abs()
+                                  .sort_values(ascending=False).index).iterrows():
+            if abs(g.factor_adj) < 0.1:
+                continue
+            side = g.home_team if g.factor_adj > 0 else g.away_team
+            print(f"    {g.away_team + ' @ ' + g.home_team:<14}{g.factor_adj:+5.1f} toward {side:<4} "
+                  f"{g.get('factor_notes', '')}")
         print()
 
     # ── trend fixes: consistent miss-reasons the model now corrects for ──

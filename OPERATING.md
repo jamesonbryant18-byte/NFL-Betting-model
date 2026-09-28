@@ -58,6 +58,19 @@ manufacture a finding. Anything it flags is a **candidate**, and the protocol
 for promoting a candidate into an actual change is `IMPROVEMENT.md`. Read that
 before touching a parameter.
 
+### Step 0a2 — game factors report card (from 2026 Week 4)
+
+```bash
+.venv/bin/python -W ignore scripts/factor_check.py
+```
+
+Grades each game factor (non-QB injuries, efficiency, rest) on every graded
+game it was applied to: did it move the projection toward the real result,
+and which winners did it flip. Report-only until 48 games; after that a factor
+worse at t <= -2 is FLAGGED for a re-fit or replacement in
+`scripts/factor_lab.py`. Injuries come partly from the Wed-Fri injury report,
+so run the week again late in the week before betting.
+
 ### Step 0b — find the reasons the model keeps missing (and fix those)
 
 ```bash

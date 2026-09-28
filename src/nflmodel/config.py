@@ -263,6 +263,22 @@ SELFTUNE = dict(signal="epa", alpha=1.0, half_life=3.0, cap=99.0,
                 max_game_adj=0.5, resid_clip=14.0)
 
 # ─────────────────────────────────────────────
+# GAME FACTORS (2026-09-28, Jameson: "consider more than 3 things")
+# ─────────────────────────────────────────────
+# Points added to a side, per unit of each factor (home minus away):
+#   inj_total     non-QB starter-equivalents out (prior-season snap share),
+#                 away minus home -- per full-time starter missing
+#   eff_epa       opponent-adjusted net EPA/play (offense minus defense allowed)
+#   rt_rest_diff  rest days, home minus away, clipped to +/-7
+# Chosen and weighted in scripts/factor_lab.py: ridge on the frozen model's
+# miss, penalty picked on 2013-20; this combination on 2021-25 (never seen):
+# straight-up 64.4% -> 65.4%, margin error 10.079 -> 10.000 (t 2.6, 3/5
+# seasons). Weights below are the same fit on 2013-2025. Injuries alone scored
+# best for betting; EPA adds winners, rest is neutral. Re-fit with
+# scripts/factor_lab.py; weekly health check in scripts/factor_check.py.
+FACTORS = dict(inj_total=0.703, eff_epa=1.191, rt_rest_diff=0.087)
+
+# ─────────────────────────────────────────────
 # VALIDATION BAR
 # ─────────────────────────────────────────────
 

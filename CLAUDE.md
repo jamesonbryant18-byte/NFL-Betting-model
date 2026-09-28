@@ -82,6 +82,22 @@ last-3 form vs line, team-specific home field + altitude + surface, referee
 crew home bias, 2+ starters out at one unit, total-aware win-% conversion.
 ALL no help on 2021-25, alone or on top of injuries (referee "passes" by
 0.0004 pts = nothing). Injuries remain the only keeper.
+
+**GAME FACTORS ARE LIVE from 2026 Week 4** (Jameson: "consider more than 3
+things", pick favorites, adjust any that perform poorly). `config.FACTORS`:
+non-QB injuries 0.703 pt/starter-equivalent out, opponent-adjusted net EPA/play
+x1.191, rest-day diff x0.087 (weights = ridge fit 2013-2025). Clean hold-out
+(weights fit 2013-20 only, with the live trend pull): SU 65.6% -> 65.8%, error
+9.966 -> 9.901, ATS 50.1% -> 52.1%, ML ROI -7.8% -> -1.8%, 3/5 seasons.
+Injuries alone is the best BETTING version; EPA was added for winners at a
+small betting cost; wind was rejected (sign backwards). Wiring:
+`factors.live_factor_shifts` -> `model.factor_adjust` -> `Prediction.factor_adj`;
+archived per game (factor_inj/epa/rest/notes); `raw_margin` excludes it so the
+trend checker still learns on the frozen model. `--no-factors` opts out. Live
+injuries = latest roster status (IR etc.) + this week's Out/Doubtful report,
+so a Tuesday run undercounts -- re-run late week. Weekly report card:
+`scripts/factor_check.py` (flags a factor at 48+ games and t <= -2; a flag
+means re-fit/replace via factor_lab.py, never auto re-weight).
 Week 3 graded 8-7 pre-MNF (PHI@CHI pending, week NOT locked); bets 3-1
 (MIA +10.5 lost); WAS (Daniels) and SEA (Lock) starters wrong again.
 
@@ -128,8 +144,8 @@ after the Wednesday run). No ratings parameters were changed on one week.
 
 Two layers are LIVE since 2026-09-25/26 (see §0): the EPA per-team nudge
 (max 0.5 pt) and the miss-trend checker (`trends.py`). Weekly loop:
-`review_week.py --week N` → `miss_report.py` → commit `data/trends.json` →
-`run_week.py`. What follows is why the ORIGINAL design failed and must not be
+`review_week.py --week N` → `miss_report.py` → `factor_check.py` → commit
+`data/trends.json` → `run_week.py`. What follows is why the ORIGINAL design failed and must not be
 brought back.
 
 Jameson asked for continuous week-to-week self-improvement (2026-09-22). The
