@@ -416,3 +416,156 @@ FAMILIES = {
 # Weather also changes how far apart the teams play, not just who is favored:
 # a margin-shrink term (wind/precip/cold x projected margin) is built in the lab
 # because it needs the projection.
+
+
+# ================================================================ batch 2
+# 2026-09-28, second pass: things score-based ratings CANNOT already know,
+# because they change between one game and the next.
+
+INTL = ("LON", "MEX", "GER", "MUN", "FRA", "SAO", "RIO", "MAD", "PAR", "MEL", "DUB", "BER")
+
+
+def _team_rows(all_games: pd.DataFrame) -> pd.DataFrame:
+    """One row per team per game, in schedule order, from that team's side."""
+    ag = all_games.copy()
+    rows = []
+    for side, sgn in (("home", 1), ("away", -1)):
+        o = "away" if side == "home" else "home"
+        rows.append(pd.DataFrame({
+            "game_id": ag.game_id, "season": ag.season, "week": ag.week,
+            "team": ag[f"{side}_team"], "opp": ag[f"{o}_team"],
+            "is_home": (side == "home") & ~ag.neutral.fillna(False).astype(bool),
+            "margin": ag.result * sgn, "line": ag.spread_line * sgn,
+            "ot": ag.overtime.fillna(0), "coach": ag[f"{side}_coach"],
+            "div": ag.div_game.fillna(0), "weekday": ag.weekday,
+            "intl": ag.stadium_id.fillna("").str.startswith(INTL),
+            "surface": ag.surface.fillna("").str.strip().str.lower(),
+            "played": ag.result.notna()}))
+    return pd.concat(rows).sort_values(["team", "season", "week"]).reset_index(drop=True)
+
+
+def build_extra_factors(all_games: pd.DataFrame, seasons) -> pd.DataFrame:
+    """
+    Batch-2 factors, one row per game (game_id). `all_games` should be the
+    full schedule from 1999 (data/cache/games.parquet) so track records exist.
+    """
+    seasons = sorted(seasons)
+    ag = all_games[all_games.game_type.notna()].copy()
+    ag["neutral"] = ag.location.eq("Neutral") if "location" in ag else False
+    tr = _team_rows(ag)
+    grp = tr.groupby(["team", "season"])
+
+    # ---- schedule spots (previous / next game for this team, same season)
+    prev = lambda c: grp[c].shift(1)
+    tr["prev_upset_win"] = ((prev("margin") > 0) & (prev("line") <= -3)).astype(float)
+    tr["prev_blowout_loss"] = (prev("margin") <= -21).astype(float)
+    tr["prev_blowout_win"] = (prev("margin") >= 21).astype(float)
+    tr["prev_ot"] = (prev("ot") > 0).astype(float)
+    tr["prev_intl"] = prev("intl").fillna(False).astype(float)
+    tr["prev_mon_road"] = ((prev("weekday") == "Monday") & ~prev("is_home").fillna(True).astype(bool)).astype(float)
+    tr["lookahead"] = ((grp["div"].shift(-1) == 1) & (tr["div"] == 0)).astype(float)
+    # consecutive road games ending with this one
+    road = (~tr.is_home).astype(int)
+    streak = road.groupby([tr.team, tr.season, (road == 0).cumsum()]).cumsum()
+    tr["road3"] = (streak >= 3).astype(float)
+
+    # ---- mid-season coaching change (interim head coach)
+    first_coach = grp["coach"].transform("first")
+    tr["interim"] = (tr.coach != first_coach).astype(float)
+    tr["interim_first3"] = (tr.interim.astype(bool)
+                            & (tr.groupby(["team", "season", "coach"]).cumcount() < 3)).astype(float)
+
+    # ---- form: last 3 games' margin vs the line (hot/cold beyond the rating)
+    beat = tr.margin - tr.line
+    tr["form3"] = beat.groupby([tr.team, tr.season]).transform(
+        lambda s: s.shift(1).rolling(3, min_periods=2).mean()).fillna(0.0)
+
+    # ---- team-specific home field from PRIOR seasons (home minus road margin)
+    hf = tr[tr.played].groupby(["team", "season"]).apply(
+        lambda x: pd.Series({"h": x.margin[x.is_home].sum(), "nh": x.is_home.sum(),
+                             "r": x.margin[~x.is_home].sum(), "nr": (~x.is_home).sum()}))
+    hf = hf.reset_index().sort_values(["team", "season"])
+    for c in ("h", "nh", "r", "nr"):     # last 5 seasons before this one
+        hf[c + "5"] = hf.groupby("team")[c].transform(lambda s: s.shift(1).rolling(5, min_periods=1).sum())
+    split = (hf.h5 / hf.nh5 - hf.r5 / hf.nr5) / 2
+    lg = split.groupby(hf.season).transform("mean")
+    n = hf.nh5 + hf.nr5
+    hf["team_hfa"] = ((split - lg) * n / (n + 80)).fillna(0.0)
+    hfa = hf.set_index(["team", "season"]).team_hfa
+
+    # ---- surface: visitor whose home field is the other surface type
+    turf = lambda s: s.str.contains("turf|astro|matrix|a_turf")
+    home_surf = tr[tr.is_home].groupby(["team", "season"]).surface.agg(
+        lambda s: s.mode().iat[0] if len(s.mode()) else "")
+
+    # ---- referee: crew's home margin in prior seasons, shrunk
+    rg = ag[ag.result.notna() & ag.referee.notna()].copy()
+    rs = rg.groupby(["referee", "season"]).agg(s=("result", "sum"), n=("result", "size")).reset_index()
+    rs = rs.sort_values(["referee", "season"])
+    rs["s_prev"] = rs.groupby("referee").s.transform(lambda x: x.shift(1).cumsum())
+    rs["n_prev"] = rs.groupby("referee").n.transform(lambda x: x.shift(1).cumsum())
+    lg_home = rg.groupby("season").result.mean()
+    rs["ref_home"] = ((rs.s_prev / rs.n_prev - rs.season.map(lg_home.shift(1)))
+                      * rs.n_prev / (rs.n_prev + 150)).fillna(0.0)
+    ref = rs.set_index(["referee", "season"]).ref_home
+
+    # ---- assemble per game
+    g = ag[ag.season.isin(seasons)].copy()
+    t = tr.set_index(["game_id", "team"])
+    H = t.reindex(pd.MultiIndex.from_arrays([g.game_id, g.home_team]))
+    A = t.reindex(pd.MultiIndex.from_arrays([g.game_id, g.away_team]))
+    H.index = A.index = g.index
+    out = g[["game_id"]].copy()
+    for c in ("prev_upset_win", "prev_blowout_loss", "prev_blowout_win", "prev_ot",
+              "prev_intl", "prev_mon_road", "lookahead", "road3", "interim",
+              "interim_first3", "form3"):
+        out[f"sp_{c}"] = H[c].to_numpy() - A[c].to_numpy()
+    home = (~g.neutral.astype(bool)).astype(float)
+    out["loc_team_hfa"] = pd.MultiIndex.from_arrays([g.home_team, g.season]).map(hfa).fillna(0.0).to_numpy() * home
+    out["loc_altitude"] = (g.home_team.eq("DEN") & home.astype(bool)).astype(float)
+    gs = turf(g.surface.fillna("").str.strip().str.lower())
+    a_surf = pd.MultiIndex.from_arrays([g.away_team, g.season - 1]).map(home_surf)
+    a_turf = turf(pd.Series(a_surf, index=g.index).fillna("").astype(str))
+    out["loc_surface_away"] = (gs != a_turf).astype(float) * home
+    out["ref_home"] = pd.MultiIndex.from_arrays([g.referee.fillna(""), g.season]).map(ref).fillna(0.0).to_numpy() * home
+    out["total_line"] = g.total_line
+    return out.reset_index(drop=True)
+
+
+def unit_clusters(seasons) -> pd.DataFrame:
+    """Several starters out at ONE unit (2+ OL, 2+ DBs): non-linear injury hits."""
+    from .roster import player_importance, load_injuries, OUT_DESIGNATIONS, UNAVAILABLE_STATUS
+    from .depth import load_weekly_rosters
+    frames = []
+    for s in seasons:
+        imp = player_importance(s)
+        parts = []
+        inj = load_injuries(s)
+        if not inj.empty:
+            parts.append(inj[inj.report_status.isin(OUT_DESIGNATIONS)].dropna(subset=["gsis_id"])
+                         [["week", "team", "gsis_id", "position"]])
+        try:
+            ro = load_weekly_rosters(s)
+            parts.append(ro[ro.status.isin(UNAVAILABLE_STATUS)].dropna(subset=["gsis_id"])
+                         [["week", "team", "gsis_id", "position"]])
+        except Exception:
+            pass
+        a = pd.concat(parts).drop_duplicates(["week", "team", "gsis_id"])
+        a["team"] = _normalize_team(a.team)
+        a["grp"] = a.position.map(POS_GROUP)
+        a = a[a.gsis_id.map(imp).fillna(0) >= 0.5]          # real starters only
+        c = a.groupby(["week", "team", "grp"]).size().unstack(fill_value=0).reset_index()
+        c.insert(0, "season", s)
+        frames.append(c)
+    return pd.concat(frames, ignore_index=True).fillna(0)
+
+
+FAMILIES2 = {
+    "schedule_spots": ["sp_prev_upset_win", "sp_prev_blowout_loss", "sp_prev_blowout_win",
+                       "sp_prev_ot", "sp_prev_intl", "sp_prev_mon_road", "sp_lookahead", "sp_road3"],
+    "coach_change": ["sp_interim", "sp_interim_first3"],
+    "recent_form": ["sp_form3"],
+    "venue": ["loc_team_hfa", "loc_altitude", "loc_surface_away"],
+    "referee": ["ref_home"],
+    "unit_clusters": ["uc_ol2", "uc_db2", "uc_wr2", "uc_dl2"],
+}

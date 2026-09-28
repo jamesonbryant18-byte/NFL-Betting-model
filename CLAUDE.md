@@ -76,6 +76,12 @@ full-time-starter-equivalent out, hold-out error -0.09 (t 2.7), SU up in
 4/5 hold-out seasons, same coefficient for IR vs weekly report and fresh vs
 stale. Vs the LINE it is not significant (fixed-coef t 1.1): helps picking
 winners, not proven for betting. NOT wired into run_week — awaiting his call.
+Batch 2 same day (`factors.FAMILIES2`, `factors2_2013_2025.parquet`): schedule
+spots (letdown/lookahead/after OT/after London/3rd road game), interim coach,
+last-3 form vs line, team-specific home field + altitude + surface, referee
+crew home bias, 2+ starters out at one unit, total-aware win-% conversion.
+ALL no help on 2021-25, alone or on top of injuries (referee "passes" by
+0.0004 pts = nothing). Injuries remain the only keeper.
 Week 3 graded 8-7 pre-MNF (PHI@CHI pending, week NOT locked); bets 3-1
 (MIA +10.5 lost); WAS (Daniels) and SEA (Lock) starters wrong again.
 

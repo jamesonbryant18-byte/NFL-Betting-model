@@ -33,7 +33,7 @@ import pandas as pd
 from scipy.stats import norm, t as tdist
 
 from nflmodel.config import CACHE_DIR
-from nflmodel.factors import FAMILIES, build_game_factors
+from nflmodel.factors import FAMILIES, FAMILIES2, build_game_factors
 
 TUNE = list(range(2013, 2021))
 HOLD = list(range(2021, 2026))
@@ -53,6 +53,9 @@ base = pd.read_parquet(CACHE_DIR / "base_projections_2013_2025.parquet")
 fac = pd.read_parquet(fpath)
 d = base.merge(fac.drop(columns=["season", "week", "home_team", "away_team"]),
                on="game_id", how="inner")
+f2 = CACHE_DIR / "factors2_2013_2025.parquet"
+if f2.exists():
+    d = d.merge(pd.read_parquet(f2).drop(columns=["total_line"]), on="game_id", how="left")
 odds = pd.read_parquet(CACHE_DIR / "dataset_2010_2025.parquet")[
     ["game_id", "home_spread_odds", "away_spread_odds"]]
 d = d.merge(odds, on="game_id", how="left")
@@ -73,6 +76,8 @@ for fam, cols in EXTRA.items():
     for k, v in cols.items():
         d[k] = v
 FAMS = {f: list(c) + list(EXTRA.get(f, {})) for f, c in FAMILIES.items()}
+if f2.exists():
+    FAMS.update(FAMILIES2)
 
 tune = d.season.isin(TUNE).to_numpy()
 hold = d.season.isin(HOLD).to_numpy()
@@ -200,15 +205,25 @@ print(hdr)
 print("  " + "-" * (len(hdr) - 2))
 
 results = {}
-for fam, cols in list(FAMS.items()) + [("ALL", [c for cs in FAMS.values() for c in cs])]:
+# Batch-2 families are also judged ON TOP of injuries (the one batch-1 keeper):
+# "+inj" rows compare injuries+family against injuries alone.
+INJ = FAMS["injuries"]
+runs = list(FAMS.items()) + [("ALL", [c for cs in FAMS.values() for c in cs])]
+runs += [(f"+inj {f}", INJ + c) for f, c in FAMILIES2.items()] if f2.exists() else []
+inj_adj = None
+for fam, cols in runs:
     adj, alpha, coef = fit_family(cols, d.result - m)
+    if fam == "injuries":
+        inj_adj = adj
     p1 = p0 + adj
+    ref = p0 + inj_adj if fam.startswith("+inj") else p0
+    R0 = score(ref, hold)
     H = score(p1, hold)
-    wins, gains = per_season_gain(p0, p1)
-    t = paired_t(p0, p1, hold)
+    wins, gains = per_season_gain(ref, p1)
+    t = paired_t(ref, p1, hold)
     r, tl, blend, _ = beats_line(cols)
-    dsu = H["su"] - B["hold"]["su"]
-    derr = B["hold"]["mae"] - H["mae"]        # positive = better
+    dsu = H["su"] - R0["su"]
+    derr = R0["mae"] - H["mae"]               # positive = better
     cand = derr > 0 and dsu >= 0 and wins >= 3
     verdict = "CANDIDATE" if cand else ("no help" if derr <= 0 else "mixed")
     results[fam] = dict(adj=adj, coef=coef, alpha=alpha, H=H, wins=wins, gains=gains,
@@ -224,7 +239,7 @@ print("  vs LINE: factors fit to predict where the closing line missed; r and t 
 print("  |t| < 2 on that column means the line already prices it.")
 print()
 for fam, R in results.items():
-    if fam == "ALL":
+    if fam == "ALL" or fam.startswith("+inj"):
         continue
     top = sorted(R["coef"].items(), key=lambda kv: -abs(kv[1]))[:4]
     print(f"  {fam:<12} penalty {R['alpha']:<5} per-season gain "
