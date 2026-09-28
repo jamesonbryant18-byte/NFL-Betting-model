@@ -62,6 +62,23 @@ $25, IND +108 $16, BAL −178 $9. Tuesday's original Week 3 picks are in
 `picks/2026/superseded/`. An 11-agent adversarial audit of the new code ran
 2026-09-26; every finding is fixed or documented (IMPROVEMENT.md).
 
+**2026-09-28 (Mon, before MNF): factor lab.** Jameson clarified that "adjust
+the model" means ADD FACTORS to the core model (what it's missing), NOT
+re-rank teams/QBs off results. He cut early-season uncertainty and turnover
+luck; asked to test efficiency, matchups, weather, rest/travel, non-QB
+injuries, coaching/situation, optimized for BOTH straight-up winners and
+betting value. Built `src/nflmodel/factors.py` (pregame, no-leak features;
+detailed pbp cached in `data/cache/pbp_wide/`) and `scripts/factor_lab.py`
+(ridge fit 2013-20, scored 2021-25). Result on 2021-25: efficiency, matchup,
+weather, rest/travel, situation = NO HELP (CV picked max penalty; error
+slightly worse). **Non-QB injuries = only candidate**: ~0.62 pts per
+full-time-starter-equivalent out, hold-out error -0.09 (t 2.7), SU up in
+4/5 hold-out seasons, same coefficient for IR vs weekly report and fresh vs
+stale. Vs the LINE it is not significant (fixed-coef t 1.1): helps picking
+winners, not proven for betting. NOT wired into run_week — awaiting his call.
+Week 3 graded 8-7 pre-MNF (PHI@CHI pending, week NOT locked); bets 3-1
+(MIA +10.5 lost); WAS (Daniels) and SEA (Lock) starters wrong again.
+
 **Jameson's working preferences:** he wants picks presented as every game's
 straight-up winner ranked by confidence, plus the bets. "Redo the week N
 picks" = delete that week's three files in `output/` and regenerate. He wants
