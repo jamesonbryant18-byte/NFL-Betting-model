@@ -13,7 +13,7 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-09-26 (Sat before 2026 Week 3 Sunday).** Branch
+**Last updated 2026-09-30 (Wed before 2026 Week 4 TNF).** Branch
 `week3-selftune-fanduel` merged to `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -98,8 +98,34 @@ injuries = latest roster status (IR etc.) + this week's Out/Doubtful report,
 so a Tuesday run undercounts -- re-run late week. Weekly report card:
 `scripts/factor_check.py` (flags a factor at 48+ games and t <= -2; a flag
 means re-fit/replace via factor_lab.py, never auto re-weight).
-Week 3 graded 8-7 pre-MNF (PHI@CHI pending, week NOT locked); bets 3-1
-(MIA +10.5 lost); WAS (Daniels) and SEA (Lock) starters wrong again.
+
+**2026-09-30 (Wed): Week 3 locked, stale-QB data fix, Week 4 built.**
+Week 3 final 8-8 SU (expected 10.4, inside the band), leans 4-1. His
+tracker: 2-2 +$1.74 (the TEN @ NY row is TEN @ NYG, a win the review can't
+match -- he was told to fix the matchup text).
+
+The review's "WAS/SEA starter wrong" flags were FALSE. nflverse pre-fills
+home/away_qb with the probable starter and does not always correct it:
+Week 3 listed Jayden Daniels (sat; Mariota threw all 31) and Drew Lock
+(Darnold threw 45). Same in history: 4 games 2022, 32 in 2024, 7 in 2025, and
+2026 Week 2 ATL (listed Tua, 0 attempts; Cooper Rush -- the model's override
+-- did start, so that -31 miss was NOT an input error). `data.load_games` now
+runs `correct_stale_qbs`: a listed QB with ZERO pass attempts for that team
+that week is replaced by the attempts leader (nflverse `stats_player_week`,
+cached as `qb_attempts_{season}.parquet`). Early in-game injuries (threw >= 1
+pass) keep nflverse's listing. Measured 2021-25 hold-out, same code both ways:
+MAE 10.090 -> 10.085 (t -0.6), SU 64.08% -> 63.87% (3 games), ATS@1.5
+50.46% -> 50.26% -- neutral; shipped as a process-defect fix. Test:
+`tests/test_qb_correction.py`.
+
+Week 4 run with `--qb TB="Jalon Daniels" --qb CHI="Tyson Bagent" --qb
+WAS="Marcus Mariota"` (Mayfield out 3+ wks; Williams out 3-4 wks, Johnson says
+Bagent starts if healthy; Daniels "may sit", market prices Mariota). SEA =
+Darnold (depth chart, correct). Bets: JAX +2.5 $25, TB +3.5 $25, CHI -176 $25,
+CAR +168 $13, BUF -330 $12. TB +3.5 rests on the rookie being only
+replacement level (-2.29); the <8-starts watch item says such QBs run ~1 pt
+worse than the model. The model rates Mariota = Daniels (-0.15/-0.16), so the
+WAS QB call moves nothing in the model but will move the market line.
 
 **Jameson's working preferences:** he wants picks presented as every game's
 straight-up winner ranked by confidence, plus the bets. "Redo the week N
@@ -456,3 +482,10 @@ and has not taken it up.
   an injury story, and a sign it proxies team quality. Re-test it
   prospectively against CLV rather than re-running the pooled regression.
 - `HFA_TEAM_DELTAS` and several config knobs are declared but unused.
+- **Lab caches predate the live loader.** `data/cache/dataset_2010_2025.parquet`
+  (and so `base_projections_2013_2025.parquet`, which the trend checker and
+  factor lab read) was built before QB-name canonicalization and before the
+  2026-09-30 stale-QB fix: 16 spelling-only rows + 42 wrong starters vs what
+  `load_games()` now returns. Effect on hold-out MAE is ~0.01 pt. Rebuild both
+  (`build_dataset` -> `build_base_projections.py`) in a quiet week, then re-run
+  `miss_report.py` and check the trend gate still holds before committing.

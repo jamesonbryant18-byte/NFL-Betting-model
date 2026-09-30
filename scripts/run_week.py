@@ -451,9 +451,11 @@ def main():
 
     # ── QB risk: which uncertain starters actually move a line ──
     #
-    # The largest prediction error of the 2026 season was ATL in Week 2 --
-    # projected +0.2, actual -31 -- and the ratings were not at fault: the
-    # model had Cooper Rush and Tua Tagovailoa started. A generic "starter is
+    # Built after ATL in Week 2 (projected +0.2, actual -31), blamed at the
+    # time on the starter. Passing stats later showed Cooper Rush, the model's
+    # starter, did start -- the "Tua started" entry was a stale nflverse
+    # pre-fill (see data.correct_stale_qbs). The table still earns its place:
+    # starters DO change late (Week 1 ATL). A generic "starter is
     # Doubtful" warning did not stop it, because every week has several and
     # they all read the same. This prices them instead, so the two worth a
     # phone call are obvious and the rest can be ignored.

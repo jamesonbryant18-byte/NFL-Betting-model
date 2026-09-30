@@ -28,6 +28,13 @@ PBP_URL = (
     "play_by_play_{season}.parquet"
 )
 
+QB_STATS_URL = (
+    "https://github.com/nflverse/nflverse-data/releases/download/stats_player/"
+    "stats_player_week_{season}.parquet"
+)
+# The ratings history starts in 2010; nothing earlier is fit.
+QB_CHECK_FIRST_SEASON = 2010
+
 CACHE_TTL_HOURS = 6
 
 # Franchises that changed abbreviation. We normalize to the current code so a
@@ -129,6 +136,82 @@ def _canonicalize_qb_names(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def load_qb_attempts(season: int, refresh: bool = False) -> pd.DataFrame:
+    """Every player with a pass attempt, per team per week, for one season."""
+    path = _cache_path(f"qb_attempts_{season}.parquet")
+    ttl = CACHE_TTL_HOURS if season >= CURRENT_SEASON else float("inf")
+
+    if refresh or _is_stale(path, ttl):
+        df = pd.read_parquet(QB_STATS_URL.format(season=season),
+                             columns=["season", "week", "team", "player_id",
+                                      "player_display_name", "attempts"])
+        df = df[df["attempts"] > 0]
+        df.to_parquet(path, index=False)
+    else:
+        df = pd.read_parquet(path)
+
+    df["team"] = _normalize_team(df["team"])
+    return df
+
+
+def correct_stale_qbs(df: pd.DataFrame, attempts: pd.DataFrame) -> pd.DataFrame:
+    """
+    Replace a played game's listed starter who never threw a pass.
+
+    nflverse pre-fills home_qb / away_qb with the PROBABLE starter before
+    kickoff and does not always correct it afterwards. 2026 Week 3 still
+    listed Jayden Daniels for WAS (he sat; Mariota threw all 31 passes) and
+    Drew Lock for SEA (Darnold threw 45). The same stale entries run through
+    history -- 33 team-games in 2024 alone (IND Week 8 lists Flacco;
+    Richardson started). The ratings fit keys quarterbacks on these fields,
+    so each one credits a game to a player who did not play it, and the
+    review flags a correct input as wrong.
+
+    The rule is deliberately narrow: only a listed QB with ZERO pass attempts
+    for that team that week is replaced, by the team's attempts leader. A
+    starter hurt early (2026 Week 1 SEA: Darnold, a few snaps) threw at least
+    one pass and keeps the listing, which is nflverse's convention and the
+    one the model was validated on. Weeks with no stats published yet are
+    left alone.
+    """
+    if attempts.empty:
+        return df
+    leader = (attempts.sort_values("attempts")
+                      .groupby(["season", "week", "team"]).tail(1)
+                      .set_index(["season", "week", "team"]))
+    threw = set(zip(attempts["season"], attempts["week"], attempts["team"],
+                    attempts["player_id"]))
+    canon = qb_identity_map(df)
+
+    df = df.copy()
+    played = df["result"].notna()
+    for side in ("home", "away"):
+        team_col, id_col, name_col = (f"{side}_team", f"{side}_qb_id",
+                                      f"{side}_qb_name")
+        for i in df.index[played]:
+            key = (df.at[i, "season"], df.at[i, "week"], df.at[i, team_col])
+            if key not in leader.index:
+                continue                   # no stats for that game yet
+            qid = df.at[i, id_col]
+            if isinstance(qid, str) and (*key, qid) in threw:
+                continue                   # the listed QB did play
+            new = leader.loc[key]
+            df.at[i, id_col] = new["player_id"]
+            df.at[i, name_col] = canon.get(new["player_id"],
+                                           new["player_display_name"])
+    return df
+
+
+def _qb_attempts_all(seasons) -> pd.DataFrame:
+    frames = []
+    for season in seasons:
+        try:
+            frames.append(load_qb_attempts(season))
+        except Exception as e:
+            warnings.warn(f"QB check skipped for {season}: no player stats ({e})")
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
 def load_games(refresh: bool = False) -> pd.DataFrame:
     """
     Every NFL game 1999-present with closing lines and context.
@@ -149,6 +232,12 @@ def load_games(refresh: bool = False) -> pd.DataFrame:
 
     df["home_team"] = _normalize_team(df["home_team"])
     df["away_team"] = _normalize_team(df["away_team"])
+
+    # A listed starter who never threw a pass did not start -- see
+    # correct_stale_qbs. Before canonicalizing, so the fix gets the canon name.
+    seasons = sorted(s for s in df.loc[df["result"].notna(), "season"].unique()
+                     if s >= QB_CHECK_FIRST_SEASON)
+    df = correct_stale_qbs(df, _qb_attempts_all(seasons))
 
     # One quarterback, one name -- see _canonicalize_qb_names.
     df = _canonicalize_qb_names(df)
