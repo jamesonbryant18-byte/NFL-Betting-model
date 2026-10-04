@@ -1,10 +1,10 @@
 """
-Tests for betlog.py — the union of every copy of the Bet Tracker.
+Tests for betlog.py — the Bet Tracker is Jameson's, read and never edited.
 
-The scenario these pin is the one that lost data: Week 1's workbook was
-edited AFTER data/bet_log.csv was last written, and the Week 2 workbook does
-not exist yet. Every row the user ever typed has to come through, and where
-two copies disagree the most recently saved file must win.
+The scenario these pin happened (2026-09-30): he deleted rows in his newest
+workbook and the old union of every copy put them back from older copies.
+Now the newest workbook's tracker IS the tracker; older copies and the CSV
+never add a row to it, and a copy he edited is backed up, not overwritten.
 
 Run: .venv/bin/python -W ignore -m pytest tests/test_betlog.py -q
 """
@@ -20,9 +20,10 @@ from openpyxl import Workbook
 
 from nflmodel import betlog
 from nflmodel.betlog import (BET_LOG_COLUMNS, bet_key, clv_for_row,
-                             collect_preserved_bets, normalize_matchup,
-                             parse_row, read_csv_rows, read_tracker_rows,
-                             write_csv_rows)
+                             load_tracker, normalize_matchup, parse_row,
+                             protect_tracker_copies, read_csv_rows,
+                             read_tracker_rows, record_tracker_state,
+                             tracker_fingerprint, write_csv_rows)
 
 
 # ── fixtures ───────────────────────────────────────────────────
@@ -138,47 +139,78 @@ def test_bet_key_ignores_the_editable_fields_and_the_date_type():
     assert bet_key(SHARED_OLD) != bet_key(OLD_ONLY)
 
 
-# ── the union ───────────────────────────────────────────────────
+# ── one tracker, read only ─────────────────────────────────────
 
-def test_collect_unions_every_store_newest_edit_winning(stores):
-    # Week 3 is being run for the first time: its workbook does not exist.
-    rows = collect_preserved_bets(stores["out"] / "NFL_Model_2026_Week03.xlsx",
-                                  stores["out"], stores["csv"])
-    keys = [bet_key(r) for r in rows]
-    assert len(keys) == len(set(keys)), "a bet was duplicated"
-
-    by_key = {bet_key(r): r for r in rows}
-    shared = by_key[bet_key(SHARED_NEW)]
-    assert shared[7] == 75 and shared[8] == "W", "newest edit did not win"
-    assert shared[9:] == [1.5, -108, 2.1], "closing line/odds/edge were lost"
-    assert bet_key(OLD_ONLY) in by_key, "row only in the older workbook was dropped"
-    assert bet_key(CSV_ONLY) in by_key, "row only in the CSV mirror was dropped"
-    assert bet_key(NEW_ONLY) in by_key
-
-    # Newest source first in its own order, then unseen rows from older
-    # sources in mtime order (CSV before Week01).
-    assert keys == [bet_key(SHARED_NEW), bet_key(NEW_ONLY),
-                    bet_key(CSV_ONLY), bet_key(OLD_ONLY)]
-    # Values come back exactly as read: the CSV row is still strings.
-    assert by_key[bet_key(CSV_ONLY)][7] == "50"
+def test_load_tracker_reads_only_the_newest_workbook(stores):
+    t = load_tracker(stores["out"], stores["csv"])
+    assert t.kind == "workbook" and t.path == stores["wk2"]
+    # Exactly what he left in the newest copy: nothing resurrected from the
+    # older workbook or the CSV, even though they hold rows it does not.
+    assert [r[:9] for r in t.rows] == [SHARED_NEW[:9], NEW_ONLY[:9]]
+    assert t.fingerprint == tracker_fingerprint(stores["wk2"])
 
 
-def test_collect_prefers_the_current_workbook_when_it_is_newest(stores):
-    # Second run of the same week: the current workbook was just edited.
-    _set_mtime(stores["wk1"], time.time())
-    rows = collect_preserved_bets(stores["wk1"], stores["out"], stores["csv"])
-    shared = {bet_key(r): r for r in rows}[bet_key(SHARED_OLD)]
-    assert shared[7] == 50 and shared[8] is None
-    assert [bet_key(r) for r in rows][:2] == [bet_key(SHARED_OLD), bet_key(OLD_ONLY)]
-    assert len(rows) == 4
+def test_a_row_he_deleted_does_not_come_back(stores):
+    # He deletes NEW_ONLY and fixes nothing else; the older copies still hold
+    # rows the newest one lacks. The tracker is what he left: one row.
+    _write_tracker(stores["wk2"], [SHARED_NEW])
+    _set_mtime(stores["wk2"], time.time())
+    t = load_tracker(stores["out"], stores["csv"])
+    assert [r[:9] for r in t.rows] == [SHARED_NEW[:9]]
 
 
-def test_collect_is_empty_when_nothing_exists(tmp_path):
-    assert collect_preserved_bets(tmp_path / "x.xlsx", tmp_path / "output",
-                                  tmp_path / "bet_log.csv") == []
-    (tmp_path / "output").mkdir()
-    assert collect_preserved_bets(tmp_path / "x.xlsx", tmp_path / "output",
-                                  tmp_path / "bet_log.csv") == []
+def test_csv_backup_is_read_only_when_no_workbook_exists(tmp_path):
+    out = tmp_path / "output"
+    out.mkdir()
+    csv_path = tmp_path / "bet_log.csv"
+    write_csv_rows([CSV_ONLY], csv_path)
+    t = load_tracker(out, csv_path)
+    assert t.kind == "csv" and len(t.rows) == 1
+    assert load_tracker(tmp_path / "missing", tmp_path / "none.csv").kind == "none"
+
+
+def test_unedited_copies_raise_no_warning(stores):
+    t = load_tracker(stores["out"], stores["csv"])
+    record_tracker_state(stores["out"], t, stores["wk2"])
+    record_tracker_state(stores["out"],
+                         load_tracker(stores["out"], stores["csv"]), stores["wk2"])
+    # Week01's tracker was never recorded as edited; overwriting a file that
+    # is not there is nothing to protect.
+    assert protect_tracker_copies(t, stores["out"] / "NFL_Model_2026_Week03.xlsx",
+                                  stores["out"]) == []
+
+
+def test_an_older_copy_edited_after_it_was_carried_is_reported(stores):
+    t = load_tracker(stores["out"], stores["csv"])
+    # The model has seen Week01 as it is now...
+    state = {"known": {"NFL_Model_2026_Week01.xlsx": tracker_fingerprint(stores["wk1"])}}
+    (stores["out"] / ".tracker_state.json").write_text(__import__("json").dumps(state))
+    # ...then he types a new bet into Week01, but Week02 stays the newest save.
+    late = ["9/21/2026", 2, "BUF @ MIA", "SPREAD", "MIA +2.5", 2.5, -110, 5, None,
+            None, None, None]
+    _write_tracker(stores["wk1"], [SHARED_OLD, OLD_ONLY, late])
+    _set_mtime(stores["wk1"], time.time() - 1800)
+    _set_mtime(stores["wk2"], time.time())
+    t = load_tracker(stores["out"], stores["csv"])
+    warns = protect_tracker_copies(t, stores["out"] / "NFL_Model_2026_Week03.xlsx",
+                                   stores["out"])
+    assert len(warns) == 1 and "NFL_Model_2026_Week01.xlsx" in warns[0]
+    assert "BUF @ MIA" in warns[0] and "nothing was merged" in warns[0]
+    # The carried tracker did not change.
+    assert [r[:9] for r in t.rows] == [SHARED_NEW[:9], NEW_ONLY[:9]]
+
+
+def test_an_edited_copy_is_backed_up_before_it_is_overwritten(stores):
+    # Re-running Week 1 while Week 2 is the newest save: Week01 would be
+    # rebuilt around Week02's tracker. Its own differs and the model has no
+    # record of it, so it is copied to output/backup/ first.
+    t = load_tracker(stores["out"], stores["csv"])
+    before = stores["wk1"].read_bytes()
+    warns = protect_tracker_copies(t, stores["wk1"], stores["out"])
+    backups = list((stores["out"] / "backup").glob("NFL_Model_2026_Week01.*.xlsx"))
+    assert len(backups) == 1 and backups[0].read_bytes() == before
+    assert len(warns) == 1 and "backup" in warns[0]
+    assert stores["wk1"].read_bytes() == before      # protect never writes it
 
 
 # ── typed view ──────────────────────────────────────────────────
@@ -258,3 +290,18 @@ def test_home_away_side_resolves_to_team():
     assert home["bet_side"] == "ATL"
     assert away["bet_side"] == "DET"
     assert team["bet_side"] == "CLE +8.5"
+
+
+def test_an_edit_to_an_older_copy_is_reported_once(stores):
+    t = load_tracker(stores["out"], stores["csv"])
+    record_tracker_state(stores["out"], t, stores["wk2"])     # baselines Week01 too
+    late = ["9/21/2026", 2, "BUF @ MIA", "SPREAD", "MIA +2.5", 2.5, -110, 5, None,
+            None, None, None]
+    _write_tracker(stores["wk1"], [SHARED_OLD, OLD_ONLY, late])
+    _set_mtime(stores["wk1"], time.time() - 1800)
+    _set_mtime(stores["wk2"], time.time())
+    target = stores["out"] / "NFL_Model_2026_Week03.xlsx"
+    t = load_tracker(stores["out"], stores["csv"])
+    first = protect_tracker_copies(t, target, stores["out"])
+    assert len(first) == 1 and "BUF @ MIA" in first[0]
+    assert protect_tracker_copies(t, target, stores["out"]) == []

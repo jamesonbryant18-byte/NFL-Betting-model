@@ -408,6 +408,9 @@ def main():
         print(f"  ADVISORY MODE — {len(leans)} lean(s), $0 staked.")
         print(f"  The hold-out backtest found no edge vs closing lines, so the model")
         print(f"  stakes nothing by default. Set ADVISORY_MODE=False in config.py to bet.")
+    elif STAKING.flat_stake:
+        print(f"  {len(bets)} qualifying bet(s) at ${STAKING.flat_stake:.0f} each "
+              f"= ${bets.stake.sum():,.0f}")
     else:
         print(f"  {len(bets)} qualifying bet(s), ${bets.stake.sum():,.0f} staked "
               f"({bets.stake.sum()/STAKING.bankroll:.1%} of bankroll, "

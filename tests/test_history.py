@@ -191,6 +191,33 @@ def test_match_bets_by_week_then_by_date():
     assert len(match_bets(bets, 2025, 1, "DEN @ KC", date(2025, 9, 12))) == 1
 
 
+def test_loosely_typed_matchup_is_read_as_the_real_game():
+    # 2026 Week 3, exactly as he typed it: 'TEN @ NY ' with side HOME.
+    raw = [date(2026, 9, 27), 3, "TEN @ NY ", "MONEYLINE", "HOME", None, -127, 5, "W"]
+    bets = [parse_row(raw)]
+    got = match_bets(bets, 2026, 3, "TEN @ NYG", date(2026, 9, 27))
+    assert len(got) == 1
+    assert got[0]["matchup"] == "TEN @ NYG" and got[0]["bet_side"] == "NYG"
+    # Reading never rewrites what he typed.
+    assert bets[0]["matchup"] == "TEN @ NY" and bets[0]["bet_side"] == "NY"
+    # Same week, a different NY game: TEN is not in it, so no match.
+    assert match_bets(bets, 2026, 3, "NYJ @ MIA", date(2026, 9, 27)) == []
+    # Another week: the typed week rules it out.
+    assert match_bets(bets, 2026, 4, "TEN @ NYG", date(2026, 10, 4)) == []
+    # No week and no date: too ambiguous to match loosely.
+    undated = parse_row([None, None, "TEN @ NY", "MONEYLINE", "HOME", None, -127, 5])
+    assert match_bets([undated], 2026, 3, "TEN @ NYG", date(2026, 9, 27)) == []
+
+
+def test_loose_match_does_not_confuse_la_and_lac():
+    # Rams at SEA exactly: exact match, untouched.
+    rams = parse_row([date(2026, 10, 4), 4, "LA @ SEA", "SPREAD", "LA +3.5", 3.5, -110, 5])
+    assert match_bets([rams], 2026, 4, "LA @ SEA", None)[0]["bet_side"] == "LA +3.5"
+    # 'LA @ SEA' in a week where SEA hosts the Chargers can only mean LAC.
+    got = match_bets([rams], 2026, 4, "LAC @ SEA", None)
+    assert got[0]["matchup"] == "LAC @ SEA" and got[0]["bet_side"] == "LAC +3.5"
+
+
 # ── the frame ───────────────────────────────────────────────────
 
 def test_build_history_grades_and_joins(archive_dir):

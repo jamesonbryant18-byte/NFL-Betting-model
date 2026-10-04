@@ -461,12 +461,15 @@ class NFLModel:
         else:
             conf = self._confidence(spread_edge)
 
+        # Kelly decided that this bet qualifies; with a flat stake it does not
+        # decide the amount (config.Staking.flat_stake).
+        flat = self.staking.flat_stake
         return {
             "recommendation": f"BET {best['side']}",
             "bet_market": best["market"],
             "bet_side": best["side"],
             "bet_odds": best["odds"],
-            "stake": best["stake"],
+            "stake": float(flat) if flat else best["stake"],
             "confidence": conf,
         }
 
@@ -504,6 +507,12 @@ class NFLModel:
                 "^BET ", "LEAN ", regex=True
             )
             df["stake"] = 0.0
+            return df
+
+        # Flat stake: every qualifying bet stands at the same amount. The
+        # weekly cap below exists to limit Kelly-sized exposure; at a flat $5
+        # it would only hide bets that qualified (Week 2: NYG +240 was cut).
+        if self.staking.flat_stake:
             return df
 
         # Weekly exposure cap, strongest edge first.

@@ -1,34 +1,21 @@
 """
-betlog.py — reading, merging and typing the hand-entered Bet Tracker.
+betlog.py — reading and typing the hand-entered Bet Tracker. Read only.
 
-The Bet Tracker is the one thing in this repo that cannot be regenerated.
-Everything else rebuilds from nflverse; the numbers Jameson actually saw, the
-stakes he would have risked and the results he settled exist nowhere else.
-And it lives in several places at once: the "Bet Tracker" sheet of every
-weekly workbook under output/, plus the CSV mirror at data/bet_log.csv that
-is committed so a dead laptop does not take the record with it.
+The Bet Tracker is Jameson's. He types his bets and results into the "Bet
+Tracker" sheet of the weekly workbook; the model reads it (to grade what he
+actually bet, and to show "Your Bet" next to the model's picks) and never
+edits it. See "THE TRACKER IS JAMESON'S" below for how a new week's workbook
+inherits the sheet without the model touching a cell, and why the old
+merge-every-copy approach was removed on 2026-09-30.
 
-The bug this module exists to fix
-----------------------------------
-build_workbook used to do
-
-    preserved = read_existing_bets(path) or import_bet_log(log_path)
-
-where `path` is the CURRENT week's workbook. On the first run of Week 2 that
-file does not exist yet, so it fell through to the CSV -- which was last
-written at the END of the previous script run. Anything typed into the Week 1
-workbook after that run (the normal case: log Wednesday, settle Monday, run
-Week 2 on Tuesday) was silently absent from the Week 2 workbook. Quiet,
-total, and only noticed later -- the worst possible failure for a bet log.
-
-The fix is to stop guessing which copy is authoritative. Read every copy,
-identify each bet by what it *is* (date, matchup, market, side) rather than
-by where it sits, and let the most recently modified file win per bet. A row
-that exists only in an older copy is kept, not dropped.
+data/bet_log.csv is a backup of his rows, committed so a dead laptop does
+not take the record with it. It is written from the tracker being carried
+forward and read only when no weekly workbook has a tracker.
 
 This module also owns the typed view of a tracker row (parse_row) and the
 CLV arithmetic (clv_for_row), so that history.py can grade bets in Python
-exactly the way the workbook's formulas grade them in Excel.
+exactly the way the workbook's formulas grade them in Excel. Typing a row
+for grading never writes anything back.
 """
 
 from __future__ import annotations
@@ -38,6 +25,7 @@ import math
 import re
 from datetime import date, datetime
 from pathlib import Path
+from dataclasses import dataclass
 from typing import Any, Optional
 
 from .market import closing_line_value
@@ -48,10 +36,12 @@ BET_LOG_COLUMNS = [
     "stake", "result", "closing_line", "closing_odds", "model_edge",
 ]
 
-# Layout of the Bet Tracker sheet, as built by excel._sheet_tracker. Headers
-# sit on row 11; the user types into rows 12..500. Columns A..I are the
-# hand-entered fields, J/K/N/O are formulas rewritten every run, and L, M, P
-# (closing line, closing odds, model edge) are hand-entered too.
+# Layout of the Bet Tracker sheet, as first built by excel._sheet_tracker.
+# Headers sit on row 11; he types into rows 12..500. Columns A..I are the
+# hand-entered fields, J/K/N/O are the sheet's own formulas, and L, M, P
+# (closing line, closing odds, model edge) are hand-entered too. After the
+# first build the model never rewrites any of it -- the sheet is carried
+# forward as he left it.
 TRACKER_SHEET = "Bet Tracker"
 TRACKER_FIRST_ROW = 12
 TRACKER_LAST_ROW = 500
@@ -141,11 +131,12 @@ def read_csv_rows(csv_path) -> list[list]:
 
 def write_csv_rows(rows: list[list], csv_path) -> None:
     """
-    Mirror tracker rows to the CSV under version control.
+    Back up tracker rows to the CSV under version control.
 
     output/ is gitignored because everything in it regenerates -- except the
-    tracker. This copy is what survives a lost machine, so it is written on
-    every run and committed weekly.
+    tracker. This copy is what survives a lost machine, so it is rewritten
+    from the carried-forward tracker on every run and committed weekly. It
+    is never merged back into the tracker.
     """
     p = Path(csv_path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -228,64 +219,223 @@ def _key_is_empty(key: tuple) -> bool:
 
 
 # ─────────────────────────────────────────────
-# COLLECTING FROM EVERY COPY
+# THE TRACKER IS JAMESON'S: READ IT, NEVER EDIT IT
 # ─────────────────────────────────────────────
+#
+# 2026-09-30, his words: the Bet Tracker "should only be for you to observe
+# not to touch and meddle with ... it's more for me to update on my own."
+#
+# What this replaced: every run used to UNION every copy of the tracker (all
+# weekly workbooks + the CSV mirror), newest edit winning per bet. A union
+# cannot see a deletion or a correction. He deleted his Week 2 rows in the
+# Week 3 workbook; the Week 4 run put them back from the Week 2 workbook and
+# the CSV; he deleted them again by hand in the Week 4 workbook (Excel,
+# 2026-09-30 10:36). A matchup fix ("TEN @ NY" -> "TEN @ NYG") would have
+# come back as a second row.
+#
+# Now the tracker in the most recently saved weekly workbook IS the tracker.
+# excel.build_workbook loads that file and rebuilds every other sheet around
+# the tracker sheet, so it reaches the next workbook cell for cell: no row
+# added, removed, reordered, merged or retyped. The CSV mirror is a backup
+# that is written, never read back, unless no weekly workbook exists at all.
+#
+# The model still protects what he typed. A workbook about to be overwritten
+# whose tracker he edited, and which is not the copy being carried forward,
+# is backed up to output/backup/ first. An older week's workbook edited after
+# its tracker was carried forward is reported with its rows -- the run never
+# guesses which copy he meant and never merges them.
 
-def collect_preserved_bets(path, output_dir, log_path) -> list[list]:
+TRACKER_STATE_FILE = ".tracker_state.json"     # in output/, beside the workbooks
+BACKUP_DIRNAME = "backup"                      # output/backup/
+
+
+@dataclass
+class TrackerSource:
+    """The one copy of the tracker a run reads, and where it came from."""
+    path: Optional[Path]          # the workbook (or CSV) the rows came from
+    kind: str                     # "workbook", "csv" or "none"
+    rows: list                    # read_tracker_rows / read_csv_rows output
+    fingerprint: Optional[str]    # tracker_fingerprint(path) for a workbook
+
+
+def _has_tracker(path: Path) -> bool:
+    try:
+        from openpyxl import load_workbook
+        wb = load_workbook(str(path), read_only=True)
+        try:
+            return TRACKER_SHEET in wb.sheetnames
+        finally:
+            wb.close()
+    except Exception:
+        return False
+
+
+def tracker_workbooks(output_dir) -> list[Path]:
+    """Weekly workbooks that have a Bet Tracker sheet, most recently saved first."""
+    if output_dir is None or not Path(output_dir).is_dir():
+        return []
+    found = [p for p in Path(output_dir).glob(WORKBOOK_GLOB)
+             if not p.name.startswith("~$") and _has_tracker(p)]
+    return sorted(found, key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def _cell_text(v: Any) -> str:
+    """A stable text form of a cell value (array formulas have no stable repr)."""
+    if isinstance(v, (datetime, date)):
+        return v.isoformat()
+    text = getattr(v, "text", None)             # ArrayFormula / DataTableFormula
+    if text is not None:
+        return f"{type(v).__name__}:{getattr(v, 'ref', '')}:{text}"
+    return repr(v)
+
+
+def tracker_fingerprint(path) -> Optional[str]:
     """
-    Union of every copy of the tracker, newest edit winning per bet.
-
-    Sources are the current week's workbook (if it exists), every other
-    NFL_Model_*_Week*.xlsx under output_dir, and the CSV mirror. They are
-    walked in descending mtime order and the first sighting of each bet_key
-    is kept, so a row edited in the most recently saved file beats older
-    copies while a row that exists only in an old copy still survives.
-
-    Output order: the newest source's rows as they were, then rows the older
-    sources add, in the order they appear there. Values are returned exactly
-    as read -- no coercion, so a workbook cell that was a number stays a
-    number and a CSV cell stays a string.
-
-    One line is printed per source so the run shows where the rows came from.
-    Returns [] when no source has anything.
+    A hash of every non-empty cell on the tracker sheet -- header area, the
+    formula columns and anything he added past column P included. Used only
+    to tell whether a copy changed; None when the file has no tracker.
     """
-    candidates: list[Path] = []
-    if path is not None and Path(path).exists():
-        candidates.append(Path(path))
-    if output_dir is not None and Path(output_dir).is_dir():
-        candidates.extend(sorted(Path(output_dir).glob(WORKBOOK_GLOB)))
-    if log_path is not None and Path(log_path).exists():
-        candidates.append(Path(log_path))
+    import hashlib
+    try:
+        from openpyxl import load_workbook
+        wb = load_workbook(str(path), read_only=True)
+        try:
+            if TRACKER_SHEET not in wb.sheetnames:
+                return None
+            h = hashlib.sha1()
+            for r, row in enumerate(wb[TRACKER_SHEET].iter_rows(values_only=True), 1):
+                for c, v in enumerate(row, 1):
+                    if v is None or (isinstance(v, str) and v == ""):
+                        continue
+                    h.update(f"{r},{c}={_cell_text(v)}\n".encode())
+            return h.hexdigest()
+        finally:
+            wb.close()
+    except Exception:
+        return None
 
-    seen_paths: set = set()
-    sources: list[Path] = []
-    for p in candidates:
-        rp = p.resolve()
-        if rp in seen_paths:
+
+def load_tracker(output_dir, log_path, announce: bool = True) -> TrackerSource:
+    """
+    The tracker as he last left it: the most recently saved weekly workbook
+    that has one. Only when no workbook has a tracker (first run, lost
+    output/) does the CSV backup stand in.
+    """
+    books = tracker_workbooks(output_dir)
+    if books:
+        src = books[0]
+        rows = read_tracker_rows(src)
+        kind, fp = "workbook", tracker_fingerprint(src)
+    elif log_path is not None and Path(log_path).exists():
+        src, rows, kind, fp = Path(log_path), read_csv_rows(log_path), "csv", None
+    else:
+        return TrackerSource(None, "none", [], None)
+    if announce:
+        stamp = datetime.fromtimestamp(src.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+        how = "read only" if kind == "workbook" else "BACKUP -- no workbook has a tracker"
+        print(f"  bet tracker: {src.name} (saved {stamp}) — {len(rows)} row(s), {how}")
+    return TrackerSource(src, kind, rows, fp)
+
+
+def _load_state(output_dir) -> dict:
+    import json
+    p = Path(output_dir) / TRACKER_STATE_FILE
+    try:
+        return json.loads(p.read_text())
+    except Exception:
+        return {}
+
+
+def _save_state(output_dir, state: dict) -> None:
+    import json
+    try:
+        (Path(output_dir) / TRACKER_STATE_FILE).write_text(
+            json.dumps(state, indent=1, sort_keys=True))
+    except Exception:
+        pass
+
+
+def _rows_missing(rows: list, reference: list) -> list:
+    """Rows of `rows` that do not appear, exactly, in `reference`."""
+    have = {tuple(_cell_text(v) for v in _pad(r)) for r in reference}
+    return [r for r in rows if tuple(_cell_text(v) for v in _pad(r)) not in have]
+
+
+def _describe(row) -> str:
+    r = _pad(list(row))
+    return " | ".join(_text(v) for v in (r[0], r[2], r[3], r[4], r[7], r[8]) if _text(v))
+
+
+def protect_tracker_copies(source: TrackerSource, target, output_dir) -> list[str]:
+    """
+    Warnings, and backups, before `target` is written.
+
+    Two cases lose nothing silently:
+      * target exists, is not the copy being carried forward, and holds a
+        tracker he edited (or one the model has no record of that differs
+        from the source): copied to output/backup/ before it is replaced.
+      * any other workbook whose tracker changed since the model last read or
+        wrote it: named, with the rows that are not in the carried copy.
+    Nothing is merged either way. Returns the warning lines to print.
+    """
+    if source.kind != "workbook" or output_dir is None:
+        return []
+    state = _load_state(output_dir)
+    known = state.setdefault("known", {})
+    target = Path(target)
+    warnings_: list[str] = []
+    reported: dict = {}
+    for w in tracker_workbooks(output_dir):
+        if w.resolve() == source.path.resolve():
             continue
-        seen_paths.add(rp)
-        sources.append(p)
+        fp = tracker_fingerprint(w)
+        edited = w.name in known and fp != known[w.name]
+        overwriting = target.exists() and w.resolve() == target.resolve()
+        if overwriting and (edited or (w.name not in known and fp != source.fingerprint)):
+            backup_dir = Path(output_dir) / BACKUP_DIRNAME
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.fromtimestamp(w.stat().st_mtime).strftime("%Y%m%d-%H%M%S")
+            dest = backup_dir / f"{w.stem}.{stamp}{w.suffix}"
+            import shutil
+            shutil.copy2(w, dest)
+            warnings_.append(
+                f"{w.name} is being rebuilt, but its Bet Tracker differs from the one "
+                f"carried forward ({source.path.name}). Saved it untouched to "
+                f"output/{BACKUP_DIRNAME}/{dest.name}; nothing was merged.")
+        elif edited:
+            extra = _rows_missing(read_tracker_rows(w), source.rows)
+            msg = (f"the Bet Tracker in {w.name} was edited after the model last "
+                   f"read it; this workbook carries {source.path.name} instead, "
+                   f"and nothing was merged.")
+            if extra:
+                msg += " Rows only in " + w.name + ": " + "; ".join(
+                    _describe(r) for r in extra[:6]) + (" ..." if len(extra) > 6 else "")
+            warnings_.append(msg)
+            # Said once per edit: the file stays different forever, and a
+            # warning that repeats every run is a warning nobody reads.
+            reported[w.name] = fp
+    if reported:
+        known.update(reported)
+        _save_state(output_dir, state)
+    return warnings_
 
-    # Stable sort: ties keep the candidate order (current workbook first).
-    sources.sort(key=lambda p: p.stat().st_mtime, reverse=True)
 
-    merged: list[list] = []
-    seen_keys: set = set()
-    for p in sources:
-        rows = (read_csv_rows(p) if p.suffix.lower() == ".csv"
-                else read_tracker_rows(p))
-        stamp = datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
-        print(f"  bet log: {p.name} (modified {stamp}) — {len(rows)} row(s)")
-        for row in rows:
-            k = bet_key(row)
-            # A row with no identifying fields at all cannot be matched to
-            # anything, so it is never treated as a duplicate.
-            if not _key_is_empty(k):
-                if k in seen_keys:
-                    continue
-                seen_keys.add(k)
-            merged.append(row)
-    return merged
+def record_tracker_state(output_dir, source: TrackerSource, written) -> None:
+    """Remember what each copy held when the model last read or wrote it."""
+    if output_dir is None or source.kind != "workbook":
+        return
+    state = _load_state(output_dir)
+    known = state.setdefault("known", {})
+    known[source.path.name] = source.fingerprint
+    fp = tracker_fingerprint(written)
+    if fp is not None:
+        known[Path(written).name] = fp
+    # Baseline every other copy the first time it is seen, so a later edit
+    # to an older week's file is noticed (protect_tracker_copies).
+    for w in tracker_workbooks(output_dir):
+        if w.name not in known:
+            known[w.name] = tracker_fingerprint(w)
+    _save_state(output_dir, state)
 
 
 # ─────────────────────────────────────────────
@@ -372,7 +522,7 @@ def parse_row(row) -> dict:
     """
     A tracker row with real types.
 
-    The raw rows are kept untyped on purpose (see collect_preserved_bets);
+    The raw rows are kept exactly as he typed them (see load_tracker);
     this is the one place the strings become dates, ints and floats, so
     grading and CLV never have to guess.
     """

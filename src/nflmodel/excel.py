@@ -15,7 +15,8 @@ Sheets, in tab order:
   Game Detail         a matchup picker -- choose a game, see what drives it
   Team Stats          record, point differential, roster and injured list
   Power Ratings       the fitted ratings
-  Bet Tracker         hand-entered bets, CLV, P&L (persists across runs)
+  Bet Tracker         YOURS: the model reads it, never edits it; carried
+                      into each new workbook exactly as you left it
   Bet Log             every pick and lean ever published, graded
   Rosters, Injuries   the player-level detail behind Team Stats
   Reference & Glossary
@@ -38,8 +39,9 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
-from .betlog import (BET_LOG_COLUMNS, collect_preserved_bets, read_csv_rows,
-                     read_tracker_rows, write_csv_rows)
+from .betlog import (BET_LOG_COLUMNS, TRACKER_SHEET, load_tracker,
+                     protect_tracker_copies, read_csv_rows, read_tracker_rows,
+                     record_tracker_state, write_csv_rows)
 from .config import OUTPUT_DIR, REPO_ROOT, STAKING
 from .data import TEAMS
 from .market import format_spread
@@ -331,10 +333,12 @@ def build_workbook(
     log_path = REPO_ROOT / "data" / "bet_log.csv"
     model_meta = model_meta or {}
 
-    # Every copy of the tracker, newest edit winning per bet. The old code
-    # read only the current week's file and fell back to the CSV, which lost
-    # anything typed into last week's workbook after its final run.
-    preserved = collect_preserved_bets(path, OUTPUT_DIR, log_path)
+    # The Bet Tracker is Jameson's: the copy in the most recently saved weekly
+    # workbook, carried into this one as the sheet itself (see betlog.py).
+    tracker = load_tracker(OUTPUT_DIR, log_path)
+    for w in protect_tracker_copies(tracker, path, OUTPUT_DIR):
+        print(f"WARNING: {w}")
+    preserved = tracker.rows
 
     # Graded history of every archived pick. Derived data: a failure here is
     # a WARNING and an empty sheet, never a lost slate.
@@ -345,7 +349,7 @@ def build_workbook(
     except Exception as exc:                          # noqa: BLE001
         print(f"WARNING: bet log history unavailable ({type(exc).__name__}: {exc})")
 
-    wb = Workbook()
+    wb = _start_workbook(tracker)
 
     _sheet_lists(wb, pts_table)
     _sheet_bets(wb, slate, season, week, model_meta)
@@ -356,13 +360,18 @@ def build_workbook(
     _sheet_detail(wb, slate, season, week, slate_last, model_meta)
     _sheet_team_stats(wb, team_stats, season, week)
     _sheet_ratings(wb, ratings, season, week)
-    _sheet_tracker(wb, preserved)
+    if tracker.kind != "workbook":
+        # First workbook ever, or output/ was lost: build the sheet, and
+        # restore his rows from the CSV backup if there is one.
+        _sheet_tracker(wb, preserved)
     _sheet_history(wb, history, season, week)
     _sheet_miss_report(wb, trends_state)
     _sheet_rosters(wb, team_stats)
     _sheet_injuries(wb, team_stats)
     _sheet_reference(wb, backtest_summary, model_meta)
     _sheet_model_data(wb, slate)
+    if tracker.kind == "workbook":
+        _place_tracker(wb)
 
     # Open on a visible sheet. A hidden active sheet makes Excel repair the file.
     for ws in wb.worksheets:
@@ -372,8 +381,73 @@ def build_workbook(
     wb[first].sheet_view.tabSelected = True
 
     wb.save(path)
-    write_csv_rows(preserved, log_path)
+    record_tracker_state(OUTPUT_DIR, tracker, path)
+    if tracker.kind == "workbook":
+        write_csv_rows(preserved, log_path)       # backup of his rows, as typed
     return path
+
+
+# Every sheet the builders create. Only these are thrown away and rebuilt when
+# a new workbook starts from his; the Bet Tracker, and any sheet he added
+# himself, is carried forward untouched. tests/test_tracker_carry.py fails if
+# a create_sheet() name is missing here.
+MODEL_SHEETS = frozenset({
+    "Lists", "This Week's Bets", "Picks", "Weekly Slate", "Model Picks %",
+    "Game Detail", "Team Stats", "Power Ratings", "Bet Log", "Miss Report",
+    "Rosters", "Injuries", "Reference & Glossary", "Model Data",
+})
+
+
+def _start_workbook(tracker):
+    """
+    A fresh workbook, or -- when he has a tracker -- HIS workbook with the
+    model's sheets thrown away, so the tracker is never rewritten: values,
+    formulas, formatting, rows and anything he added come through untouched,
+    as does any sheet of his own. The builders then add the model's sheets.
+    """
+    if tracker.kind != "workbook":
+        return Workbook()
+    from openpyxl import load_workbook
+    wb = load_workbook(str(tracker.path))
+    for name in list(wb.sheetnames):
+        if name in MODEL_SHEETS:
+            wb.remove(wb[name])
+    _drop_dangling_names(wb)
+    # _sheet_lists takes over the ACTIVE sheet; it must not be his.
+    wb.create_sheet("Lists", 0)
+    wb.active = 0
+    return wb
+
+
+def _place_tracker(wb) -> None:
+    """
+    Put the carried tracker back where it always sits, after Power Ratings,
+    and any sheet of his own at the end, so the model's tabs keep their order.
+    """
+    his = [s for s in wb._sheets
+           if s.title not in MODEL_SHEETS and s.title != TRACKER_SHEET]
+    ws = wb[TRACKER_SHEET]
+    for s in [ws] + his:
+        wb._sheets.remove(s)
+    names = [s.title for s in wb._sheets]
+    at = names.index("Power Ratings") + 1 if "Power Ratings" in names else len(names)
+    wb._sheets.insert(at, ws)
+    wb._sheets.extend(his)
+
+
+def _drop_dangling_names(wb) -> None:
+    """Workbook-level names that point at a removed sheet make Excel repair the file."""
+    try:
+        live = set(wb.sheetnames)
+        for name, dn in list(wb.defined_names.items()):
+            try:
+                sheets = {s for s, _ in dn.destinations}
+            except Exception:
+                continue                  # not a range reference; leave it
+            if sheets and not sheets <= live:
+                del wb.defined_names[name]
+    except Exception:
+        pass
 
 
 # ─────────────────────────────────────────────
@@ -735,8 +809,10 @@ def _advisory_banner(model_meta) -> str:
                 "50.1%, −4.3% ROI. Read an edge as a disagreement worth logging for CLV, "
                 "not as a bet. Full verdict on Reference & Glossary.")
     return ("LIVE STAKING — ADVISORY_MODE is off in config.py. The hold-out backtest still "
-            f"shows no edge against closing lines ({HOLDOUT['bare_ats']}). Stakes are "
-            "half-Kelly, capped; see Reference & Glossary.")
+            f"shows no edge against closing lines ({HOLDOUT['bare_ats']}). "
+            + (f"Every bet is a flat ${STAKING.flat_stake:.0f}; " if STAKING.flat_stake
+               else "Stakes are half-Kelly, capped; ")
+            + "see Reference & Glossary.")
 
 
 def _sheet_slate(wb, slate, season, week, model_meta) -> int:
@@ -825,7 +901,8 @@ def _sheet_slate(wb, slate, season, week, model_meta) -> int:
         ("Leans (price disagreements)", len(leans)),
         ("Qualifying bets", len(bets)),
         ("Total staked", f"${bets['stake'].sum():,.0f}" if len(bets) else "$0"),
-        ("% of bankroll", f"{(bets['stake'].sum() if len(bets) else 0)/STAKING.bankroll*100:.1f}%"),
+        (("Stake per bet", f"${STAKING.flat_stake:.0f} flat") if STAKING.flat_stake else
+         ("% of bankroll", f"{(bets['stake'].sum() if len(bets) else 0)/STAKING.bankroll*100:.1f}%")),
         ("Largest edge", f"{abs_edge.max():.1f} pts" if len(abs_edge) else "—"),
         ("Home field used", f"{model_meta.get('hfa', 0.0):+.2f} pts" if model_meta.get("hfa") is not None else "—"),
         ("Market prior weight", f"{model_meta.get('market_prior_weight', 0.0):.0%}"
@@ -1133,7 +1210,8 @@ def _sheet_detail(wb, slate, season, week, slate_last, model_meta):
             value=("→ " + ("Advisory mode: the ticket is what the model WOULD take, at $0. Log it on the Bet "
                            "Tracker with the number you can actually get; CLV over ~40-50 picks is the test."
                            if model_meta.get("advisory", True) else
-                           "Live staking is on. Stakes are half-Kelly, capped per bet and per week.")))
+                           (f"Live staking is on. Every bet is a flat ${STAKING.flat_stake:.0f}." if STAKING.flat_stake
+                            else "Live staking is on. Stakes are half-Kelly, capped per bet and per week."))))
     ws.cell(row=r + 5, column=1).font = Font(italic=True, color=GREEN, size=10)
     ws.merge_cells(start_row=r + 5, start_column=1, end_row=r + 5, end_column=5)
     ws.row_dimensions[r + 5].height = 30
@@ -1357,9 +1435,11 @@ def _sheet_ratings(wb, ratings, season, week):
 
 def _sheet_tracker(wb, preserved=None):
     """
-    The hand-entered log. Columns A-I, L, M and P are yours; J, K, N, O are
-    formulas. Rows found in any earlier workbook or the CSV mirror are put
-    back exactly where they were, so re-running never loses a bet.
+    The hand-entered log, built only when no weekly workbook has one yet
+    (first run, or output/ was lost -- then his rows come back from the CSV
+    backup). After that the model never rebuilds or edits this sheet:
+    build_workbook carries it forward as he left it. Columns A-I, L, M and P
+    are his; J, K, N, O start as formulas.
     """
     ws = wb.create_sheet("Bet Tracker")
     ws.tab_color = DARK_GOLD
@@ -1369,8 +1449,8 @@ def _sheet_tracker(wb, preserved=None):
 
     apply_header(ws, "A1", "BET TRACKER", merge_to="P1", size=16)
     ws.row_dimensions[1].height = 30
-    _banner(ws, 2, "Log every lean you would act on, even at $0 — yellow columns are yours, gray ones "
-                   "calculate. Rows persist across weekly runs and mirror to data/bet_log.csv.", "P", height=18)
+    _banner(ws, 2, "This sheet is yours: the model reads it and never edits it — each new week's workbook "
+                   "carries it forward exactly as you left it (backup: data/bet_log.csv).", "P", height=18)
 
     apply_section(ws, "A3", "SUMMARY", merge_to="F3")
     summary = [
@@ -1664,7 +1744,7 @@ SHEET_GUIDE = [
     ("Game Detail", "The matchup picker: choose a game from the dropdown and every cell looks up that game — ratings, QB terms, home field, market prior, cover/push, moneyline edges, the ticket."),
     ("Team Stats", "One row per team: record, points for/against, differential, ATS record, rating and rank, starting QB and where that name came from, roster by position group, the injured list with expected returns."),
     ("Power Ratings", "The fitted ratings entering this week, in points against an average team."),
-    ("Bet Tracker", "Where you log what you would take and the number you saw. CLV and P&L calculate; rows survive re-runs and mirror to data/bet_log.csv."),
+    ("Bet Tracker", "Yours to fill in. The model reads it (Your Bet on the Bet Log, the weekly review) and never edits it; each new workbook carries it forward exactly as you left it, backed up to data/bet_log.csv."),
     ("Bet Log", "One row per game: who the model picked, who won, whether it was right, the model's bet and your bet with results. Win rate of the model's picks and of its value picks at the top."),
     ("Rosters / Injuries", "The player-level detail behind Team Stats, one row per player, filterable."),
 ]
@@ -1845,7 +1925,10 @@ def _sheet_reference(wb, backtest_summary, model_meta=None):
 
     section("STAKING")
     entry("Kelly criterion", "Stake sized to the edge and the odds. Full Kelly maximizes long-run growth but swings violently.")
-    entry("Half Kelly", f"This model stakes at {STAKING.kelly_fraction:.0%} of Kelly, capped at {STAKING.max_bet_pct:.1%} of bankroll and {STAKING.max_weekly_exposure_pct:.0%} per week — roughly three-quarters of the growth at half the volatility. In advisory mode every stake is $0.")
+    if STAKING.flat_stake:
+        entry("Half Kelly", f"Used only as a yes/no test: a bet qualifies when it clears its edge threshold AND half-Kelly on a ${STAKING.bankroll:,.0f} reference bankroll would stake at least ${STAKING.min_bet:.0f}. The amount is always a flat ${STAKING.flat_stake:.0f} (your choice, 2026-09-30), and there is no weekly cap.")
+    else:
+        entry("Half Kelly", f"This model stakes at {STAKING.kelly_fraction:.0%} of Kelly, capped at {STAKING.max_bet_pct:.1%} of bankroll and {STAKING.max_weekly_exposure_pct:.0%} per week — roughly three-quarters of the growth at half the volatility. In advisory mode every stake is $0.")
 
     section("WHAT THE BACKTEST FOUND")
     if backtest_summary:

@@ -9,6 +9,7 @@ are personal preferences and are safe to change at any time.
 """
 
 from dataclasses import dataclass
+from typing import Optional
 from pathlib import Path
 
 # ─────────────────────────────────────────────
@@ -55,7 +56,21 @@ class Staking:
     # Cap on total exposure across a single week's slate. Without this, a
     # model that likes 13 of 16 games happily risks a third of the bankroll
     # in an afternoon. Bets are taken strongest-edge-first until the cap binds.
+    # Not applied while flat_stake is set.
     max_weekly_exposure_pct: float = 0.10
+
+    # FLAT STAKE -- Jameson, 2026-09-30: "my stake is going to be the same
+    # every single game ... Its always going to be 5 dollars." Every bet the
+    # model recommends is this amount and the weekly cap above is off (it
+    # used to cut qualifying bets once $100 was reached).
+    #
+    # WHICH bets qualify is unchanged: the edge thresholds below, plus the
+    # Kelly test above -- a bet must still be worth at least min_bet at
+    # half-Kelly on the $1,000 reference bankroll (full Kelly >= 1%), which
+    # is what drops a 1.5-pt spread edge whose price leaves too little.
+    # Kelly now only decides yes/no; it never sets the amount.
+    # None restores Kelly-sized stakes and the weekly cap.
+    flat_stake: Optional[float] = 5.00
 
 
 STAKING = Staking()

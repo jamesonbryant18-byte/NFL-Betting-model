@@ -84,18 +84,18 @@ def _grade_bet(b, g):
 def tracker_review(games, season, week, leans):
     """Grade what Jameson actually logged in the Bet Tracker.
 
-    Reads every copy of the tracker (all weekly workbooks + data/bet_log.csv,
-    newest edit wins) exactly as the workbook does, so a bet typed into any
-    week's file is seen here.
+    Reads his tracker exactly as he last saved it -- the most recently saved
+    weekly workbook, the same copy the next workbook carries forward. Read
+    only: nothing here writes to it.
     """
-    from nflmodel.betlog import collect_preserved_bets, parse_row
+    from nflmodel.betlog import load_tracker, parse_row
     from nflmodel.history import match_bets
     from nflmodel.config import OUTPUT_DIR
 
     print()
     print('  YOUR BETS  (from the Bet Tracker)')
     try:
-        rows = collect_preserved_bets(None, OUTPUT_DIR, Path('data') / 'bet_log.csv')
+        rows = load_tracker(OUTPUT_DIR, Path('data') / 'bet_log.csv').rows
     except Exception as e:
         print(f'    could not read the tracker ({e})')
         return

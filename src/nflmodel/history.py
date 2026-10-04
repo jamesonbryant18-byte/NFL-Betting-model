@@ -298,7 +298,9 @@ def match_bets(bets: list[dict], season: int, week: int, matchup: str,
     out = []
     for b in bets:
         if b.get("matchup") != target:
-            continue
+            b = _loose_match(b, target)
+            if b is None:
+                continue
         bd = b.get("date")
         if bd is not None and season is not None and bd.year not in (int(season), int(season) + 1):
             continue
@@ -311,6 +313,40 @@ def match_bets(bets: list[dict], season: int, week: int, matchup: str,
                 continue
         out.append(b)
     return out
+
+
+def _loose_match(b: dict, target: str) -> Optional[dict]:
+    """
+    A hand-typed matchup that names this game less exactly: 'TEN @ NY' for
+    TEN @ NYG (2026 Week 3 -- a win the review could not see). One team must
+    match exactly and the other must be the start of the real code; a row
+    with neither week nor date never matches loosely, because only the week
+    makes it unambiguous (a team plays once a week).
+
+    Returns a COPY with the game's codes in matchup and bet_side, so the
+    graders (which key on the side's team code) see NYG, not NY. The tracker
+    itself is never changed. None when it is not this game.
+    """
+    typed_away, sep, typed_home = str(b.get("matchup") or "").partition(" @ ")
+    away, _, home = target.partition(" @ ")
+    if not sep or (b.get("week") is None and b.get("date") is None):
+        return None
+
+    def fits(typed: str, real: str) -> bool:
+        return typed == real or (len(typed) >= 2 and real.startswith(typed))
+
+    exact = (typed_away == away) + (typed_home == home)
+    if exact == 0 or not (fits(typed_away, away) and fits(typed_home, home)):
+        return None
+
+    side = str(b.get("bet_side") or "")
+    word, space, rest = side.partition(" ")
+    if word and word not in (away, home):
+        hits = [t for t, typed in ((away, typed_away), (home, typed_home))
+                if word == typed or (len(word) >= 2 and t.startswith(word))]
+        if len(hits) == 1:
+            side = hits[0] + space + rest
+    return {**b, "matchup": target, "bet_side": side}
 
 
 def _parsed_bets(tracker_rows) -> list[dict]:
