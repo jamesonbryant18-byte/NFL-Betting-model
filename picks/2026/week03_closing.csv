@@ -1,0 +1,17 @@
+game_id,away_team,home_team,close_spread,close_home_spread_odds,close_away_spread_odds,close_home_ml,close_away_ml,close_source,captured_utc
+2026_03_ATL_GB,ATL,GB,4.5,-118.0,-104.0,-250.0,205.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_LAC_BUF,LAC,BUF,7.5,-100.0,-122.0,-375.0,300.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_CAR_CLE,CAR,CLE,-2.5,-115.0,-105.0,110.0,-130.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_NYJ_DET,NYJ,DET,6.5,-122.0,-100.0,-330.0,270.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_HOU_IND,HOU,IND,-1.5,-108.0,-112.0,106.0,-124.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_NE_JAX,NE,JAX,2.5,-122.0,-110.0,-158.0,134.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_KC_MIA,KC,MIA,-9.5,-102.0,-120.0,460.0,-620.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_TEN_NYG,TEN,NYG,2.5,-115.0,-105.0,-142.0,120.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_CIN_PIT,CIN,PIT,-3.0,-104.0,-118.0,146.0,-174.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_SEA_WAS,SEA,WAS,-8.5,-115.0,-105.0,330.0,-420.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_ARI_SF,ARI,SF,7.5,-106.0,-114.0,-400.0,315.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_MIN_TB,MIN,TB,-1.5,-118.0,-104.0,-104.0,-112.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_BAL_DAL,BAL,DAL,-3.5,-120.0,-102.0,148.0,-176.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_LV_NO,LV,NO,3.5,-106.0,-114.0,-186.0,154.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_LA_DEN,LA,DEN,-1.5,-122.0,-100.0,-108.0,-108.0,fanduel (action network),2026-10-07T20:00:55+00:00
+2026_03_PHI_CHI,PHI,CHI,-3.5,-112.0,-108.0,156.0,-186.0,fanduel (action network),2026-10-07T20:00:55+00:00

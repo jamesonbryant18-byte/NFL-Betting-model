@@ -38,6 +38,7 @@ import pandas as pd
 
 from . import archive as _archive
 from .betlog import clv_for_row, normalize_matchup, parse_row
+from .closing import close_for, load_closing, side_close
 
 # Column order of the frame build_history returns. Fixed so the workbook
 # sheet that renders it can rely on positions.
@@ -358,6 +359,24 @@ def _loose_match(b: dict, target: str) -> Optional[dict]:
     return {**b, "matchup": target, "bet_side": side}
 
 
+def _with_recorded_close(bet: dict, close_row) -> dict:
+    """
+    A COPY of a tracker bet with the recorded closing number filled in where
+    he left Closing Line / Closing Odds blank (closing.py, written by the
+    Wednesday review). What he typed always wins; the tracker is never changed.
+    """
+    if close_row is None or not bet.get("bet_side"):
+        return bet
+    side = str(bet["bet_side"]).split()[0]
+    market = str(bet.get("market") or "").upper()
+    out = dict(bet)
+    if market == "SPREAD" and out.get("closing_line") is None:
+        out["closing_line"] = side_close(close_row, "SPREAD", side)
+    elif market == "MONEYLINE" and out.get("closing_odds") is None:
+        out["closing_odds"] = side_close(close_row, "MONEYLINE", side)
+    return out
+
+
 def _parsed_bets(tracker_rows) -> list[dict]:
     """Raw tracker rows (or already-parsed dicts) as parse_row dicts."""
     out = []
@@ -447,6 +466,7 @@ def build_history(games: Optional[pd.DataFrame], tracker_rows,
 
         game_idx = _game_index(games, season, week)
         lean_idx = _lean_index(leans)
+        closing = load_closing(season, week, archive_dir)
         locked = _bool(meta.get("locked", False))
         generated = _text(meta.get("generated_utc", ""))
 
@@ -470,6 +490,8 @@ def build_history(games: Optional[pd.DataFrame], tracker_rows,
 
             matched = match_bets(bets, season, week, matchup, gameday)
             first = matched[0] if matched else None
+            if first is not None:
+                first = _with_recorded_close(first, close_for(closing, home, away))
             clv_pts, clv_prob = clv_for_row(first, pts_table) if first else (None, None)
 
             rows.append({

@@ -165,6 +165,7 @@ def archive_week(ranked, slate, starters, qb_source, season: int, week: int,
 
     ranked.to_csv(picks_path, index=False)
     leans.to_csv(leans_path, index=False)
+    _keep_first_published(leans, d / f"week{week:02d}_first_leans.csv")
 
     meta = {
         "season": season,
@@ -187,6 +188,33 @@ def archive_week(ranked, slate, starters, qb_source, season: int, week: int,
     meta_path.write_text(json.dumps(meta, indent=2) + "\n")
     print(f'  archived: picks/{season}/week{week:02d}_*.csv')
     return True
+
+
+def _keep_first_published(leans: pd.DataFrame, path: pathlib.Path) -> None:
+    """
+    Append any bet not seen before this week to weekNN_first_leans.csv, with
+    the number it was first published at. Rows already there are never
+    changed, so a Sunday re-run (priced near kickoff) cannot overwrite the
+    Wednesday number that closing line value is measured from. A bet is the
+    same bet if game, market and team match, whatever its line has moved to.
+    """
+    if leans is None or leans.empty or "bet_side" not in leans.columns:
+        return
+    fresh = leans.assign(
+        published_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+
+    def keys(df):
+        return list(zip(df["game_id"].astype(str), df["bet_market"].astype(str),
+                        df["bet_side"].astype(str).str.split().str[0]))
+
+    if path.exists():
+        first = pd.read_csv(path)
+        seen = set(keys(first))
+        add = fresh[[k not in seen for k in keys(fresh)]]
+        if add.empty:
+            return
+        fresh = pd.concat([first, add], ignore_index=True)
+    fresh.to_csv(path, index=False)
 
 
 def load_archived(season: int, week: int):

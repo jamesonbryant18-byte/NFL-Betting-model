@@ -34,6 +34,19 @@ The review prints four things:
 Reading it takes a minute. Then it locks the week, so those picks can never be
 rewritten.
 
+**Closing lines (added 2026-10-07, Jameson's request).** The review's first
+step records every game's closing line to `picks/{season}/weekNN_closing.csv`:
+FanDuel via Action Network (it still serves the pregame number days later),
+DraftKings via Action Network if FanDuel has no row, else nflverse's
+DraftKings close. Written once, only when the week is final. It then prints a
+**CLOSING LINE VALUE** section: each model bet's number vs the close, and the
+season to date, measured from the number the bet was FIRST published at
+(`weekNN_first_leans.csv`, kept by the archive so a Sunday re-run cannot
+overwrite it). His own bets get CLV from the line he typed vs the close, for
+spreads and moneylines; a close he typed in the tracker wins. CLV is the
+decision gate: consistently positive over 40-50 bets is the first real
+evidence of an edge; near zero means the model is not beating the market.
+
 ### Step 0a — grade the model itself
 
 ```bash
@@ -138,6 +151,24 @@ If you want to change a rating, a threshold, or a weight, the honest route is
 
 Tuesday/Wednesday is deliberate. Lines post Sunday night for the following
 week and are softest early; that gap is where closing line value comes from.
+
+### Sunday morning — the roster run (Jameson, from 2026 Week 5)
+
+He asks for it Sunday morning, before betting the early games:
+
+1. Check the news for every team in the QB RISK table and any starter listed
+   Questionable or Out in the run output.
+2. Re-run with `--refresh` and the week's `--qb` overrides re-passed (all of
+   them; a re-run without one silently drops it):
+   `.venv/bin/python -W ignore scripts/run_week.py --refresh --qb TEAM="Name" ...`
+3. Games already played (Thursday) are carried forward as published and their
+   bets still use card slots. The first-published numbers stay in
+   `weekNN_first_leans.csv` for CLV.
+4. Tell him what changed vs Wednesday: any new or dropped bet, any QB change.
+   A bet he already placed stays placed; his tracker is the record of what he
+   bet.
+
+Never rebuild or re-save a past week's workbook (he edits them by hand).
 Waiting until Sunday morning means betting into a number the market has
 already sharpened.
 

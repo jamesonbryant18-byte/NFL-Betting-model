@@ -33,6 +33,21 @@ from nflmodel.config import CURRENT_SEASON
 from nflmodel.data import load_games
 from nflmodel.archive import load_archived, lock_week, ARCHIVE_DIR
 from nflmodel.history import grade_lean
+from nflmodel.closing import (record_closing, load_closing, close_for, side_close,
+                              card_clv, summarize_clv)
+from nflmodel.market import closing_line_value
+
+
+def _fmt_close(market, close):
+    if close is None:
+        return '—'
+    return f'{close:+.1f}' if market == 'SPREAD' else f'{close:+.0f}'
+
+
+def _fmt_clv(market, clv):
+    if clv is None:
+        return '—'
+    return f'{clv:+.1f}' if market == 'SPREAD' else f'{clv:+.1%}'
 
 
 def band(expected, variance, label, actual, unit=''):
@@ -46,13 +61,14 @@ def band(expected, variance, label, actual, unit=''):
     return abs(z) >= 1.96
 
 
-def _grade_bet(b, g):
-    """(result, pnl, close_for_side, clv_pts) for one parsed tracker row.
+def _grade_bet(b, g, close_row=None):
+    """(result, pnl, close_for_side, clv) for one parsed tracker row.
 
-    Scores come from nflverse. When the tracker's Closing Line cell is blank
-    the close is filled from nflverse's spread_line (the DraftKings close),
-    turned to the bet side's ticket number. Moneyline CLV is left to the
-    workbook, which has the closing price; nflverse has no closing ML.
+    Scores come from nflverse. The close is what he typed in the tracker if
+    he typed one; otherwise the recorded closing line for the game
+    (picks/{season}/weekNN_closing.csv, FanDuel first), and failing that
+    nflverse's DraftKings close. clv is in points for a spread and in
+    implied-probability points for a moneyline.
     """
     side = b['bet_side'].split()[0] if b['bet_side'] else ''
     if side not in (g.home_team, g.away_team) or pd.isna(g.result):
@@ -60,6 +76,8 @@ def _grade_bet(b, g):
     at_home = side == g.home_team
     margin = g.result if at_home else -g.result
     close = b['closing_line']
+    if close is None:
+        close = side_close(close_row, 'SPREAD', side)
     if close is None and pd.notna(g.spread_line):
         close = float(-g.spread_line if at_home else g.spread_line)
     line, clv = b['line_taken'], None
@@ -74,12 +92,42 @@ def _grade_bet(b, g):
         clv = line - close if close is not None else None
     elif b['market'] == 'MONEYLINE':
         res = 'W' if margin > 0 else ('P' if margin == 0 else 'L')
+        close = b['closing_odds'] if b['closing_odds'] is not None \
+            else side_close(close_row, 'MONEYLINE', side)
+        if close is not None and b['odds'] is not None:
+            clv = closing_line_value(b['odds'], close)
     else:
         return '', None, close, None
     stake, odds = b['stake'] or 0.0, b['odds'] or -110.0
     win = stake * (100 / abs(odds) if odds < 0 else odds / 100)
     pnl = win if res == 'W' else (-stake if res == 'L' else 0.0)
     return res, pnl, close, clv
+
+
+def clv_review(season, week):
+    """Closing line value of the model's card: this week, then the season."""
+    print()
+    print("  CLOSING LINE VALUE  (the model's bets vs the closing number; + = beat it)")
+    this = card_clv(season, week)
+    if this.empty:
+        print('    no closing lines recorded for this week')
+        return
+    print(f"    measured from the {this.card_source.iloc[0]} number")
+    for _, r in this.iterrows():
+        print(f"    {r.bet_side:<16}{'took':>5} {_fmt_close(r.market, r.taken):>6}"
+              f"   close {_fmt_close(r.market, r.close):>6}"
+              f"   CLV {_fmt_clv(r.market, r.clv_pts if r.market == 'SPREAD' else r.clv_prob):>6}")
+    season_rows = pd.concat([card_clv(season, w) for w in range(1, week + 1)],
+                            ignore_index=True)
+    s = summarize_clv(season_rows)
+    for name, unit in (('spread', 'pts'), ('moneyline', '')):
+        x = s[name]
+        if x['n']:
+            avg = f"{x['avg']:+.2f} pts" if unit else f"{x['avg']:+.1%}"
+            print(f"    season, {name}s: {x['n']} bets, avg CLV {avg}, beat the close "
+                  f"{x['beat']}, matched {x['same']}, worse {x['worse']}")
+    print('    CLV near zero = the model is not beating the market; consistently')
+    print('    positive over 40-50 bets is the first real evidence of an edge.')
 
 
 def tracker_review(games, season, week, leans):
@@ -108,12 +156,18 @@ def tracker_review(games, season, week, leans):
             model_sides[f'{l.away_team} @ {l.home_team}'] = str(l.bet_side).upper()
 
     season_g = games[(games.season == season) & games.played & (games.week <= week)]
-    tot = {'n': 0, 'w': 0, 'l': 0, 'p': 0, 'stake': 0.0, 'pnl': 0.0, 'clv': []}
+    tot = {'n': 0, 'w': 0, 'l': 0, 'p': 0, 'stake': 0.0, 'pnl': 0.0,
+           'clv': [], 'clv_ml': []}
     this_week = []
+    closes = {}
     for _, g in season_g.iterrows():
         matchup = f'{g.away_team} @ {g.home_team}'
-        for b in match_bets(bets, season, int(g.week), matchup, g.gameday):
-            res, pnl, close, clv = _grade_bet(b, g)
+        wk_ = int(g.week)
+        if wk_ not in closes:
+            closes[wk_] = load_closing(season, wk_)
+        close_row = close_for(closes[wk_], g.home_team, g.away_team)
+        for b in match_bets(bets, season, wk_, matchup, g.gameday):
+            res, pnl, close, clv = _grade_bet(b, g, close_row)
             if not res:
                 continue
             tot['n'] += 1
@@ -121,7 +175,7 @@ def tracker_review(games, season, week, leans):
             tot['stake'] += b['stake'] or 0.0
             tot['pnl'] += pnl
             if clv is not None:
-                tot['clv'].append(clv)
+                tot['clv' if b['market'] == 'SPREAD' else 'clv_ml'].append(clv)
             if int(g.week) == week:
                 this_week.append((b, g, res, pnl, close, clv))
 
@@ -134,12 +188,18 @@ def tracker_review(games, season, week, leans):
             follow = ('same side' if ms and ms.split()[0] == b['bet_side'].split()[0]
                       else ('OPPOSITE' if ms else 'no model bet'))
             print(f"    {b['bet_side']:<18}{('$%.0f' % (b['stake'] or 0)):>7}{res:>8}"
-                  f"{pnl:>+9.2f}{(f'{close:+.1f}' if close is not None else '—'):>8}"
-                  f"{(f'{clv:+.1f}' if clv is not None else '—'):>7}  {follow}")
+                  f"{pnl:>+9.2f}{_fmt_close(b['market'], close):>8}"
+                  f"{_fmt_clv(b['market'], clv):>7}  {follow}")
     if tot['n']:
         roi = tot['pnl'] / tot['stake'] if tot['stake'] else 0.0
-        clv = (f"avg CLV {np.mean(tot['clv']):+.2f} pts on {len(tot['clv'])}"
-               if tot['clv'] else 'no CLV yet')
+        parts = []
+        if tot['clv']:
+            parts.append(f"spread CLV {np.mean(tot['clv']):+.2f} pts avg on {len(tot['clv'])}, "
+                         f"beat the close {sum(c > 0 for c in tot['clv'])}")
+        if tot['clv_ml']:
+            parts.append(f"moneyline CLV {np.mean(tot['clv_ml']):+.1%} avg on {len(tot['clv_ml'])}, "
+                         f"beat the close {sum(c > 0 for c in tot['clv_ml'])}")
+        clv = '; '.join(parts) if parts else 'no CLV yet' 
         print(f"    season to date: {tot['w']}-{tot['l']}-{tot['p']}, "
               f"P&L ${tot['pnl']:+,.2f} ({roi:+.1%} ROI), {clv}")
 
@@ -170,6 +230,16 @@ def main():
         print(f'Nothing was published that week, so there is nothing to grade —')
         print(f'expected at {ARCHIVE_DIR}/{args.season}/week{week:02d}_picks.csv')
         return
+
+    # The week's closing lines, recorded once all its games are final.
+    closing = record_closing(args.season, week, games)
+    if closing is not None:
+        src = closing.close_source.str.split().str[0].value_counts()
+        print(f"  closing lines: {len(closing)} games recorded "
+              f"({', '.join(f'{n} {b}' for b, n in src.items())}) -> "
+              f"picks/{args.season}/week{week:02d}_closing.csv")
+    else:
+        print('  closing lines: not recorded yet (week not final)')
 
     wk = season[(season.week == week) & season.played]
     if wk.empty:
@@ -249,6 +319,7 @@ def main():
                   f'{max(0, int(graded/2 - 1.96*np.sqrt(graded)/2))} to '
                   f'{int(graded/2 + 1.96*np.sqrt(graded)/2)} wins')
 
+    clv_review(args.season, week)
     tracker_review(games, args.season, week, leans)
 
     # Process errors are real defects whether or not the picks won.
@@ -295,7 +366,7 @@ def main():
     print('  1,100 bets for the win rate to separate from 50% at 95% confidence.')
     print('  At ~9 leans a week that is over six seasons. Weekly win/loss records')
     print('  will never settle whether this model works. CLV will, in about six')
-    print('  weeks — that is what the Bet Tracker is for.')
+    print('  weeks: the CLOSING LINE VALUE section above, recorded every Wednesday.')
     print('=' * 78)
 
     lock_week(args.season, week)

@@ -161,6 +161,18 @@ ridge-shrunk joint QB fit working as tuned, not a bug. Do not hand-adjust it;
 flag it. Re-verify BAL and WAS before Sunday and re-pass all three overrides
 on any re-run.
 
+**Closing lines + CLV live from 2026-10-07** (`closing.py`, wired into
+`review_week.py` and the Bet Log): the Wednesday review records every game's
+close (FanDuel via Action Network, then DraftKings, then nflverse) to
+`picks/2026/weekNN_closing.csv` and prints the model's CLV from its
+FIRST-published number (`weekNN_first_leans.csv`, kept by `archive_week`) plus
+his bets' CLV from the line he typed. Weeks 1-4 backfilled (61 FanDuel, 2 DK,
+1 nflverse) but scored from the final card. Season through Week 4: model
+spreads +0.35 pts avg on 10 (beat 4, matched 6, worse 0); moneylines +0.1% on
+14. Week 5 first-published card seeded 10/7 from the 3:21 PM build. Jameson
+now does a **Sunday morning roster run** (OPERATING.md). He saved his Week 4
+workbook 10/7 3:48 PM; Week 5 rebuilt after to carry his 9 tracker rows.
+
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
 "redo" a past week's `output/NFL_Model_*_WeekNN.xlsx`. Reading it read-only
