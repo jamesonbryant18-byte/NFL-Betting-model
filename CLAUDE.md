@@ -13,8 +13,8 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-09-30 (Wed before 2026 Week 4 TNF).** Branch
-`week3-selftune-fanduel` merged to `main` and pushed.
+**Last updated 2026-10-07 (Wed before 2026 Week 5 TNF).** Everything on
+`main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
 
@@ -127,9 +127,40 @@ replacement level (-2.29); the <8-starts watch item says such QBs run ~1 pt
 worse than the model. The model rates Mariota = Daniels (-0.15/-0.16), so the
 WAS QB call moves nothing in the model but will move the market line.
 
+**2026-10-04 (Sun):** Week 4 re-run at 12:20 ET, flat $5 stake
+(`STAKING.flat_stake`). Bets JAX +2.5, ATL +2.5, CHI -3.5, TB +3, BUF -350,
+NYG +118.
+
+**2026-10-07 (Wed): Week 4 locked, Week 5 built.** Week 4 final 11-5 SU
+(expected 10.5), leans 4-1-1. The review used to print a push as "loss"
+(TB +3, lost 17-14); `review_week.py` now grades leans with
+`history.grade_lean`, same as the workbook's Bet Log. Season: 40-24 SU, model
+error 9.78 vs closing line 9.63. Factor report card: 16 games, nothing to judge
+yet. Trend fixes unchanged.
+
+Week 5 run with `--qb TB="Jalon Daniels" --qb CHI="Tyson Bagent" --qb
+BAL="Tyler Huntley"` (Mayfield thumb, out 3+ wks; Ben Johnson named Bagent;
+Lamar ankle "unlikely"). WAS = Jayden Daniels from the depth chart (Glazer:
+WAS plans to start him; Mariota MCL, out about a month). 10 bets at $5: TEN
++7.5, TB +8.5, BAL +3.5, NYG +3.5, MIN -1.5, CLE +1.5, ARI +5.5, BUF +138,
+CIN -310, SEA -162. **BAL +3.5 rests on the QB fit valuing Huntley at +0.36 vs
+Lamar +0.71** (0.35 pt apart; the market moved about 6). That is the
+ridge-shrunk joint QB fit working as tuned, not a bug. Do not hand-adjust it;
+flag it. Re-verify BAL and WAS before Sunday and re-pass all three overrides
+on any re-run.
+
+**Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
+workbook be left exactly as he left it. Never delete, regenerate, re-save or
+"redo" a past week's `output/NFL_Model_*_WeekNN.xlsx`. Reading it read-only
+(review, tracker carry) is fine. That day Excel had it open with AutoRecover
+copies from 10/5 and the disk copy was still the 10/4 12:18 build, so his
+edits were unsaved. The Week 5 tracker carries whatever is ON DISK, so after he
+saves, re-run Week 5 to carry his edits forward.
+
 **Jameson's working preferences:** he wants picks presented as every game's
 straight-up winner ranked by confidence, plus the bets. "Redo the week N
-picks" = delete that week's three files in `output/` and regenerate. He wants
+picks" = delete that week's three files in `output/` and regenerate (the
+CURRENT week only, before kickoff; never a past week he has edited). He wants
 everything committed AND pushed to GitHub so the next session has it. He does
 NOT want the model to overreact to single games.
 

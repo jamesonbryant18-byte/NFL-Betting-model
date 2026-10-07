@@ -32,6 +32,7 @@ import numpy as np, pandas as pd
 from nflmodel.config import CURRENT_SEASON
 from nflmodel.data import load_games
 from nflmodel.archive import load_archived, lock_week, ARCHIVE_DIR
+from nflmodel.history import grade_lean
 
 
 def band(expected, variance, label, actual, unit=''):
@@ -226,25 +227,24 @@ def main():
     if leans is not None and not leans.empty:
         print()
         print('  LEANS  (where the model disagreed with a price)')
-        graded = 0
-        wins = 0
+        graded = wins = pushes = 0
         for _, l in leans.iterrows():
             g = wk[(wk.home_team == l.home_team) & (wk.away_team == l.away_team)]
             if g.empty or pd.isna(g.iloc[0].result):
                 continue
-            g = g.iloc[0]
-            side = str(l.bet_side).split()[0]
-            if l.bet_market == 'MONEYLINE':
-                won = (g.result > 0) == (side == g.home_team)
-            else:
-                margin = g.result if side == g.home_team else -g.result
-                line = l.spread_line if side == g.home_team else -l.spread_line
-                won = margin > line
+            # Same grading as the workbook's Bet Log: landing exactly on the
+            # number is a PUSH (stake returned), not a loss.
+            res = grade_lean(l, g.iloc[0])
+            if not res:
+                continue
             graded += 1
-            wins += bool(won)
-            print(f'    {str(l.bet_side):<16}{"WIN" if won else "loss"}')
-        if graded:
-            print(f'    record {wins}-{graded - wins} ({wins/graded:.0%})')
+            wins += res == 'WIN'
+            pushes += res == 'PUSH'
+            print(f'    {str(l.bet_side):<16}{res if res != "LOSS" else "loss"}')
+        decided = graded - pushes
+        if decided:
+            push_txt = f'-{pushes}' if pushes else ''
+            print(f'    record {wins}-{decided - wins}{push_txt} ({wins/decided:.0%} of decided)')
             print(f'    a coin flip on {graded} picks lands anywhere from '
                   f'{max(0, int(graded/2 - 1.96*np.sqrt(graded)/2))} to '
                   f'{int(graded/2 + 1.96*np.sqrt(graded)/2)} wins')

@@ -1,13 +1,13 @@
 {
   "season": 2026,
-  "week": 4,
-  "generated_utc": "2026-10-04T16:18:45+00:00",
-  "n_games": 16,
-  "n_leans": 6,
+  "week": 5,
+  "generated_utc": "2026-10-07T19:06:36+00:00",
+  "n_games": 15,
+  "n_leans": 10,
   "starters": {
     "ARI": "Jacoby Brissett",
     "ATL": "Michael Penix",
-    "BAL": "Lamar Jackson",
+    "BAL": "Tyler Huntley",
     "BUF": "Josh Allen",
     "CAR": "Bryce Young",
     "CHI": "Tyson Bagent",
@@ -36,12 +36,12 @@
     "SF": "Brock Purdy",
     "TB": "Jalon Daniels",
     "TEN": "Cam Ward",
-    "WAS": "Marcus Mariota"
+    "WAS": "Jayden Daniels"
   },
   "starter_source": {
     "ARI": "depth chart",
     "ATL": "depth chart",
-    "BAL": "depth chart",
+    "BAL": "override",
     "BUF": "depth chart",
     "CAR": "depth chart",
     "CHI": "override",
@@ -70,92 +70,56 @@
     "SF": "depth chart",
     "TB": "override",
     "TEN": "depth chart",
-    "WAS": "override"
+    "WAS": "depth chart"
   },
-  "locked": true,
+  "locked": false,
   "weather": {
-    "2026_04_IND_WAS": {
-      "label": "70\u00b0F, wind 5 mph",
-      "temp_f": 70.325,
-      "wind_mph": 5.4,
+    "2026_05_TB_DAL": {
+      "label": "79\u00b0F, wind 4 mph (retractable roof)",
+      "temp_f": 79.375,
+      "wind_mph": 4.3,
       "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
-    "2026_04_TEN_BAL": {
-      "label": "64\u00b0F, wind 6 mph",
-      "temp_f": 63.74999999999999,
-      "wind_mph": 6.0,
-      "precip_prob": 18.0,
+    "2026_05_PHI_JAX": {
+      "label": "84\u00b0F, wind 9 mph, 32% rain",
+      "temp_f": 83.85,
+      "wind_mph": 8.9,
+      "precip_prob": 32.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
-    "2026_04_NE_BUF": {
-      "label": "67\u00b0F, wind 16 mph",
-      "temp_f": 67.1,
+    "2026_05_CHI_GB": {
+      "label": "76\u00b0F, wind 16 mph",
+      "temp_f": 75.975,
       "wind_mph": 15.7,
-      "precip_prob": 7.0,
+      "precip_prob": 3.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
-    "2026_04_NYJ_CHI": {
-      "label": "68\u00b0F, wind 8 mph",
-      "temp_f": 67.75,
-      "wind_mph": 7.6,
-      "precip_prob": 0.0,
-      "windy": false,
-      "precip": false,
-      "cold": false
-    },
-    "2026_04_JAX_CIN": {
-      "label": "75\u00b0F, wind 5 mph",
-      "temp_f": 75.475,
-      "wind_mph": 4.8,
-      "precip_prob": 0.0,
-      "windy": false,
-      "precip": false,
-      "cold": false
-    },
-    "2026_04_DAL_HOU": {
-      "label": "80\u00b0F, wind 12 mph, 23% rain (retractable roof)",
-      "temp_f": 80.25,
-      "wind_mph": 12.4,
-      "precip_prob": 23.0,
-      "windy": false,
-      "precip": false,
-      "cold": false
-    },
-    "2026_04_ARI_NYG": {
-      "label": "63\u00b0F, wind 7 mph, 35% rain",
-      "temp_f": 62.824999999999996,
-      "wind_mph": 7.0,
-      "precip_prob": 35.0,
-      "windy": false,
-      "precip": false,
-      "cold": false
-    },
-    "2026_04_LA_PHI": {
-      "label": "62\u00b0F, wind 7 mph, 44% rain",
-      "temp_f": 62.5,
-      "wind_mph": 7.1,
-      "precip_prob": 44.0,
-      "windy": false,
-      "precip": false,
-      "cold": false
-    },
-    "2026_04_GB_TB": {
-      "label": "89\u00b0F, wind 6 mph",
-      "temp_f": 89.44999999999999,
-      "wind_mph": 5.8,
+    "2026_05_CIN_MIA": {
+      "label": "91\u00b0F, wind 12 mph",
+      "temp_f": 90.85,
+      "wind_mph": 12.1,
       "precip_prob": 10.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
-    "2026_04_MIA_MIN": {
+    "2026_05_LV_NE": {
+      "label": "60\u00b0F, wind 9 mph (gusts 20)",
+      "temp_f": 60.025,
+      "wind_mph": 9.2,
+      "precip_prob": 12.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_05_MIN_NO": {
       "label": "dome",
       "temp_f": null,
       "wind_mph": null,
@@ -164,7 +128,43 @@
       "precip": false,
       "cold": false
     },
-    "2026_04_KC_LV": {
+    "2026_05_CLE_NYJ": {
+      "label": "61\u00b0F, wind 8 mph (gusts 22), 47% rain",
+      "temp_f": 60.55,
+      "wind_mph": 8.2,
+      "precip_prob": 47.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_05_IND_PIT": {
+      "label": "64\u00b0F, wind 7 mph (gusts 20), 71% rain",
+      "temp_f": 64.0,
+      "wind_mph": 7.2,
+      "precip_prob": 71.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_05_HOU_TEN": {
+      "label": "66\u00b0F, wind 7 mph (gusts 20), 50% rain",
+      "temp_f": 65.65,
+      "wind_mph": 7.4,
+      "precip_prob": 50.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_05_NYG_WAS": {
+      "label": "64\u00b0F, wind 10 mph (gusts 28), 76% rain",
+      "temp_f": 63.94999999999999,
+      "wind_mph": 10.5,
+      "precip_prob": 76.0,
+      "windy": false,
+      "precip": true,
+      "cold": false
+    },
+    "2026_05_DEN_LAC": {
       "label": "dome",
       "temp_f": null,
       "wind_mph": null,
@@ -173,34 +173,34 @@
       "precip": false,
       "cold": false
     },
-    "2026_04_LAC_SEA": {
-      "label": "64\u00b0F, wind 4 mph",
-      "temp_f": 64.1,
-      "wind_mph": 4.2,
+    "2026_05_DET_ARI": {
+      "label": "82\u00b0F, wind 22 mph, 52% rain (retractable roof)",
+      "temp_f": 81.55,
+      "wind_mph": 22.3,
+      "precip_prob": 52.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_05_SF_SEA": {
+      "label": "59\u00b0F, wind 8 mph",
+      "temp_f": 58.775,
+      "wind_mph": 7.5,
       "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
-    "2026_04_DEN_SF": {
-      "label": "85\u00b0F, wind 9 mph",
-      "temp_f": 84.625,
-      "wind_mph": 9.4,
-      "precip_prob": 1.0,
+    "2026_05_BAL_ATL": {
+      "label": "67\u00b0F, wind 8 mph (gusts 19), 31% rain (retractable roof)",
+      "temp_f": 66.55000000000001,
+      "wind_mph": 7.9,
+      "precip_prob": 31.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
-    "2026_04_DET_CAR": {
-      "label": "64\u00b0F, wind 3 mph",
-      "temp_f": 64.10000000000001,
-      "wind_mph": 3.3,
-      "precip_prob": 4.0,
-      "windy": false,
-      "precip": false,
-      "cold": false
-    },
-    "2026_04_ATL_NO": {
+    "2026_05_BUF_LA": {
       "label": "dome",
       "temp_f": null,
       "wind_mph": null,
@@ -211,24 +211,11 @@
     }
   },
   "trend_fixes": {
-    "generated_utc": "2026-09-30T14:19:06+00:00",
+    "generated_utc": "2026-10-07T19:04:56+00:00",
     "margin": [
       "model_far_from_market"
     ],
     "calibration": true,
     "ml_max_underdog": 250
-  },
-  "carried": {
-    "PIT @ CLE": {
-      "generated_utc": "2026-09-30T14:48:02+00:00",
-      "trend_fixes": {
-        "generated_utc": "2026-09-30T14:19:06+00:00",
-        "margin": [
-          "model_far_from_market"
-        ],
-        "calibration": true,
-        "ml_max_underdog": 250
-      }
-    }
   }
 }
