@@ -209,6 +209,20 @@ def test_loosely_typed_matchup_is_read_as_the_real_game():
     assert match_bets([undated], 2026, 3, "TEN @ NYG", date(2026, 9, 27)) == []
 
 
+def test_sportsbook_team_codes_match_the_real_game():
+    # 2026 Week 4, exactly as he typed it: 'JAC @ CIN ', side AWAY, +2.5.
+    raw = [date(2026, 10, 4), 4, "JAC @ CIN ", "SPREAD", "AWAY", 2.5, -107, 5, "W"]
+    bets = [parse_row(raw)]
+    got = match_bets(bets, 2026, 4, "JAX @ CIN", date(2026, 10, 4))
+    assert len(got) == 1
+    assert got[0]["matchup"] == "JAX @ CIN" and got[0]["bet_side"] == "JAX"
+    # A side typed with the alias resolves too.
+    wsh = parse_row([date(2026, 10, 11), 5, "NYG @ WSH", "SPREAD", "WSH -3.5", -3.5, -110, 5])
+    assert match_bets([wsh], 2026, 5, "NYG @ WAS", None)[0]["bet_side"] == "WAS -3.5"
+    # The alias never stretches to a different opponent.
+    assert match_bets(bets, 2026, 4, "JAX @ PIT", date(2026, 10, 4)) == []
+
+
 def test_loose_match_does_not_confuse_la_and_lac():
     # Rams at SEA exactly: exact match, untouched.
     rams = parse_row([date(2026, 10, 4), 4, "LA @ SEA", "SPREAD", "LA +3.5", 3.5, -110, 5])

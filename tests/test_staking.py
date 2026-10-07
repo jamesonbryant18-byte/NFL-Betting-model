@@ -63,8 +63,10 @@ def _slate_model(staking, n_bets=25):
 
 
 def test_weekly_cap_does_not_cut_bets_at_a_flat_stake():
+    # The weekly CARD (top 7) is a separate rule, tested in test_card.py;
+    # this pins only that the Kelly exposure cap stays off at a flat stake.
     import pandas as pd
-    m, games = _slate_model(STAKING)
+    m, games = _slate_model(replace(STAKING, card_max=None))
     df = m.project_slate(pd.DataFrame({"g": games}), advisory=False)
     assert (df["stake"] == 5.0).all() and len(df) == 25
     assert df["recommendation"].str.startswith("BET").all()
@@ -72,7 +74,7 @@ def test_weekly_cap_does_not_cut_bets_at_a_flat_stake():
 
 def test_weekly_cap_still_binds_for_kelly_stakes():
     import pandas as pd
-    m, games = _slate_model(replace(STAKING, flat_stake=None))
+    m, games = _slate_model(replace(STAKING, flat_stake=None, card_max=None))
     df = m.project_slate(pd.DataFrame({"g": games}), advisory=False)
     assert df["stake"].sum() == STAKING.bankroll * STAKING.max_weekly_exposure_pct
     assert (df["recommendation"] == "NO BET").sum() == 21

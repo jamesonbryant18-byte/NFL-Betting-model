@@ -20,7 +20,7 @@ from nflmodel.ratings import qb_value
 from nflmodel.depth import resolve_starters, SOURCE_DEPTH_CHART
 from nflmodel.market import format_spread
 from nflmodel.report import straight_up_ranking, format_ranking
-from nflmodel.archive import archive_week
+from nflmodel.archive import archive_week, load_archived
 from nflmodel.teamstats import team_stats_bundle
 
 
@@ -349,7 +349,13 @@ def main():
         print('WARNING: no data/trends.json -- run scripts/miss_report.py; '
               'no miss-trend fixes applied')
 
-    slate = model.project_slate(slate_games)
+    # Bets already published on games that kicked off (Thursday's, on a
+    # Sunday re-run) are carried forward by the archive and use card slots.
+    card_used = 0
+    _, published = load_archived(args.season, week)
+    if published is not None and len(published) and 'game_id' in published.columns:
+        card_used = int((~published.game_id.isin(slate_games.game_id)).sum())
+    slate = model.project_slate(slate_games, card_used=card_used)
 
     # Display and explanation columns, joined on game_id so the slate's
     # edge-sorted order is untouched. None of this feeds the projection: the
@@ -409,8 +415,13 @@ def main():
         print(f"  The hold-out backtest found no edge vs closing lines, so the model")
         print(f"  stakes nothing by default. Set ADVISORY_MODE=False in config.py to bet.")
     elif STAKING.flat_stake:
-        print(f"  {len(bets)} qualifying bet(s) at ${STAKING.flat_stake:.0f} each "
-              f"= ${bets.stake.sum():,.0f}")
+        print(f"  {len(bets)} bet(s) on your card at ${STAKING.flat_stake:.0f} each "
+              f"= ${bets.stake.sum():,.0f}"
+              + (f"  (+{card_used} already placed on games that kicked off)" if card_used else ''))
+        cut = slate.loc[slate.get('card', pd.Series('', index=slate.index)).str.startswith('cut'), 'card']
+        if len(cut):
+            print(f"  also qualified, left off (top {STAKING.card_max} by chance to win): "
+                  + ', '.join(c.split(': ', 1)[1] for c in cut))
     else:
         print(f"  {len(bets)} qualifying bet(s), ${bets.stake.sum():,.0f} staked "
               f"({bets.stake.sum()/STAKING.bankroll:.1%} of bankroll, "
@@ -427,6 +438,8 @@ def main():
          "the model still expects the OTHER team to win, but thinks this price is too generous"),
     ):
         group = active[active.bet_type == kind]
+        if 'bet_chance' in group.columns:
+            group = group.sort_values('bet_chance', ascending=False)   # most likely first
         print()
         print(f'  {title}  ({blurb})')
         if group.empty:

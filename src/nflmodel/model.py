@@ -84,6 +84,29 @@ WITH_PICK = "ON MODEL'S PICK"
 AGAINST_PICK = "VALUE — AGAINST PICK"
 
 
+def _payout(odds: float) -> float:
+    """Profit per $1 staked at American odds."""
+    return odds / 100 if odds > 0 else 100 / abs(odds)
+
+
+def bet_chance(r) -> float:
+    """
+    The model's chance the bet on this row WINS: spread cover with pushes
+    left out (a push returns the stake), or the moneyline win %. NaN on a
+    NO BET row. This is what the weekly card ranks on (config.Staking.card_max).
+    """
+    side = str(r.get("bet_side") or "")
+    if not side:
+        return float("nan")
+    is_home = side.split()[0] == r.get("home_team")
+    if r.get("bet_market") == "MONEYLINE":
+        wp = float(r["home_win_prob"])
+        return wp if is_home else 1.0 - wp
+    p_win = float(r["home_cover_prob"] if is_home else r["away_cover_prob"])
+    p_lose = 1.0 - p_win - float(r["push_prob"])
+    return p_win / max(1e-9, p_win + p_lose)
+
+
 def explain_bet(market, team, pick, pick_margin, ticket=None, odds=None,
                 model_p=None, market_p=None) -> str:
     """
@@ -485,10 +508,114 @@ class NFLModel:
 
     # -- slate -------------------------------------------------------------
 
-    def project_slate(self, games: pd.DataFrame, advisory: bool | None = None) -> pd.DataFrame:
+    def _weekly_card(self, df: pd.DataFrame, games: pd.DataFrame, used: int = 0) -> pd.DataFrame:
+        """
+        Keep the card_max bets most likely to win (config.Staking.card_max);
+        top up to card_min from the closest misses. `used` is how many bets
+        were already published this week on games that have kicked off.
+
+        Adds `bet_chance` (the ranking score) and `card` ('cut' for a bet that
+        qualified but missed the card, 'filler' for a top-up).
+        """
+        df = df.copy()
+        df["card"] = ""
+        kmax, kmin = self.staking.card_max, self.staking.card_min
+        if kmax is None:
+            return df
+        df["bet_chance"] = [bet_chance(r) for _, r in df.iterrows()]
+
+        live = df[df["bet_side"] != ""]
+        slots = max(0, kmax - used)
+        if len(live) > slots:
+            keep = live.sort_values("bet_chance", ascending=False).index[:slots]
+            cut = live.index.difference(keep)
+            df.loc[cut, "card"] = "cut: " + df.loc[cut, "bet_side"]
+            df.loc[cut, "recommendation"] = "NO BET"
+            df.loc[cut, ["bet_market", "bet_side", "bet_type", "bet_why"]] = ""
+            df.loc[cut, ["bet_odds", "stake"]] = 0.0
+            df.loc[cut, "bet_chance"] = float("nan")
+
+        need = kmin - used - int((df["bet_side"] != "").sum())
+        if need <= 0:
+            return df
+        odds_by_game = {}
+        if games is not None and "game_id" in games.columns:
+            for _, g in games.iterrows():
+                odds_by_game[g["game_id"]] = (g.get("home_spread_odds"), g.get("away_spread_odds"))
+        misses = []
+        for i, r in df[(df["bet_side"] == "") & (df["card"] == "")].iterrows():
+            m = self._near_miss(r, odds_by_game.get(r["game_id"], (None, None)))
+            if m:
+                misses.append((m["chance"], i, m))
+        for _, i, m in sorted(misses, key=lambda x: -x[0])[:need]:
+            flat = self.staking.flat_stake
+            df.loc[i, ["recommendation", "bet_market", "bet_side", "bet_type", "bet_why",
+                       "confidence", "card"]] = [
+                f"BET {m['side']}", m["market"], m["side"], m["bet_type"],
+                m["why"] + " FILLER: below the model's normal bar, added to reach "
+                           f"your {kmin}-bet minimum.",
+                "Filler", "filler"]
+            df.loc[i, ["bet_odds", "stake", "bet_chance"]] = [
+                m["odds"], float(flat) if flat else self.staking.min_bet, m["chance"]]
+        return df
+
+    def _near_miss(self, r, spread_odds) -> dict | None:
+        """
+        The best bet on a game the model passed on: the side it leans to,
+        spread or moneyline (within the moneyline price limits), with positive
+        expected value at the actual price. Highest chance to win wins.
+        """
+        t = self.thresholds
+        home, away = r["home_team"], r["away_team"]
+        wp, line = float(r["home_win_prob"]), r["spread_line"]
+        pick_home = wp >= 0.5
+        pick = home if pick_home else away
+        margin = float(r["projected_margin"])
+        found = []
+        edge = r["spread_edge_pts"]
+        if line is not None and not pd.isna(line) and not pd.isna(edge) and edge != 0:
+            side_home = edge > 0
+            p_win = r["home_cover_prob"] if side_home else r["away_cover_prob"]
+            p_lose = 1.0 - p_win - r["push_prob"]
+            odds = spread_odds[0] if side_home else spread_odds[1]
+            odds = -110.0 if odds is None or pd.isna(odds) else float(odds)
+            if p_win * _payout(odds) - p_lose > 0:
+                team = home if side_home else away
+                found.append(dict(market="SPREAD", team=team, odds=odds,
+                                  side=format_spread(team, line if side_home else -line),
+                                  chance=p_win / max(1e-9, p_win + p_lose),
+                                  ticket=-line if side_home else line))
+        for is_home, ml, e in ((True, r["home_ml"], r["ml_edge_home"]),
+                               (False, r["away_ml"], r["ml_edge_away"])):
+            if ml is None or pd.isna(ml) or pd.isna(e) or e <= 0:
+                continue
+            if ml < t.ml_max_favorite or ml > t.ml_max_underdog:
+                continue
+            p = wp if is_home else 1.0 - wp
+            if p * _payout(ml) - (1.0 - p) > 0:
+                team = home if is_home else away
+                found.append(dict(market="MONEYLINE", team=team, odds=float(ml),
+                                  side=f"{team} {ml:+.0f}", chance=p, ticket=None))
+        if not found:
+            return None
+        best = max(found, key=lambda c: c["chance"])
+        bet_home = best["team"] == home
+        model_p = wp if bet_home else 1.0 - wp
+        edge_ml = r["ml_edge_home"] if bet_home else r["ml_edge_away"]
+        best["bet_type"] = WITH_PICK if bet_home == pick_home else AGAINST_PICK
+        best["why"] = explain_bet(
+            best["market"], best["team"], pick, margin if pick_home else -margin,
+            ticket=best["ticket"], odds=best["odds"], model_p=model_p,
+            market_p=None if pd.isna(edge_ml) else model_p - edge_ml)
+        return best
+
+    def project_slate(self, games: pd.DataFrame, advisory: bool | None = None,
+                      card_used: int = 0) -> pd.DataFrame:
         """
         Project every game in a week, sorted by edge, then apply portfolio
-        limits across the slate.
+        limits across the slate: the weekly card (config.Staking.card_max /
+        card_min), and the Kelly exposure cap when stakes are not flat.
+        `card_used` = bets already published this week on games that kicked off.
         """
         rows = [self.project(g).as_row() for _, g in games.iterrows()]
         df = pd.DataFrame(rows)
@@ -509,7 +636,9 @@ class NFLModel:
             df["stake"] = 0.0
             return df
 
-        # Flat stake: every qualifying bet stands at the same amount. The
+        df = self._weekly_card(df, games, card_used)
+
+        # Flat stake: every bet on the card stands at the same amount. The
         # weekly cap below exists to limit Kelly-sized exposure; at a flat $5
         # it would only hide bets that qualified (Week 2: NYG +240 was cut).
         if self.staking.flat_stake:

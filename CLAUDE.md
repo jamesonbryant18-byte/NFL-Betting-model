@@ -141,9 +141,21 @@ yet. Trend fixes unchanged.
 Week 5 run with `--qb TB="Jalon Daniels" --qb CHI="Tyson Bagent" --qb
 BAL="Tyler Huntley"` (Mayfield thumb, out 3+ wks; Ben Johnson named Bagent;
 Lamar ankle "unlikely"). WAS = Jayden Daniels from the depth chart (Glazer:
-WAS plans to start him; Mariota MCL, out about a month). 10 bets at $5: TEN
-+7.5, TB +8.5, BAL +3.5, NYG +3.5, MIN -1.5, CLE +1.5, ARI +5.5, BUF +138,
-CIN -310, SEA -162. **BAL +3.5 rests on the QB fit valuing Huntley at +0.36 vs
+WAS plans to start him; Mariota MCL, out about a month). First build had 10
+bets; Jameson: "10 bets seems absurd", wants only the most confident, 4 to 7-8
+a week, no forced primetime bet. **Weekly card** (`STAKING.card_max = 7`,
+`card_min = 4`, `model._weekly_card`): qualifying bets ranked by the model's
+chance the BET wins (pushes left out), top 7 kept, slots already used by bets
+on started games count, a thin week is topped up only with positive-EV near
+misses labeled FILLER. 2021-25 hold-out: all qualifying 52.2% / ROI -3.9% ->
+top 7 by chance 55.4% / -0.7% (se ~3.5%, not an edge); top 7 by biggest edge
+was worse (50.8% / -4.4%), so "big edge" is NOT the ranking. Tests:
+`tests/test_card.py`. Week 5 card: CIN -310, SEA -162, MIN -1.5, TEN +7.5,
+TB +8.5, BAL +3.5, NYG +3.5 (cut: CLE +1.5, ARI +5.5, BUF +138).
+His actual Week 4 bets (from his tracker, AutoRecover copy): 4-1, season 6-3
++$16.11; he bet TB +3.5 at -148 (a win), not the model's +3. He types
+sportsbook codes ('JAC @ CIN'); `history.TEAM_ALIASES` now matches them.
+**BAL +3.5 rests on the QB fit valuing Huntley at +0.36 vs
 Lamar +0.71** (0.35 pt apart; the market moved about 6). That is the
 ridge-shrunk joint QB fit working as tuned, not a bug. Do not hand-adjust it;
 flag it. Re-verify BAL and WAS before Sunday and re-pass all three overrides
@@ -449,6 +461,9 @@ Fresh machine: `python3 -m venv .venv && .venv/bin/pip install -r requirements.t
   adversarial audit; it caught a fix-applied-twice bug and set-level
   confirmation).
 - **Longshot cap +250** on moneyline underdogs and win-% recalibration.
+- **Weekly card: at most 7 bets, at least 4** (2026-10-07), ranked by chance
+  the bet wins. Grade his bets from HIS tracker lines (line taken), never the
+  model's line.
 - **Weather**: shown and fed to the trend checker; no hand-set adjustment.
 
 He also has a separate MLB model (`MLB-Betting-model-`) whose de-vig bug

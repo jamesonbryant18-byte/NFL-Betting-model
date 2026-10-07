@@ -72,6 +72,21 @@ class Staking:
     # None restores Kelly-sized stakes and the weekly cap.
     flat_stake: Optional[float] = 5.00
 
+    # WEEKLY CARD -- Jameson, 2026-10-07: "10 bets seems absurd ... I really
+    # only want the most confident ones ... at least 4 total a week and at
+    # the most like 7 or 8 ... dont force a primetime bet."
+    # Qualifying bets are ranked by the model's chance the BET wins (spread
+    # cover with pushes left out; moneyline win %) and the top card_max make
+    # the card. Bets already published on games that kicked off count toward
+    # it. 2021-25 hold-out, all qualifying -> top 7: won 52.2% -> 55.4%, ROI
+    # -3.9% -> -0.7% (se ~3.5%, so not an edge). Ranking by chance did sort
+    # bets the right way; ranking by biggest edge did not (top 7 by EV: 50.8%,
+    # -4.4%). Under card_min qualifying (mostly playoff weeks), the closest
+    # misses with positive expected value fill it, labeled as such. No
+    # primetime rule. card_max None turns the card off.
+    card_max: Optional[int] = 7
+    card_min: int = 4
+
 
 STAKING = Staking()
 

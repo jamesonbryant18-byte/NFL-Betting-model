@@ -1926,7 +1926,9 @@ def _sheet_reference(wb, backtest_summary, model_meta=None):
     section("STAKING")
     entry("Kelly criterion", "Stake sized to the edge and the odds. Full Kelly maximizes long-run growth but swings violently.")
     if STAKING.flat_stake:
-        entry("Half Kelly", f"Used only as a yes/no test: a bet qualifies when it clears its edge threshold AND half-Kelly on a ${STAKING.bankroll:,.0f} reference bankroll would stake at least ${STAKING.min_bet:.0f}. The amount is always a flat ${STAKING.flat_stake:.0f} (your choice, 2026-09-30), and there is no weekly cap.")
+        entry("Half Kelly", f"Used only as a yes/no test: a bet qualifies when it clears its edge threshold AND half-Kelly on a ${STAKING.bankroll:,.0f} reference bankroll would stake at least ${STAKING.min_bet:.0f}. The amount is always a flat ${STAKING.flat_stake:.0f} (your choice, 2026-09-30).")
+        if STAKING.card_max:
+            entry("Weekly card", f"At most {STAKING.card_max} bets a week (your choice, 2026-10-07): every qualifying bet is ranked by the model's chance that the BET wins, and the top {STAKING.card_max} make the card. Fewer than {STAKING.card_min} qualifying: the closest misses that still have positive expected value fill in, marked FILLER. On the 2021-25 hold-out, top {STAKING.card_max} vs everything: won 55.4% vs 52.2%, ROI -0.7% vs -3.9%. That is not a proven edge, just a better-sorted card.")
     else:
         entry("Half Kelly", f"This model stakes at {STAKING.kelly_fraction:.0%} of Kelly, capped at {STAKING.max_bet_pct:.1%} of bankroll and {STAKING.max_weekly_exposure_pct:.0%} per week — roughly three-quarters of the growth at half the volatility. In advisory mode every stake is $0.")
 

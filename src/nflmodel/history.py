@@ -315,6 +315,14 @@ def match_bets(bets: list[dict], season: int, week: int, matchup: str,
     return out
 
 
+# Other codes for a team that sportsbooks and ESPN print, so he types them:
+# 'JAC @ CIN' was 2026 Week 4's JAX +2.5 win, which the review could not see.
+TEAM_ALIASES = {
+    "JAC": "JAX", "WSH": "WAS", "LAR": "LA", "ARZ": "ARI", "LVR": "LV",
+    "KAN": "KC", "GNB": "GB", "NWE": "NE", "NOR": "NO", "SFO": "SF", "TAM": "TB",
+}
+
+
 def _loose_match(b: dict, target: str) -> Optional[dict]:
     """
     A hand-typed matchup that names this game less exactly: 'TEN @ NY' for
@@ -333,7 +341,8 @@ def _loose_match(b: dict, target: str) -> Optional[dict]:
         return None
 
     def fits(typed: str, real: str) -> bool:
-        return typed == real or (len(typed) >= 2 and real.startswith(typed))
+        return (typed == real or TEAM_ALIASES.get(typed) == real
+                or (len(typed) >= 2 and real.startswith(typed)))
 
     exact = (typed_away == away) + (typed_home == home)
     if exact == 0 or not (fits(typed_away, away) and fits(typed_home, home)):
@@ -343,7 +352,7 @@ def _loose_match(b: dict, target: str) -> Optional[dict]:
     word, space, rest = side.partition(" ")
     if word and word not in (away, home):
         hits = [t for t, typed in ((away, typed_away), (home, typed_home))
-                if word == typed or (len(word) >= 2 and t.startswith(word))]
+                if word == typed or fits(word, t)]
         if len(hits) == 1:
             side = hits[0] + space + rest
     return {**b, "matchup": target, "bet_side": side}

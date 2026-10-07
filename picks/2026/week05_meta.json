@@ -1,9 +1,9 @@
 {
   "season": 2026,
   "week": 5,
-  "generated_utc": "2026-10-07T19:06:36+00:00",
+  "generated_utc": "2026-10-07T19:21:33+00:00",
   "n_games": 15,
-  "n_leans": 10,
+  "n_leans": 7,
   "starters": {
     "ARI": "Jacoby Brissett",
     "ATL": "Michael Penix",
@@ -111,7 +111,7 @@
       "cold": false
     },
     "2026_05_LV_NE": {
-      "label": "60\u00b0F, wind 9 mph (gusts 20)",
+      "label": "60\u00b0F, wind 9 mph",
       "temp_f": 60.025,
       "wind_mph": 9.2,
       "precip_prob": 12.0,
@@ -129,7 +129,7 @@
       "cold": false
     },
     "2026_05_CLE_NYJ": {
-      "label": "61\u00b0F, wind 8 mph (gusts 22), 47% rain",
+      "label": "61\u00b0F, wind 8 mph (gusts 21), 47% rain",
       "temp_f": 60.55,
       "wind_mph": 8.2,
       "precip_prob": 47.0,
@@ -138,7 +138,7 @@
       "cold": false
     },
     "2026_05_IND_PIT": {
-      "label": "64\u00b0F, wind 7 mph (gusts 20), 71% rain",
+      "label": "64\u00b0F, wind 7 mph (gusts 24), 71% rain",
       "temp_f": 64.0,
       "wind_mph": 7.2,
       "precip_prob": 71.0,
@@ -156,7 +156,7 @@
       "cold": false
     },
     "2026_05_NYG_WAS": {
-      "label": "64\u00b0F, wind 10 mph (gusts 28), 76% rain",
+      "label": "64\u00b0F, wind 10 mph (gusts 24), 76% rain",
       "temp_f": 63.94999999999999,
       "wind_mph": 10.5,
       "precip_prob": 76.0,
@@ -192,7 +192,7 @@
       "cold": false
     },
     "2026_05_BAL_ATL": {
-      "label": "67\u00b0F, wind 8 mph (gusts 19), 31% rain (retractable roof)",
+      "label": "67\u00b0F, wind 8 mph (gusts 21), 31% rain (retractable roof)",
       "temp_f": 66.55000000000001,
       "wind_mph": 7.9,
       "precip_prob": 31.0,
