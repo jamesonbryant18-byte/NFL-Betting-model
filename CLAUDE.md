@@ -186,6 +186,17 @@ split. Live Week 5 workbook NOT rebuilt (Excel had it open, saved 22:14);
 the Sunday morning roster run picks it up. Pre-existing: 2 test_history CLV
 failures from b3bc5bb, not yet fixed.
 
+**2026-10-09 (Fri 10:35): Week 5 rebuilt for the both-teams Game Detail.** He
+asked whether the old Home-only table meant away inputs were missing from the
+math: they never were (every term was already home − away; all 15 Wednesday
+margins rebuild exactly from both teams' inputs). Rebuilt with `--refresh`
+and the same overrides (TB Jalon Daniels, CHI Tyson Bagent, BAL Tyler
+Huntley). His 10:01 save is at `output/superseded/NFL_Model_2026_Week05_saved_2026-10-09_1001.xlsx`;
+his 10 tracker rows carried (new: Wk5 TB +8.5 −107 $5 W). Card unchanged
+except SEA ML −162 → −174. Depth chart now names Caleb Williams for CHI
+(QB RISK 2.2 pt): verify Sunday morning. TB@DAL (played) is no longer in the
+Game Detail dropdown, as with any carried-forward game.
+
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
 "redo" a past week's `output/NFL_Model_*_WeekNN.xlsx`. Reading it read-only

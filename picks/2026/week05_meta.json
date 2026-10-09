@@ -1,7 +1,7 @@
 {
   "season": 2026,
   "week": 5,
-  "generated_utc": "2026-10-07T20:01:41+00:00",
+  "generated_utc": "2026-10-09T14:36:10+00:00",
   "n_games": 15,
   "n_leans": 7,
   "starters": {
@@ -74,47 +74,38 @@
   },
   "locked": false,
   "weather": {
-    "2026_05_TB_DAL": {
-      "label": "79\u00b0F, wind 4 mph (retractable roof)",
-      "temp_f": 79.375,
-      "wind_mph": 4.3,
-      "precip_prob": 0.0,
-      "windy": false,
-      "precip": false,
-      "cold": false
-    },
     "2026_05_PHI_JAX": {
-      "label": "84\u00b0F, wind 9 mph, 32% rain",
-      "temp_f": 83.85,
-      "wind_mph": 8.9,
-      "precip_prob": 32.0,
+      "label": "82\u00b0F, wind 12 mph, 31% rain",
+      "temp_f": 81.9,
+      "wind_mph": 11.9,
+      "precip_prob": 31.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_05_CHI_GB": {
-      "label": "76\u00b0F, wind 16 mph",
-      "temp_f": 75.975,
-      "wind_mph": 15.7,
-      "precip_prob": 3.0,
+      "label": "77\u00b0F, wind 13 mph",
+      "temp_f": 76.775,
+      "wind_mph": 13.2,
+      "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_05_CIN_MIA": {
-      "label": "91\u00b0F, wind 12 mph",
-      "temp_f": 90.85,
-      "wind_mph": 12.1,
+      "label": "92\u00b0F, wind 12 mph",
+      "temp_f": 91.72500000000001,
+      "wind_mph": 11.7,
       "precip_prob": 10.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_05_LV_NE": {
-      "label": "60\u00b0F, wind 9 mph (gusts 20)",
-      "temp_f": 60.025,
-      "wind_mph": 9.2,
-      "precip_prob": 12.0,
+      "label": "61\u00b0F, wind 9 mph",
+      "temp_f": 61.025,
+      "wind_mph": 9.3,
+      "precip_prob": 18.0,
       "windy": false,
       "precip": false,
       "cold": false
@@ -129,37 +120,37 @@
       "cold": false
     },
     "2026_05_CLE_NYJ": {
-      "label": "61\u00b0F, wind 8 mph (gusts 22), 47% rain",
-      "temp_f": 60.55,
-      "wind_mph": 8.2,
-      "precip_prob": 47.0,
+      "label": "61\u00b0F, wind 9 mph (gusts 22), 86% rain",
+      "temp_f": 61.375,
+      "wind_mph": 9.3,
+      "precip_prob": 86.0,
       "windy": false,
-      "precip": false,
+      "precip": true,
       "cold": false
     },
     "2026_05_IND_PIT": {
-      "label": "64\u00b0F, wind 7 mph (gusts 20), 71% rain",
-      "temp_f": 64.0,
-      "wind_mph": 7.2,
-      "precip_prob": 71.0,
+      "label": "60\u00b0F, wind 9 mph (gusts 26), 95% rain",
+      "temp_f": 60.175,
+      "wind_mph": 9.1,
+      "precip_prob": 95.0,
       "windy": false,
-      "precip": false,
+      "precip": true,
       "cold": false
     },
     "2026_05_HOU_TEN": {
-      "label": "66\u00b0F, wind 7 mph (gusts 20), 50% rain",
-      "temp_f": 65.65,
+      "label": "64\u00b0F, wind 7 mph (gusts 18)",
+      "temp_f": 64.25,
       "wind_mph": 7.4,
-      "precip_prob": 50.0,
+      "precip_prob": 18.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_05_NYG_WAS": {
-      "label": "64\u00b0F, wind 10 mph (gusts 28), 76% rain",
-      "temp_f": 63.94999999999999,
-      "wind_mph": 10.5,
-      "precip_prob": 76.0,
+      "label": "63\u00b0F, wind 12 mph (gusts 30), 96% rain",
+      "temp_f": 62.55,
+      "wind_mph": 12.0,
+      "precip_prob": 96.0,
       "windy": false,
       "precip": true,
       "cold": false
@@ -174,28 +165,28 @@
       "cold": false
     },
     "2026_05_DET_ARI": {
-      "label": "82\u00b0F, wind 22 mph, 52% rain (retractable roof)",
-      "temp_f": 81.55,
-      "wind_mph": 22.3,
-      "precip_prob": 52.0,
+      "label": "84\u00b0F, wind 25 mph, 59% rain (retractable roof)",
+      "temp_f": 84.17500000000001,
+      "wind_mph": 24.7,
+      "precip_prob": 59.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_05_SF_SEA": {
-      "label": "59\u00b0F, wind 8 mph",
-      "temp_f": 58.775,
-      "wind_mph": 7.5,
+      "label": "58\u00b0F, wind 9 mph",
+      "temp_f": 58.25,
+      "wind_mph": 9.2,
       "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_05_BAL_ATL": {
-      "label": "67\u00b0F, wind 8 mph (gusts 19), 31% rain (retractable roof)",
-      "temp_f": 66.55000000000001,
-      "wind_mph": 7.9,
-      "precip_prob": 31.0,
+      "label": "66\u00b0F, wind 9 mph (gusts 23) (retractable roof)",
+      "temp_f": 66.125,
+      "wind_mph": 8.6,
+      "precip_prob": 5.0,
       "windy": false,
       "precip": false,
       "cold": false
@@ -217,5 +208,18 @@
     ],
     "calibration": true,
     "ml_max_underdog": 250
+  },
+  "carried": {
+    "TB @ DAL": {
+      "generated_utc": "2026-10-07T20:01:41+00:00",
+      "trend_fixes": {
+        "generated_utc": "2026-10-07T19:04:56+00:00",
+        "margin": [
+          "model_far_from_market"
+        ],
+        "calibration": true,
+        "ml_max_underdog": 250
+      }
+    }
   }
 }
