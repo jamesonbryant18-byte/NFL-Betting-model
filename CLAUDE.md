@@ -173,6 +173,19 @@ spreads +0.35 pts avg on 10 (beat 4, matched 6, worse 0); moneylines +0.1% on
 now does a **Sunday morning roster run** (OPERATING.md). He saved his Week 4
 workbook 10/7 3:48 PM; Week 5 rebuilt after to carry his 9 tracker rows.
 
+**2026-10-08 (Thu night): Game Detail shows BOTH teams.** He complained the
+"What drives it" table filled only the Home column (every game-level term
+was written there) and Away had just rating + QB. Now every row is points per
+team with home − away = net, and a PROJECTED MARGIN row whose two column totals
+net to the margin. Per-side inputs come from `factors.live_factor_shifts`
+(home_/away_inj_out, _net_epa, _rest, factor_*_home/_away) and
+`model.components()` (home_tune/away_tune). Capped terms (self-tune 0.5,
+rest 7 days) are scaled so they still net; game-level terms (HFA, situational,
+trend fixes) sit under the team they favor. `excel._side_shares` does the
+split. Live Week 5 workbook NOT rebuilt (Excel had it open, saved 22:14);
+the Sunday morning roster run picks it up. Pre-existing: 2 test_history CLV
+failures from b3bc5bb, not yet fixed.
+
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
 "redo" a past week's `output/NFL_Model_*_WeekNN.xlsx`. Reading it read-only

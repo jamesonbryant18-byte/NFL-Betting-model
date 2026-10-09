@@ -397,8 +397,12 @@ POS_GROUP = {
 INJ_GROUPS = ["ol", "wr", "rb", "dl", "lb", "db"]
 
 
-def _injury_features(g: pd.DataFrame, seasons, live_week: int | None = None) -> pd.DataFrame:
-    """Starter-equivalents out by position group (QB excluded), home minus away."""
+def _injury_features(g: pd.DataFrame, seasons, live_week: int | None = None,
+                     per_side: bool = False) -> pd.DataFrame:
+    """
+    Starter-equivalents out by position group (QB excluded), home minus away.
+    per_side=True also returns each team's own total (home_out, away_out).
+    """
     from .roster import (player_importance, load_injuries, OUT_DESIGNATIONS,
                          UNAVAILABLE_STATUS)
     from .depth import load_weekly_rosters
@@ -445,6 +449,9 @@ def _injury_features(g: pd.DataFrame, seasons, live_week: int | None = None) -> 
         # Positive = HOME is the healthier side.
         f[f"inj_{grp}"] = ai[grp].to_numpy() - hi[grp].to_numpy()
     f["inj_total"] = f[[f"inj_{x}" for x in INJ_GROUPS]].sum(axis=1)
+    if per_side:
+        f["home_out"] = hi[INJ_GROUPS].sum(axis=1).to_numpy()
+        f["away_out"] = ai[INJ_GROUPS].sum(axis=1).to_numpy()
     return f
 
 
@@ -642,37 +649,64 @@ def live_factor_shifts(slate_games: pd.DataFrame, season: int, week: int,
     config.FACTORS. Same definitions as the lab that measured them
     (scripts/factor_lab.py): nothing is computed differently live.
 
-    Returns game_id, factor_inj, factor_epa, factor_rest, factor_adj, factor_notes.
+    Returns game_id, factor_inj, factor_epa, factor_rest, factor_adj, factor_notes,
+    plus each side's own input for display (the workbook's Game Detail shows
+    both teams, not just the net): home_/away_inj_out (starter-equivalents
+    out), home_/away_net_epa (EPA/play, offense minus defense allowed),
+    home_/away_rest (days), and factor_{inj,epa,rest}_{home,away}, the points
+    each team's input is worth on its own. Home minus away of those is the
+    net factor, except rest, whose difference is capped at 7 days.
     """
     g = slate_games.copy()
     g["season"], g["week"] = season, week
     rows = pd.DataFrame({"game_id": g.game_id.to_numpy()})
+    n = len(g)
 
     # Non-QB injuries: starter-equivalents out, away minus home (+ = home healthier).
     try:
-        inj = _injury_features(g.reset_index(drop=True), [season], live_week=week)
+        inj = _injury_features(g.reset_index(drop=True), [season], live_week=week,
+                               per_side=True)
         inj_total = inj["inj_total"].to_numpy()
+        h_out, a_out = inj["home_out"].to_numpy(), inj["away_out"].to_numpy()
     except Exception as e:                                   # noqa: BLE001
         print(f"WARNING: injury factor unavailable ({e}); using 0")
-        inj_total = np.zeros(len(g))
+        inj_total = h_out = a_out = np.zeros(n)
 
     # Efficiency: net EPA/play, home minus away, opponent-adjusted.
     try:
         eff = team_efficiency_current(season)
-        epa = np.array([_pregame_net_epa(eff, h) - _pregame_net_epa(eff, a)
-                        for h, a in zip(g.home_team, g.away_team)])
+        h_epa = np.array([_pregame_net_epa(eff, t) for t in g.home_team])
+        a_epa = np.array([_pregame_net_epa(eff, t) for t in g.away_team])
     except Exception as e:                                   # noqa: BLE001
         print(f"WARNING: efficiency factor unavailable ({e}); using 0")
-        epa = np.zeros(len(g))
+        h_epa = a_epa = np.zeros(n)
+    epa = h_epa - a_epa
 
-    rest = (g.home_rest - g.away_rest).clip(-7, 7).fillna(0).to_numpy() \
-        if {"home_rest", "away_rest"} <= set(g.columns) else np.zeros(len(g))
+    if {"home_rest", "away_rest"} <= set(g.columns):
+        h_rest = g.home_rest.astype(float).to_numpy()
+        a_rest = g.away_rest.astype(float).to_numpy()
+        rest = np.nan_to_num(np.clip(h_rest - a_rest, -7, 7))
+    else:
+        h_rest = a_rest = np.full(n, np.nan)
+        rest = np.zeros(n)
 
-    rows["factor_inj"] = weights.get("inj_total", 0.0) * inj_total
-    rows["factor_epa"] = weights.get("eff_epa", 0.0) * epa
-    rows["factor_rest"] = weights.get("rt_rest_diff", 0.0) * rest
+    w_inj = weights.get("inj_total", 0.0)
+    w_epa = weights.get("eff_epa", 0.0)
+    w_rest = weights.get("rt_rest_diff", 0.0)
+    rows["factor_inj"] = w_inj * inj_total
+    rows["factor_epa"] = w_epa * epa
+    rows["factor_rest"] = w_rest * rest
     rows["factor_adj"] = rows[["factor_inj", "factor_epa", "factor_rest"]].sum(axis=1)
     rows["_inj_raw"], rows["_epa_raw"], rows["_rest_raw"] = inj_total, epa, rest
+
+    # Per side, for display. A normal week (7 days) is the rest baseline.
+    rows["home_inj_out"], rows["away_inj_out"] = h_out, a_out
+    rows["home_net_epa"], rows["away_net_epa"] = h_epa, a_epa
+    rows["home_rest"], rows["away_rest"] = h_rest, a_rest
+    rows["factor_inj_home"], rows["factor_inj_away"] = -w_inj * h_out, -w_inj * a_out
+    rows["factor_epa_home"], rows["factor_epa_away"] = w_epa * h_epa, w_epa * a_epa
+    rows["factor_rest_home"] = np.nan_to_num(w_rest * (h_rest - 7))
+    rows["factor_rest_away"] = np.nan_to_num(w_rest * (a_rest - 7))
 
     notes = []
     for (_, r), h, a in zip(rows.iterrows(), g.home_team, g.away_team):

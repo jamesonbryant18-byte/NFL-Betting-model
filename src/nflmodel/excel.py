@@ -510,8 +510,43 @@ MODEL_DATA_COLS = [
     ("projected_winner", "Projected winner"), ("winner_prob", "Winner win %"),
     ("winner_margin", "Winner margin"), ("market_favorite", "Market favorite"),
     ("agree", "Model agrees with market"),
+    # Each side's share of every margin term (home − away = the term), so the
+    # picker can fill both columns. See _side_shares.
+    ("hfa_home", "Home field: home pts"), ("hfa_away", "Home field: away pts"),
+    ("sit_home", "Situational: home pts"), ("sit_away", "Situational: away pts"),
+    ("tune_home", "Self-tune: home pts"), ("tune_away", "Self-tune: away pts"),
+    ("tune_home_raw", "Self-tune: home raw"), ("tune_away_raw", "Self-tune: away raw"),
+    ("trend_home", "Trend fixes: home pts"), ("trend_away", "Trend fixes: away pts"),
+    ("inj_home", "Injuries: home pts"), ("inj_away", "Injuries: away pts"),
+    ("epa_home", "Efficiency: home pts"), ("epa_away", "Efficiency: away pts"),
+    ("rest_home", "Rest: home pts"), ("rest_away", "Rest: away pts"),
+    ("home_inj_out", "Home starters out (non-QB)"), ("away_inj_out", "Away starters out (non-QB)"),
+    ("home_net_epa", "Home net EPA/play"), ("away_net_epa", "Away net EPA/play"),
+    ("home_rest", "Home rest days"), ("away_rest", "Away rest days"),
 ]
 MD_COL = {key: get_column_letter(i + 1) for i, (key, _) in enumerate(MODEL_DATA_COLS)}
+
+
+def _side_shares(net, home=None, away=None):
+    """
+    Split a margin term into (home pts, away pts) with home − away == net.
+
+    With each team's own number (injuries, efficiency, rest, self-tune) the
+    split is that number, scaled down together when a cap held the net below
+    the raw difference (self-tune 0.5 pt, rest 7 days). A term that only
+    exists for the game as a whole (situational, trend fixes), or a slate
+    from before the per-side columns existed, goes to the team it favors.
+    """
+    if net is None:
+        return None, None
+    if home is not None and away is not None:
+        diff = home - away
+        if abs(diff - net) < 1e-9:
+            return home, away
+        if abs(diff) > 1e-9:
+            k = net / diff
+            return home * k, away * k
+    return (net, 0.0) if net >= 0 else (0.0, -net)
 
 
 def _model_rows(slate: pd.DataFrame) -> list[dict]:
@@ -611,6 +646,20 @@ def _model_rows(slate: pd.DataFrame) -> list[dict]:
             "projected_winner": winner, "winner_prob": winner_prob,
             "winner_margin": winner_margin, "market_favorite": mkt_fav, "agree": agree,
         }
+        hfa = _num(d.get("hfa_used"))
+        row["hfa_home"], row["hfa_away"] = (None, None) if hfa is None else (hfa, 0.0)
+        row["sit_home"], row["sit_away"] = _side_shares(_num(d.get("situational_adj")))
+        row["tune_home_raw"] = _num(d.get("home_tune"))
+        row["tune_away_raw"] = _num(d.get("away_tune"))
+        row["tune_home"], row["tune_away"] = _side_shares(
+            row["selftune_adj"], row["tune_home_raw"], row["tune_away_raw"])
+        row["trend_home"], row["trend_away"] = _side_shares(row["trend_adj"])
+        for key, col in (("inj", "factor_inj"), ("epa", "factor_epa"), ("rest", "factor_rest")):
+            row[f"{key}_home"], row[f"{key}_away"] = _side_shares(
+                row[col], _num(d.get(f"{col}_home")), _num(d.get(f"{col}_away")))
+        for key in ("inj_out", "net_epa", "rest"):
+            row[f"home_{key}"] = _num(d.get(f"home_{key}"))
+            row[f"away_{key}"] = _num(d.get(f"away_{key}"))
         out.append(row)
     return out
 
@@ -1096,12 +1145,35 @@ def _sheet_detail(wb, slate, season, week, slate_last, model_meta):
         formula=[f'D{r + 2}="NO BET"'], fill=fill(LIGHT_GRAY), font=Font(color=MUTED, italic=True)))
 
     # ── what drives it ──
+    # Every row is points that term adds to each team; home − away = net, and
+    # the two column totals net to the projected margin. A term that only
+    # exists per game (home field, situational, trend fixes) sits under the
+    # team it favors and is 0 for the other.
+    from .config import FACTORS, SELFTUNE
     r = 9
-    apply_section(ws, f"A{r}", "WHAT DRIVES IT  (points, home perspective)", merge_to=f"E{r}")
+    apply_section(ws, f"A{r}", "WHAT DRIVES IT  (points each term adds to each team; net = home − away)", merge_to=f"E{r}")
     hdr = r + 1
     _header_row(ws, hdr, ["Factor", "Home", "Away", "Net (home − away)", "What it means"])
     ws.cell(row=hdr, column=2, value=f'=IFERROR("Home: "&{idx("home_team")},"Home")')
     ws.cell(row=hdr, column=3, value=f'=IFERROR("Away: "&{idx("away_team")},"Away")')
+    H, A = idx("home_team"), idx("away_team")
+
+    def per_side(static, h_key, a_key, num_fmt, unit, signed=False):
+        """Static explanation, led by each team's raw input when the run has it."""
+        hv, av = idx(h_key), idx(a_key)
+
+        def show(v):
+            # Sign spelled out rather than a "+0;-0" TEXT format, which not
+            # every spreadsheet app renders the same way.
+            t = f'TEXT(ABS({v}),"{num_fmt}")' if signed else f'TEXT({v},"{num_fmt}")'
+            return f'IF({v}<0,"-","+")&{t}' if signed else t
+        return (f'=IFERROR(IF(ISNUMBER({hv}),{H}&" "&{show(hv)}&", "&{A}&" "'
+                f'&{show(av)}&" {unit}. ","")&"{static}","{static}")')
+
+    tune_cap = SELFTUNE.get("max_game_adj")
+    tune_note = (f"Nudge from how well each team has actually played (EPA) vs what the model "
+                 f"projected; the difference is capped at {tune_cap:g} pt, so each side shows "
+                 f"its share of the capped nudge.")
     drivers = [
         ("Team power rating", lk("home_team_rating"), lk("away_team_rating"),
          net("home_team_rating", "away_team_rating"), "+0.00;-0.00",
@@ -1111,25 +1183,44 @@ def _sheet_detail(wb, slate, season, week, slate_last, model_meta):
         ("Quarterback adjustment", lk("home_qb_adj"), lk("away_qb_adj"),
          net("home_qb_adj", "away_qb_adj"), "+0.00;-0.00",
          "QB term from the joint team+QB fit. A QB without enough starts sits at replacement level, which is the fit's honest default for a rookie or a backup."),
-        ("Home field advantage", lk("hfa_used"), "", lk("hfa_used"), "+0.00;-0.00",
-         "Fitted at ~2 points, not 3; zero at a neutral site."),
-        ("Situational adjustments", lk("situational_adj"), "", lk("situational_adj"), "+0.00;-0.00",
-         "Rest, weather, travel, divisional, late-season — all measured against the closing line and all ship at zero."),
-        ("Weekly self-tune (EPA)", lk("selftune_adj"), "", lk("selftune_adj"), "+0.00;-0.00",
-         "Nudge from how well each team has actually played (EPA) vs what the model projected. Max 0.5 pt."),
-        ("Trend fixes", lk("trend_adj"), "", lk("trend_adj"), "+0.00;-0.00",
-         '=IFERROR(' + idx("trend_notes") + ',"")'),
-        ("Factor: non-QB injuries", lk("factor_inj"), "", lk("factor_inj"), "+0.00;-0.00",
-         "0.70 pts per full-time starter out (O-line, receivers, defense...), healthier side gains. Added 2026-09-28 after testing on 2021-25."),
-        ("Factor: efficiency", lk("factor_epa"), "", lk("factor_epa"), "+0.00;-0.00",
-         "Opponent-adjusted EPA per play, offense minus defense allowed, this season plus last season shrunk."),
-        ("Factor: rest", lk("factor_rest"), "", lk("factor_rest"), "+0.00;-0.00",
-         '=IFERROR(' + idx("factor_notes") + ',"")'),
-        ("Market prior weight", lk("market_prior_weight"), "", "", "0%",
-         "Share of each team rating that is the market's own preseason opinion. High in Week 1 by design; decays as games are played."),
-        ("PROJECTED MARGIN", "", "", lk("projected_margin"), "+0.00;-0.00",
-         "Rating net + QB net + home field + situational + self-tune + trend fixes + game factors. This is the number every probability below comes from."),
+        ("Home field advantage", lk("hfa_home"), lk("hfa_away"), lk("hfa_used"), "+0.00;-0.00",
+         "Fitted at ~2 points, not 3, and only the home team gets it; zero at a neutral site."),
+        ("Situational adjustments", lk("sit_home"), lk("sit_away"), lk("situational_adj"), "+0.00;-0.00",
+         "Rest, weather, travel, divisional, late-season — all measured against the closing line and all ship at zero. Game-level: shown under the team it favors."),
+        ("Weekly self-tune (EPA)", lk("tune_home"), lk("tune_away"), lk("selftune_adj"), "+0.00;-0.00",
+         per_side(tune_note, "tune_home_raw", "tune_away_raw", "0.00", "before the cap",
+                  signed=True)),
+        ("Trend fixes", lk("trend_home"), lk("trend_away"), lk("trend_adj"), "+0.00;-0.00",
+         '=IFERROR(IF(' + idx("trend_notes") + '="","None this game.",' + idx("trend_notes")
+         + '&".")&" Game-level: shown under the team it moves toward.","")'),
+        ("Factor: non-QB injuries", lk("inj_home"), lk("inj_away"), lk("factor_inj"), "+0.00;-0.00",
+         per_side(f"{FACTORS['inj_total']:.2f} pts per full-time starter out (O-line, receivers, "
+                  "defense...); QB injuries are in the QB rows.",
+                  "home_inj_out", "away_inj_out", "0.0", "starters out")),
+        ("Factor: efficiency", lk("epa_home"), lk("epa_away"), lk("factor_epa"), "+0.00;-0.00",
+         per_side("Opponent-adjusted EPA per play, offense minus defense allowed, this season "
+                  "plus last season shrunk.",
+                  "home_net_epa", "away_net_epa", "0.000", "net EPA/play", signed=True)),
+        ("Factor: rest", lk("rest_home"), lk("rest_away"), lk("factor_rest"), "+0.00;-0.00",
+         per_side(f"{FACTORS['rt_rest_diff']:.3f} pts per day of rest vs a normal 7-day week; "
+                  "the gap counts up to 7 days.",
+                  "home_rest", "away_rest", "0", "days rest")),
+        ("Market prior weight", lk("market_prior_weight"), lk("market_prior_weight"), "", "0%",
+         "Share of each team rating that is the market's own preseason opinion — the same for both teams. High in Week 1 by design; decays as games are played. Already inside the power ratings, so not added again."),
     ]
+    # Rows whose Home/Away cells are points (summed into the totals).
+    point_rows = [k for k, d in enumerate(drivers, start=1)
+                  if d[4] == "+0.00;-0.00"]
+    tot_row = hdr + len(drivers) + 1
+
+    def col_total(col):
+        cells = ",".join(f"{col}{hdr + k}" for k in point_rows)
+        return f'=IF($B$3="","",SUM({cells}))'
+
+    drivers.append(
+        ("PROJECTED MARGIN", col_total("B"), col_total("C"), lk("projected_margin"), "+0.00;-0.00",
+         "Each column adds up everything working for that team; home total minus away total is the projected margin, the number every probability below comes from."))
+    assert tot_row == hdr + len(drivers)
     for k, (label, h, a, nt, fmt, note) in enumerate(drivers, start=1):
         rr = hdr + k
         bold = label.isupper()

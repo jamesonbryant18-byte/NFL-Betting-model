@@ -293,6 +293,10 @@ class NFLModel:
             "home_strength": float(self.strength(home, home_qb)),
             "away_strength": float(self.strength(away, away_qb)),
             "hfa_used": 0.0 if neutral else float(self.hfa),
+            # Each team's own self-tune correction, before project() caps the
+            # difference at max_tune.
+            "home_tune": float(self.team_adjust.get(home, 0.0)),
+            "away_tune": float(self.team_adjust.get(away, 0.0)),
             "neutral": neutral,
             "market_prior_weight": float(self.market_prior_weight_used),
             "market_home_prob": float(fair_h),

@@ -386,7 +386,13 @@ def main():
     slate['trend_notes'] = slate.game_id.map(trend_notes).fillna('')
     if len(factor_rows):
         slate = slate.merge(factor_rows[['game_id', 'factor_inj', 'factor_epa',
-                                         'factor_rest', 'factor_notes']],
+                                         'factor_rest', 'factor_notes',
+                                         'home_inj_out', 'away_inj_out',
+                                         'home_net_epa', 'away_net_epa',
+                                         'home_rest', 'away_rest',
+                                         'factor_inj_home', 'factor_inj_away',
+                                         'factor_epa_home', 'factor_epa_away',
+                                         'factor_rest_home', 'factor_rest_away']],
                             on='game_id', how='left')
     from nflmodel.weather import forecast_columns
     slate = forecast_columns(slate, forecast)
