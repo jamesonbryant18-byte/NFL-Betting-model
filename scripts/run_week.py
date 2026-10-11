@@ -20,7 +20,7 @@ from nflmodel.ratings import qb_value
 from nflmodel.depth import resolve_starters, SOURCE_DEPTH_CHART
 from nflmodel.market import format_spread
 from nflmodel.report import straight_up_ranking, format_ranking
-from nflmodel.archive import archive_week, load_archived
+from nflmodel.archive import archive_week, kicked_off, load_archived
 from nflmodel.teamstats import team_stats_bundle
 
 
@@ -104,10 +104,9 @@ def main():
         return
 
     # A mid-week re-run (after TNF) only re-prices games that have not started.
-    # The published pick for a game already played stays exactly as archived.
-    today = pd.Timestamp.now().normalize()
-    started = slate_games.played.fillna(False).astype(bool) | \
-        (pd.to_datetime(slate_games.gameday, errors='coerce') < today)
+    # The published pick for a game already played -- or in progress, like a
+    # 9:30 London game on a Sunday morning run -- stays exactly as archived.
+    started = kicked_off(slate_games)
     if started.any() and not args.archive_anyway:
         gone = slate_games[started]
         print(f'already kicked off, left as published: '

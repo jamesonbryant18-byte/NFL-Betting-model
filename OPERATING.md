@@ -161,8 +161,8 @@ He asks for it Sunday morning, before betting the early games:
 2. Re-run with `--refresh` and the week's `--qb` overrides re-passed (all of
    them; a re-run without one silently drops it):
    `.venv/bin/python -W ignore scripts/run_week.py --refresh --qb TEAM="Name" ...`
-3. Games already played (Thursday) are carried forward as published and their
-   bets still use card slots. The first-published numbers stay in
+3. Games already played (Thursday) or in progress (a 9:30 London game) are
+   carried forward as published and their bets still use card slots. The first-published numbers stay in
    `weekNN_first_leans.csv` for CLV.
 4. Tell him what changed vs Wednesday: any new or dropped bet, any QB change.
    A bet he already placed stays placed; his tracker is the record of what he

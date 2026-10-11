@@ -13,7 +13,7 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-07 (Wed before 2026 Week 5 TNF).** Everything on
+**Last updated 2026-10-11 (Sun morning, 2026 Week 5).** Everything on
 `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -196,6 +196,22 @@ his 10 tracker rows carried (new: Wk5 TB +8.5 −107 $5 W). Card unchanged
 except SEA ML −162 → −174. Depth chart now names Caleb Williams for CHI
 (QB RISK 2.2 pt): verify Sunday morning. TB@DAL (played) is no longer in the
 Game Detail dropdown, as with any carried-forward game.
+
+**2026-10-11 (Sun 11:58 ET): Week 5 roster run.** Same three overrides, all
+confirmed by news (Bagent: Williams ruled out; Huntley: Lamar ruled out Fri;
+WAS = Jayden Daniels cleared, NYG = Winston, SEA = Darnold from the depth
+chart). **Fixed the Week 4 London bug**: `archive.kicked_off` now counts
+kickoff TIME (nflverse `gametime`, Eastern), so the in-progress 9:30 PHI@JAX
+game was left as published instead of re-priced (`tests/test_kickoff.py`).
+Card vs Friday: CIN ML dropped (-320 -> -360, no longer a price the model
+likes), CHI -120 ML added (rests on Bagent at replacement level + GB's injury
+count), TEN +7.5 -> +6.5, MIN -1.5 -> -2.5, NYG +3.5 now -110, SEA -172,
+BAL +3.5 unchanged. Straight-up pick flipped in NYG@WAS (WAS -> NYG, 50.7%,
+WAS injuries). Excel had the Week 5 workbook open; its only unsaved changes
+were Game Detail dropdown flips (AutoRecover .xlsb decoded with pyxlsb and
+diffed against disk), so his 13:07 save was backed up to
+`output/superseded/NFL_Model_2026_Week05_saved_2026-10-09_1307.xlsx` and the
+workbook rebuilt; 10 tracker rows carried. Weeks 1-4 checksums unchanged.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or

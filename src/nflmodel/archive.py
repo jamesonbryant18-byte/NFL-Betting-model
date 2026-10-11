@@ -76,6 +76,30 @@ def kickoff_has_passed(games, season: int, week: int) -> bool:
         return False
 
 
+def kicked_off(games, now=None) -> pd.Series:
+    """
+    Per game: has it started? True for a game already scored, a game on an
+    earlier day, or a game today whose kickoff time has passed.
+
+    nflverse `gametime` is Eastern, 24h. The time matters on Sunday morning:
+    a 9:30 London game is in progress during the roster run, and checking the
+    day alone re-priced it against an in-game line (2026 Week 4, IND@WAS).
+    A game with no listed time falls back to the day check.
+    """
+    if now is None:
+        now = pd.Timestamp.now(tz="America/New_York").tz_localize(None)
+    now = pd.Timestamp(now)
+    day = pd.to_datetime(games["gameday"], errors="coerce")
+    played = games["played"].fillna(False).astype(bool) if "played" in games.columns \
+        else pd.Series(False, index=games.index)
+    started = played | (day < now.normalize())
+    if "gametime" in games.columns:
+        kick = pd.to_datetime(games["gameday"].astype(str) + " "
+                              + games["gametime"].astype(str).str[:5], errors="coerce")
+        started = started | (kick <= now)
+    return started
+
+
 def archive_week(ranked, slate, starters, qb_source, season: int, week: int,
                  force: bool = False, games=None, extra_meta: dict | None = None) -> bool:
     """
