@@ -258,6 +258,14 @@ Line** and **Closing Odds** for each logged bet. CLV computes itself.
 Enter W/L/Push in the Result column. P&L, running bankroll, ROI and CLV all
 update from formulas.
 
+**The charts beside the table** (to the right, from column R) update on their
+own as you log and settle bets, and each week's run redraws the ones you have
+kept over everything logged so far. Delete one and it stays deleted; move or
+resize one and it stays put. **Save the workbook (Cmd+S) after changing them**:
+the next run reads the saved file, not the open window. The run prints
+`bet tracker charts: N redrawn (...)`, which should name exactly the charts
+still on your sheet.
+
 Your entries survive the next run. The tracker is merged across every weekly
 workbook in `output/` and the CSV mirror, most recently edited file winning
 per bet, so settling Week 3 on Monday and building Week 4 on Tuesday keeps

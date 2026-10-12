@@ -253,6 +253,14 @@ His tracker through Sunday: 16 bets, 11-5, +$25.02. His `MIN @ NO` row has the
 line typed as 1.5 (at -121 it is almost certainly MIN -1.5), which files it
 under spread underdogs; he was told.
 
+**Same afternoon: the charts left on his sheet get updated every week** (his
+ask, now a standing rule in §7). He deleted "profit by bet type" and kept three:
+bankroll, profit by week, win % vs break-even. The run now prints what it did,
+`bet tracker charts: 3 redrawn (...); deleted, left off: profit by bet type`.
+When he asked, the deletion was only in the open Excel window (3 charts there,
+4 on disk, `saved` false), so a build before he presses Cmd+S would put the
+fourth back; he was told to save.
+
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
 "redo" a past week's `output/NFL_Model_*_WeekNN.xlsx`. Reading it read-only
@@ -557,6 +565,16 @@ Fresh machine: `python3 -m venv .venv && .venv/bin/pip install -r requirements.t
   the bet wins. Grade his bets from HIS tracker lines (line taken), never the
   model's line.
 - **Weather**: shown and fed to the trend checker; no hand-set adjustment.
+- **Bet Tracker charts: every week, update the ones still on his sheet**
+  (2026-10-12). Each weekly build redraws whichever of the model's charts he
+  has kept, over all his logged bets, where and at the size he left them. Never
+  put back one he deleted, never drop one he kept. Every week, read the run's
+  `bet tracker charts:` line and check it against his last save; it should name
+  exactly the charts he kept. If it does not (a count of 0, or one "left off"
+  that he did not delete), fix that before handing him the workbook. Renaming
+  a chart's first series orphans his copy of it (`excel._chart_identity`), so
+  do not rename one without carrying the old name. He can ask for a deleted
+  chart back, or a new one, at any time.
 
 He also has a separate MLB model (`MLB-Betting-model-`) whose de-vig bug
 (comparing against raw implied odds) is still unfixed — he was offered a fix

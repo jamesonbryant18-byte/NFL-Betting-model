@@ -434,8 +434,12 @@ def _start_workbook(tracker):
     from openpyxl import load_workbook
     wb = load_workbook(str(tracker.path))
     # A workbook built before the charts existed has no Chart Data sheet: it
-    # gets the full set once. After that, a chart he deleted stays deleted.
-    _tracker_charts(wb[TRACKER_SHEET], install_all="Chart Data" not in wb.sheetnames)
+    # gets the full set once. After that, a chart he deleted stays deleted, and
+    # every one still on his sheet is redrawn each week (his standing ask).
+    drawn = _tracker_charts(wb[TRACKER_SHEET], install_all="Chart Data" not in wb.sheetnames)
+    off = [label for _, _, label in TRACKER_CHARTS if label not in drawn]
+    print(f"  bet tracker charts: {len(drawn)} redrawn ({', '.join(drawn) or 'none'})"
+          + (f"; deleted, left off: {', '.join(off)}" if off else ""))
     for name in list(wb.sheetnames):
         if name in MODEL_SHEETS:
             wb.remove(wb[name])
@@ -1944,13 +1948,14 @@ def _chart_by_type():
     return ch
 
 
-# (where it goes the first time, builder). A chart is known afterwards by the
-# name of its first series, so those names are part of the contract.
+# (where it goes the first time, builder, what the weekly run calls it). A
+# chart is known afterwards by the name of its first series, so those names
+# are part of the contract.
 TRACKER_CHARTS = (
-    ("R12", _chart_bankroll),
-    ("AB12", _chart_by_week),
-    ("R29", _chart_win_rate),
-    ("AB29", _chart_by_type),
+    ("R12", _chart_bankroll, "bankroll"),
+    ("AB12", _chart_by_week, "profit by week"),
+    ("R29", _chart_win_rate, "win % vs break-even"),
+    ("AB29", _chart_by_type, "profit by bet type"),
 )
 
 
@@ -1964,9 +1969,9 @@ def _chart_identity(chart) -> tuple:
         return ("", False)
 
 
-def _tracker_charts(ws, install_all: bool) -> None:
+def _tracker_charts(ws, install_all: bool) -> list:
     """
-    Draw the model's charts on the Bet Tracker.
+    Draw the model's charts on the Bet Tracker; returns what it drew.
 
     install_all: a tracker that has never had them gets all four. Otherwise
     only the ones still on his sheet are redrawn, each where (and at the size)
@@ -1979,9 +1984,9 @@ def _tracker_charts(ws, install_all: bool) -> None:
     himself is not the model's and is carried as openpyxl read it.
     """
     fresh = {}
-    for cell, build in TRACKER_CHARTS:
+    for cell, build, label in TRACKER_CHARTS:
         chart = build()
-        fresh[_chart_identity(chart)[0]] = (cell, chart)
+        fresh[_chart_identity(chart)[0]] = (cell, chart, label)
     kept, his = {}, []
     for chart in ws._charts:
         name, ours = _chart_identity(chart)
@@ -1990,9 +1995,12 @@ def _tracker_charts(ws, install_all: bool) -> None:
         elif name in fresh:
             kept[name] = chart.anchor
     ws._charts = his
-    for name, (cell, chart) in fresh.items():
+    drawn = []
+    for name, (cell, chart, label) in fresh.items():
         if install_all or name in kept:
             ws.add_chart(chart, kept.get(name, cell))
+            drawn.append(label)
+    return drawn
 
 
 # ─────────────────────────────────────────────

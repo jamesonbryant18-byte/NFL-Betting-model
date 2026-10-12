@@ -145,7 +145,7 @@ def _carry(out, tmp_path):
     return excel._start_workbook(load_tracker(out, tmp_path / "bet_log.csv", announce=False))
 
 
-def test_charts_go_on_once_and_a_deleted_one_stays_deleted(tmp_path):
+def test_charts_go_on_once_and_a_deleted_one_stays_deleted(tmp_path, capsys):
     out = tmp_path / "output"
     out.mkdir()
     _his_workbook(out / "NFL_Model_2026_Week04.xlsx")       # built before the charts existed
@@ -166,7 +166,11 @@ def test_charts_go_on_once_and_a_deleted_one_stays_deleted(tmp_path):
     newer = (out / "NFL_Model_2026_Week04.xlsx").stat().st_mtime + 60
     os.utime(week5, (newer, newer))
 
+    capsys.readouterr()
     after = _carry(out, tmp_path)[TRACKER_SHEET]
+    said = capsys.readouterr().out
+    assert "3 redrawn" in said and "left off: profit by bet type" in said, \
+        "the weekly run must say which charts it refreshed"
     by_name = {excel._chart_identity(c)[0]: c for c in after._charts}
     assert "Made money" not in by_name, "a chart he deleted was put back"
     assert set(MODEL_CHARTS) - {"Made money"} <= set(by_name)
