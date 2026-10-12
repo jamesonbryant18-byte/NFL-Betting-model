@@ -16,11 +16,14 @@ Sheets, in tab order:
   Team Stats          record, point differential, roster and injured list
   Power Ratings       the fitted ratings
   Bet Tracker         YOURS: the model reads it, never edits it; carried
-                      into each new workbook exactly as you left it
+                      into each new workbook exactly as you left it. The
+                      charts beside the table are the one thing the model
+                      draws on it (he asked for them 2026-10-12)
   Bet Log             every pick and lean ever published, graded
   Rosters, Injuries   the player-level detail behind Team Stats
   Reference & Glossary
   (hidden) Lists, Model Data -- lookup tables the formulas read
+  (hidden) Chart Data -- the series behind the Bet Tracker's charts
 
 Every tabular sheet has a frozen header row and a filter. The workbook never
 presents a lean as more than the validation supports: the hold-out verdict is
@@ -34,12 +37,25 @@ from datetime import date, datetime
 
 import pandas as pd
 from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference, ScatterChart, Series
+from openpyxl.chart.axis import ChartLines
+from openpyxl.chart.data_source import AxDataSource, StrRef
+from openpyxl.chart.label import DataLabelList
+from openpyxl.chart.marker import Marker
+from openpyxl.chart.shapes import GraphicalProperties
+from openpyxl.chart.text import RichText, Text
+from openpyxl.chart.title import Title
+from openpyxl.drawing.line import LineProperties
+from openpyxl.drawing.text import (CharacterProperties, Paragraph,
+                                   ParagraphProperties, RegularTextRun,
+                                   RichTextProperties)
 from openpyxl.formatting.rule import ColorScaleRule, DataBarRule, FormulaRule
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
-from .betlog import (BET_LOG_COLUMNS, TRACKER_SHEET, load_tracker,
+from .betlog import (BET_LOG_COLUMNS, TRACKER_FIRST_ROW, TRACKER_LAST_ROW,
+                     TRACKER_SHEET, load_tracker,
                      protect_tracker_copies, read_csv_rows, read_tracker_rows,
                      record_tracker_state, write_csv_rows)
 from .config import OUTPUT_DIR, REPO_ROOT, STAKING
@@ -65,6 +81,12 @@ MID_GREEN = "81C784"
 MID_RED = "EF9A9A"
 MUTED = "757575"
 BAR_BLUE = "90CAF9"
+# Chart marks. Profit/loss stay apart for red-green colour blindness (the
+# sheet's own GREEN against a red does not); text on a chart is always ink.
+CHART_GAIN = "43A047"
+CHART_LOSS = "B71C1C"
+CHART_INK = "424242"
+CHART_GRID = "E0E0E0"
 
 # The hold-out verdict, quoted on the sheets that show an edge. These are the
 # README's numbers; they are here so the workbook cannot drift into
@@ -370,6 +392,7 @@ def build_workbook(
     _sheet_injuries(wb, team_stats)
     _sheet_reference(wb, backtest_summary, model_meta)
     _sheet_model_data(wb, slate)
+    _sheet_chart_data(wb)
     if tracker.kind == "workbook":
         _place_tracker(wb)
 
@@ -394,7 +417,7 @@ def build_workbook(
 MODEL_SHEETS = frozenset({
     "Lists", "This Week's Bets", "Picks", "Weekly Slate", "Model Picks %",
     "Game Detail", "Team Stats", "Power Ratings", "Bet Log", "Miss Report",
-    "Rosters", "Injuries", "Reference & Glossary", "Model Data",
+    "Rosters", "Injuries", "Reference & Glossary", "Model Data", "Chart Data",
 })
 
 
@@ -404,11 +427,15 @@ def _start_workbook(tracker):
     model's sheets thrown away, so the tracker is never rewritten: values,
     formulas, formatting, rows and anything he added come through untouched,
     as does any sheet of his own. The builders then add the model's sheets.
+    Only the charts beside the table are redrawn (see _tracker_charts).
     """
     if tracker.kind != "workbook":
         return Workbook()
     from openpyxl import load_workbook
     wb = load_workbook(str(tracker.path))
+    # A workbook built before the charts existed has no Chart Data sheet: it
+    # gets the full set once. After that, a chart he deleted stays deleted.
+    _tracker_charts(wb[TRACKER_SHEET], install_all="Chart Data" not in wb.sheetnames)
     for name in list(wb.sheetnames):
         if name in MODEL_SHEETS:
             wb.remove(wb[name])
@@ -1524,6 +1551,10 @@ def _sheet_ratings(wb, ratings, season, week):
 # BET TRACKER
 # ─────────────────────────────────────────────
 
+# K6 as he wrote it: a Kalshi price (0.53 = 53 cents) as American odds (-113).
+KALSHI_TO_SPORTSBOOK = "=IF(J6>=0.5, -ROUND(J6/(1-J6)*100,0), ROUND((1-J6)/J6*100,0))"
+
+
 def _sheet_tracker(wb, preserved=None):
     """
     The hand-entered log, built only when no weekly workbook has one yet
@@ -1579,6 +1610,20 @@ def _sheet_tracker(wb, preserved=None):
     ws.cell(row=6, column=4, value="↑ Positive CLV is the earliest real evidence of edge. For spreads, points is the honest unit. "
                                    "Decision gate: ~40-50 logged picks (OPERATING.md).").font = Font(italic=True, color=GREEN, size=10)
     ws.merge_cells("D6:H6")
+
+    # His own additions (2026-10-12), so a tracker rebuilt from the CSV backup
+    # still has them where he put them: a Kalshi price -> sportsbook odds
+    # converter (type the price in J6) and the total staked.
+    ws.cell(row=5, column=10, value="Kalshi Odds").font = Font(bold=True, size=11)
+    ws.cell(row=5, column=11, value="Sports Book Odds").font = Font(bold=True, size=11)
+    kp = ws.cell(row=6, column=10, value=0.53)
+    kp.number_format, kp.fill, kp.border, kp.alignment = "0%", fill(LIGHT_YELLOW), thin_border(), center()
+    ko = ws.cell(row=6, column=11, value=KALSHI_TO_SPORTSBOOK)
+    ko.font, ko.alignment, ko.border = Font(bold=True, color=NAVY, size=12), center(), thin_border()
+    ws.cell(row=4, column=13, value="Total Money Bet").font = Font(bold=True, size=11)
+    tm = ws.cell(row=5, column=13, value="=SUM($H$12:$H$500)")
+    tm.font, tm.alignment, tm.border, tm.number_format = (
+        Font(bold=True, color=NAVY, size=12), center(), thin_border(), '"$"#,##0.00')
 
     headers = ["Date", "Week", "Matchup", "Market", "Bet Side", "Line Taken",
                "Odds", "Stake", "Result", "P&L", "Bankroll",
@@ -1658,6 +1703,296 @@ def _sheet_tracker(wb, preserved=None):
             idx = 9 + off
             if len(rec) > idx and rec[idx] is not None and rec[idx] != "":
                 ws.cell(row=r, column=col, value=rec[idx])
+
+    _tracker_charts(ws, install_all=True)
+
+
+# ─────────────────────────────────────────────
+# BET TRACKER CHARTS
+# ─────────────────────────────────────────────
+#
+# Four charts to the right of the tracker table, drawn from the hidden Chart
+# Data sheet. They sit below the frozen header rows so a scroll never slices
+# one in half.
+
+# Chart Data: a "no bets yet" row, then one row per tracker row 12-500.
+_CD = "'Chart Data'!"
+_CD_FIRST = 3
+_CD_LAST = _CD_FIRST + TRACKER_LAST_ROW - TRACKER_FIRST_ROW
+# One slot per regular-season week, then one for the playoffs (weeks 19+, as
+# nflverse numbers the rounds).
+_CD_WEEKS = [str(w) for w in range(1, 19)] + ["PO"]
+# Bottom bar first: a bar chart stacks its categories upward.
+_CD_TYPES = [("Moneyline underdogs", "MONEYLINE", "G", ">0"),
+             ("Moneyline favorites", "MONEYLINE", "G", "<0"),
+             ("Spread underdogs", "SPREAD", "F", ">0"),
+             ("Spread favorites", "SPREAD", "F", "<0")]
+CHART_W, CHART_H = 16.0, 8.5          # cm
+_MONEY_LABEL = '+$0.00;-$0.00;'       # nothing at all on a zero, so an empty bar has no label
+
+
+def _sheet_chart_data(wb):
+    """
+    The series behind the Bet Tracker's charts: formulas over his rows, so a
+    bet he logs or grades moves the charts with no rebuild. Hidden.
+
+    A row that is not a graded bet repeats the point before it rather than
+    going blank. Every plotted cell stays a number, so a chart never draws an
+    empty row as zero and its range never has to grow with the log.
+    """
+    ws = wb.create_sheet("Chart Data")
+    ws.sheet_state = "hidden"
+    t = f"'{TRACKER_SHEET}'!"
+    lo, hi = TRACKER_FIRST_ROW, TRACKER_LAST_ROW
+
+    def whole(col):
+        return f"{t}${col}${lo}:${col}${hi}"
+
+    for col, header in {1: "Bets graded", 2: "Profit", 3: "Your win %", 4: "Needed, this bet",
+                        5: "Needed at your odds", 7: "Week", 8: "Week #", 9: "Profit",
+                        10: "Winning weeks", 11: "Losing weeks", 13: "Bet type", 14: "Profit",
+                        15: "Won", 16: "Lost", 18: "Bankroll chart title"}.items():
+        ws.cell(row=1, column=col, value=header).font = Font(bold=True, size=10)
+    ws.cell(row=1, column=20, value="Hidden. Feeds the charts on the Bet Tracker from its rows 12-500. "
+                                    "Regenerated every run; do not edit.")
+
+    # Per bet. P&L (tracker column J) is a number only once a bet is graded,
+    # so COUNT of it is the number of graded bets so far.
+    ws.cell(row=2, column=1, value=0)
+    ws.cell(row=2, column=2, value=0)
+    for r in range(_CD_FIRST, _CD_LAST + 1):
+        tr = r - _CD_FIRST + lo
+        res, odds = f"{t}$I{tr}", f"{t}$G{tr}"
+        so_far = f"{t}$I${lo}:$I{tr}"
+        ws.cell(row=r, column=1, value=f"=COUNT({t}$J${lo}:$J{tr})")
+        ws.cell(row=r, column=2, value=f"=SUM({t}$J${lo}:$J{tr})").number_format = '"$"#,##0.00'
+        ws.cell(row=r, column=3, value=(
+            f'=IFERROR(COUNTIF({so_far},"W")/(COUNTIF({so_far},"W")+COUNTIF({so_far},"L")),NA())'
+        )).number_format = "0.0%"
+        # The win rate this bet's price needs to break even (its implied
+        # probability, vig included); the average of these is the bar to clear.
+        ws.cell(row=r, column=4, value=(
+            f'=IF(AND(OR({res}="W",{res}="L"),ISNUMBER({odds})),'
+            f'IF({odds}<0,-{odds}/(100-{odds}),100/(100+{odds})),"")'
+        )).number_format = "0.0%"
+        ws.cell(row=r, column=5, value=f"=IFERROR(AVERAGE($D${_CD_FIRST}:$D{r}),NA())").number_format = "0.0%"
+
+    # Per week: one slot for every week of the season, empty until bet.
+    for i, label in enumerate(_CD_WEEKS):
+        r = 2 + i
+        ws.cell(row=r, column=7, value=label)
+        ws.cell(row=r, column=8, value=i + 1)
+        weeks = f'">="&$H{r}' if label == "PO" else f"$H{r}"
+        ws.cell(row=r, column=9, value=f"=SUMIFS({whole('J')},{whole('B')},{weeks})")
+        ws.cell(row=r, column=10, value=f"=MAX($I{r},0)")
+        ws.cell(row=r, column=11, value=f"=MIN($I{r},0)")
+
+    # Per bet type. A spread's side comes from the sign of Line Taken (quoted
+    # from his side, as the CLV columns already assume), a moneyline's from
+    # the sign of the odds. The four bars add up to Total P&L.
+    for i, (label, market, col, sign) in enumerate(_CD_TYPES):
+        r = 2 + i
+        ws.cell(row=r, column=13, value=label)
+        ws.cell(row=r, column=14, value=(
+            f'=SUMIFS({whole("J")},{whole("D")},"{market}",{whole(col)},"{sign}")'))
+        ws.cell(row=r, column=15, value=f"=MAX($N{r},0)")
+        ws.cell(row=r, column=16, value=f"=MIN($N{r},0)")
+        for c in (14, 15, 16):                    # blank, not $0.00, on an empty bar
+            ws.cell(row=r, column=c).number_format = _MONEY_LABEL
+
+    ws.cell(row=2, column=18, value=(
+        f'="BANKROLL $"&TEXT({t}$B$4+SUM({whole("J")}),"#,##0.00")'
+        f'&"   ("&TEXT(SUM({whole("J")}),"+$#,##0.00;-$#,##0.00;$0.00")&" since the start)"'))
+    set_widths(ws, {"A": 12, "B": 10, "C": 11, "D": 16, "E": 19, "I": 10, "J": 14, "K": 13,
+                    "M": 21, "N": 10, "R": 48})
+
+
+def _chart_font(size=9, bold=False, color=CHART_INK):
+    return CharacterProperties(sz=int(size * 100), b=bold, solidFill=color)
+
+
+def _chart_text(size=9, bold=False, color=CHART_INK, flat=False):
+    """Font for a chart's axis, legend or labels. flat: never tilt the labels."""
+    cp = _chart_font(size, bold, color)
+    body = RichTextProperties(rot=0, vert="horz") if flat else None
+    return RichText(bodyPr=body, p=[Paragraph(pPr=ParagraphProperties(defRPr=cp), endParaRPr=cp, r=[])])
+
+
+def _chart_label(text, size=9, bold=False, color=CHART_INK):
+    cp = _chart_font(size, bold, color)
+    return Title(tx=Text(rich=RichText(p=[Paragraph(
+        pPr=ParagraphProperties(defRPr=cp), r=[RegularTextRun(rPr=cp, t=text)])])), overlay=False)
+
+
+def _hairline(color, width=9525):
+    return GraphicalProperties(ln=LineProperties(solidFill=color, w=width))
+
+
+def _chart_frame(chart, title, legend=True):
+    """The chrome every chart shares: navy title, ink labels, a quiet solid grid."""
+    chart.title = title if isinstance(title, Title) else _chart_label(title, 12, True, NAVY)
+    chart.width, chart.height = CHART_W, CHART_H
+    chart.roundedCorners = False
+    chart.visible_cells_only = False
+    chart.graphical_properties = GraphicalProperties(solidFill=WHITE, ln=LineProperties(solidFill="D0D0D0", w=9525))
+    if legend:
+        chart.legend.position = "b"
+        chart.legend.overlay = False      # or Excel lays it over the axis labels
+        chart.legend.txPr = _chart_text(9)
+    else:
+        chart.legend = None
+    for ax in (chart.x_axis, chart.y_axis):
+        ax.delete = False                 # openpyxl 3.1 hides both axes otherwise
+        ax.txPr = _chart_text(9)
+        ax.majorGridlines = None
+        ax.spPr = _hairline("9E9E9E")
+        ax.tickLblPos = "low"             # labels stay at the edge when a value goes negative
+    return chart
+
+
+def _value_axis(ax, fmt):
+    ax.number_format = fmt
+    ax.majorGridlines = ChartLines(spPr=_hairline(CHART_GRID))
+    ax.spPr = GraphicalProperties(ln=LineProperties(noFill=True))
+
+
+def _line(chart, x, y, title, color, dash=None, width=2.0, marker=True):
+    s = Series(Reference(range_string=y), Reference(range_string=x), title=title)
+    s.graphicalProperties.line.solidFill = color
+    s.graphicalProperties.line.width = int(width * 12700)
+    if dash:
+        s.graphicalProperties.line.dashStyle = dash
+    s.marker = Marker(symbol="circle" if marker else "none", size=6)
+    if marker:                            # white ring keeps a dot readable where it sits on the line
+        s.marker.graphicalProperties = GraphicalProperties(solidFill=color, ln=LineProperties(solidFill=WHITE, w=9525))
+    s.smooth = False
+    chart.series.append(s)
+    # varyColors stays unset: with it off, Excel draws the dots away from the
+    # line when the sheet is printed or saved as a PDF (seen in Excel 16.113).
+    chart.scatterStyle = "lineMarker"
+
+
+def _bars(chart, cats, columns, last_row, labels=False):
+    for col, title, color in columns:
+        s = Series(Reference(range_string=f"{_CD}${col}$2:${col}${last_row}"), title=title)
+        s.graphicalProperties.solidFill = color
+        s.graphicalProperties.line.noFill = True
+        s.invertIfNegative = False        # or Excel paints a negative bar white
+        if labels:
+            s.dLbls = DataLabelList(numFmt=_MONEY_LABEL, dLblPos="outEnd", showVal=True, showSerName=False,
+                                    showCatName=False, showLegendKey=False, showPercent=False,
+                                    txPr=_chart_text(9, bold=True))
+        s.cat = AxDataSource(strRef=StrRef(f=f"{_CD}${cats}$2:${cats}${last_row}"))
+        chart.series.append(s)
+    chart.grouping, chart.overlap, chart.varyColors = "clustered", 100, False
+
+
+def _chart_bankroll():
+    ch = ScatterChart()
+    _line(ch, f"{_CD}$A$2:$A${_CD_LAST}", f"{_CD}$B$2:$B${_CD_LAST}", "Profit since the start", NAVY)
+    # The title is a cell, so it always reads the live bankroll. The line is
+    # profit, not the balance: Excel would start a balance axis at $0 and
+    # flatten every swing into the top of the chart.
+    live = Title(tx=Text(strRef=StrRef(f=f"{_CD}$R$2")), overlay=False,
+                 txPr=_chart_text(12, True, NAVY))
+    _chart_frame(ch, live, legend=False)
+    _value_axis(ch.y_axis, '+$0;-$0;$0')
+    ch.x_axis.axPos = "b"
+    ch.x_axis.number_format = "0"
+    ch.x_axis.scaling.min = 0
+    ch.x_axis.title = _chart_label("Bets graded")
+    return ch
+
+
+def _chart_by_week():
+    ch = BarChart()
+    ch.type, ch.gapWidth = "col", 60
+    _bars(ch, "G", (("J", "Winning weeks", CHART_GAIN), ("K", "Losing weeks", CHART_LOSS)),
+          1 + len(_CD_WEEKS))
+    _chart_frame(ch, "PROFIT BY WEEK")
+    _value_axis(ch.y_axis, '+$0;-$0;$0')
+    ch.x_axis.axPos = "b"
+    ch.x_axis.txPr = _chart_text(9, flat=True)
+    ch.x_axis.title = _chart_label("Week  (PO = playoffs)")
+    return ch
+
+
+def _chart_win_rate():
+    ch = ScatterChart()
+    x = f"{_CD}$A${_CD_FIRST}:$A${_CD_LAST}"
+    _line(ch, x, f"{_CD}$C${_CD_FIRST}:$C${_CD_LAST}", "Your win %", NAVY)
+    _line(ch, x, f"{_CD}$E${_CD_FIRST}:$E${_CD_LAST}", "Needed to break even at your odds",
+          GRAY_BLUE, dash="dash", width=1.5, marker=False)
+    _chart_frame(ch, "WIN % vs. BREAK-EVEN")
+    _value_axis(ch.y_axis, "0%")
+    ch.y_axis.scaling.min, ch.y_axis.scaling.max, ch.y_axis.majorUnit = 0, 1, 0.25
+    ch.x_axis.axPos = "b"
+    ch.x_axis.number_format = "0"
+    ch.x_axis.scaling.min = 0
+    ch.x_axis.title = _chart_label("Bets graded")
+    return ch
+
+
+def _chart_by_type():
+    ch = BarChart()
+    ch.type, ch.gapWidth = "bar", 90
+    _bars(ch, "M", (("O", "Made money", CHART_GAIN), ("P", "Lost money", CHART_LOSS)),
+          1 + len(_CD_TYPES), labels=True)
+    _chart_frame(ch, "PROFIT BY BET TYPE")
+    _value_axis(ch.y_axis, '+$0;-$0;$0')
+    ch.y_axis.axPos = "b"                 # horizontal bars: the dollar axis runs along the bottom
+    return ch
+
+
+# (where it goes the first time, builder). A chart is known afterwards by the
+# name of its first series, so those names are part of the contract.
+TRACKER_CHARTS = (
+    ("R12", _chart_bankroll),
+    ("AB12", _chart_by_week),
+    ("R29", _chart_win_rate),
+    ("AB29", _chart_by_type),
+)
+
+
+def _chart_identity(chart) -> tuple:
+    """(first series' name, whether it plots from Chart Data): how a chart is told apart."""
+    try:
+        first = chart.series[0]
+        src = first.yVal if first.yVal is not None else first.val
+        return (first.tx.v or "", "CHART DATA!" in src.numRef.f.replace("'", "").upper())
+    except (AttributeError, IndexError):
+        return ("", False)
+
+
+def _tracker_charts(ws, install_all: bool) -> None:
+    """
+    Draw the model's charts on the Bet Tracker.
+
+    install_all: a tracker that has never had them gets all four. Otherwise
+    only the ones still on his sheet are redrawn, each where (and at the size)
+    he left it, so a chart he deleted is never put back and one he moved
+    stays moved. They are redrawn rather than carried because openpyxl does
+    not read a chart back whole (it loses the square corners, for one).
+
+    Anything plotting from Chart Data is the model's; one this code no longer
+    draws is dropped, since the columns it read are gone. A chart he made
+    himself is not the model's and is carried as openpyxl read it.
+    """
+    fresh = {}
+    for cell, build in TRACKER_CHARTS:
+        chart = build()
+        fresh[_chart_identity(chart)[0]] = (cell, chart)
+    kept, his = {}, []
+    for chart in ws._charts:
+        name, ours = _chart_identity(chart)
+        if not ours:
+            his.append(chart)
+        elif name in fresh:
+            kept[name] = chart.anchor
+    ws._charts = his
+    for name, (cell, chart) in fresh.items():
+        if install_all or name in kept:
+            ws.add_chart(chart, kept.get(name, cell))
 
 
 # ─────────────────────────────────────────────
@@ -1835,7 +2170,7 @@ SHEET_GUIDE = [
     ("Game Detail", "The matchup picker: choose a game from the dropdown and every cell looks up that game — ratings, QB terms, home field, market prior, cover/push, moneyline edges, the ticket."),
     ("Team Stats", "One row per team: record, points for/against, differential, ATS record, rating and rank, starting QB and where that name came from, roster by position group, the injured list with expected returns."),
     ("Power Ratings", "The fitted ratings entering this week, in points against an average team."),
-    ("Bet Tracker", "Yours to fill in. The model reads it (Your Bet on the Bet Log, the weekly review) and never edits it; each new workbook carries it forward exactly as you left it, backed up to data/bet_log.csv."),
+    ("Bet Tracker", "Yours to fill in. The model reads it (Your Bet on the Bet Log, the weekly review) and never edits it; each new workbook carries it forward exactly as you left it, backed up to data/bet_log.csv. The four charts to the right of the table update as you log and grade bets; delete any you do not want and it stays deleted."),
     ("Bet Log", "One row per game: who the model picked, who won, whether it was right, the model's bet and your bet with results. Win rate of the model's picks and of its value picks at the top."),
     ("Rosters / Injuries", "The player-level detail behind Team Stats, one row per player, filterable."),
 ]

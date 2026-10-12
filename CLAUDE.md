@@ -13,7 +13,7 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-11 (Sun morning, 2026 Week 5).** Everything on
+**Last updated 2026-10-12 (Mon, before Week 5 MNF).** Everything on
 `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -212,6 +212,46 @@ were Game Detail dropdown flips (AutoRecover .xlsb decoded with pyxlsb and
 diffed against disk), so his 13:07 save was backed up to
 `output/superseded/NFL_Model_2026_Week05_saved_2026-10-09_1307.xlsx` and the
 workbook rebuilt; 10 tracker rows carried. Weeks 1-4 checksums unchanged.
+
+**2026-10-12 (Mon, before MNF): Bet Tracker charts; his K6 is pinned.** He
+added cells of his own above the tracker table (J5:K6, a Kalshi price ->
+sportsbook odds converter with the formula in K6; M4:M5, total staked) and
+asked that K6 be kept, plus charts beside the table ("I can always delete what
+I want"). The tracker is carried as the sheet itself, so his cells already
+survive every build; `tests/test_tracker_carry.py` now pins K6, and
+`_sheet_tracker` (the rebuild-from-CSV fallback) writes the same cells.
+
+Four charts sit at R12 on the Bet Tracker, below the frozen rows: profit bet by
+bet (title is a cell, so it shows the live bankroll), profit by week, win % vs
+the break-even his odds needed, profit by bet type. They read a new hidden
+model sheet, **Chart Data** (formulas over tracker rows 12-500, so they move as
+he logs bets; a row that is not a graded bet repeats the point before it, so
+nothing is ever blank). `excel._tracker_charts`: a tracker that has never had
+them gets all four; after that only the ones still on his sheet are redrawn,
+where and at the size he left them, so **a chart he deleted stays deleted**.
+The model's charts are redrawn every build, never carried: openpyxl does not
+read a chart back whole.
+
+Learned by rendering in real Excel (it can be scripted: `osascript`, a scratch
+copy opened with `open -g`, "save as PDF", then `close ... saving no`; put the
+scratch file under `~/Library/Containers/com.microsoft.Excel/Data/` so Excel
+can write beside it, and never touch a workbook he has open):
+a legend needs `overlay = False` or it sits on the axis labels; `varyColors =
+False` on a scatter chart puts the dots off the line in a PDF/print; a balance
+axis would start at $0 and flatten the line, hence profit; openpyxl drops
+`roundedCorners` on a second load/save.
+
+The Week 5 workbook was NOT re-run (the unstarted MNF game would have been
+re-priced). The charts were added to his 10:28 save in place with one openpyxl
+pass. **A plain openpyxl load/save of a workbook Excel has saved drops the Game
+Detail dropdown** (Excel moves a cross-sheet list into its x14 block); it was
+read from the raw XML and put back, and a cell-for-cell diff (44,287 cells,
+styles, formats, dropdowns) came out clean. His save is at
+`output/superseded/NFL_Model_2026_Week05_saved_2026-10-12_1028.xlsx`. A dry run
+of Week 6 in a scratch copy of the repo carried K6 and all four charts.
+His tracker through Sunday: 16 bets, 11-5, +$25.02. His `MIN @ NO` row has the
+line typed as 1.5 (at -121 it is almost certainly MIN -1.5), which files it
+under spread underdogs; he was told.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
