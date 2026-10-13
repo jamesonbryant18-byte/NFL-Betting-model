@@ -179,12 +179,13 @@ def main():
     # but the depth chart still had him QB1 and Wentz's number was never used.
     # The resolver only skips IR/reserve-type statuses, so surface any resolved
     # starter who is on ESPN's injury report. Warning only; never blocks a run.
+    def _norm(n):
+        n = str(n).lower().replace('.', '').replace("'", '')
+        return ' '.join(w for w in n.split() if w not in ('jr', 'sr', 'ii', 'iii', 'iv'))
+
     try:
         from nflmodel.espn import fetch_injuries
         inj = fetch_injuries(refresh=args.refresh)
-        def _norm(n):
-            n = str(n).lower().replace('.', '').replace("'", '')
-            return ' '.join(w for w in n.split() if w not in ('jr', 'sr', 'ii', 'iii', 'iv'))
         inj = inj[inj.position == 'QB']
         for _, r in inj[inj.status.isin(['Out', 'Doubtful', 'Questionable'])].iterrows():
             if _norm(starters.get(r.team, '')) == _norm(r.player):
@@ -491,7 +492,10 @@ def main():
                 if team not in qb_uncertain:
                     continue
                 used = g[f'{side}_qb_name']
-                alts = [n for _, n in order.get(team, []) if n != used]
+                # The depth chart spells some names differently ("Michael
+                # Penix Jr."); the same man is not his own backup (2026 Week 6
+                # priced ATL's "swing" at 4.0 pts on exactly that).
+                alts = [n for _, n in order.get(team, []) if _norm(n) != _norm(used)]
                 if not alts:
                     continue
                 swing = abs(qb_value(model.qb_ratings, used)

@@ -275,8 +275,29 @@ table columns J, K, N, O), so one he adds later is named without a code change.
 Rule in section 7. Checked against real Excel: the 380 cells Excel showed in
 A1:P60 of his open window matched both his saved file and a scratch Week 6 dry
 run, formula for formula. He saved Week 5 at 11:04 with "profit by bet type"
-deleted (3 charts on disk now). Week 5 is NOT locked and Week 6 is NOT built:
-run `review_week.py --week 5`, `miss_report.py`, then `run_week.py`.
+deleted (3 charts on disk now).
+
+**Same day: Week 5 locked, Week 6 built.** Week 5: 8-6 straight up plus a tie
+(NYG @ WAS 27-27), model bets 4-3, his own 5-2 (season 11-5, +$25.02). Season
+48-31 SU; model error 9.86 vs closing line 9.78. CLV to date: spreads +0.30
+pts on 15, moneylines +0.2% on 17, i.e. about zero. Trend fixes unchanged; no
+factor near its 48-game verdict. Two review/run defects fixed: the process
+check called the tie "a played game with no archived pick" (it now compares
+against the archive), and QB RISK listed "Michael Penix Jr." as Penix's own
+backup at a 4.0-pt swing (names are compared without suffixes now; the real
+ATL alternative is Tua Tagovailoa, 1.0 pt). His `MIN @ NO` tracker row still
+has the line typed as 1.5, which shows his CLV on it as +4.0 instead of +1.0.
+
+Week 6 built Tuesday with `--qb TB="Jalon Daniels"` (Bowles 10/9: "we plan on
+starting Jalon Daniels against the Steelers"; he is unrated, so replacement
+level -2.39). **Re-pass it on every re-run.** Card, $5 each: PHI -1.5, JAX
+-2.5, NYG -104, DEN +3 (TNF), IND -340, BAL -225, GB -110; TB +2.5 qualified
+and was left off. Unconfirmed, left on the depth chart, check before Sunday:
+CHI (Caleb Williams expected back at practice Wednesday; if Bagent starts the
+line moves 2.8 pts and ATL +3.5 likely becomes a bet), BAL (Lamar "real chance"
+to return; the model rates Huntley within 0.1 pt of him, the market does not),
+ATL (Penix questionable, ribs). Tracker carried: 2,140 cells exact, K6 and M5
+named, 3 charts redrawn. Weeks 1-5 workbooks' checksums unchanged.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
