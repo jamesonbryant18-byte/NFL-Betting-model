@@ -337,9 +337,16 @@ def main():
                     if assumed[team] != actual_qb:
                         problems.append(f'{team}: assumed {assumed[team]}, '
                                         f'actually started {actual_qb}')
-    missing = len(wk) - len(d)
+    # A tie has no straight-up winner, so it is never in `d`; that is not a
+    # missing pick (2026 Week 5, NYG @ WAS 27-27, was reported as one).
+    archived = {(p.loser, p.winner) if not p.at_home else (p.winner, p.loser)
+                for _, p in picks.iterrows()}
+    missing = sum((g.home_team, g.away_team) not in archived for _, g in wk.iterrows())
     if missing:
         problems.append(f'{missing} played game(s) had no archived pick')
+    ties = [f'{g.away_team} @ {g.home_team}' for _, g in wk.iterrows() if g.result == 0]
+    if ties:
+        print(f"    tie, no straight-up winner to grade: {', '.join(ties)}")
     if problems:
         for p in problems:
             print(f'    WRONG INPUT — {p}')

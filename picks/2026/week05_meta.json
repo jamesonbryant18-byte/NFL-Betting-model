@@ -72,7 +72,7 @@
     "TEN": "depth chart",
     "WAS": "depth chart"
   },
-  "locked": false,
+  "locked": true,
   "weather": {
     "2026_05_CHI_GB": {
       "label": "77\u00b0F, wind 12 mph",
