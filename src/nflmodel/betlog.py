@@ -315,6 +315,31 @@ def tracker_fingerprint(path) -> Optional[str]:
         return None
 
 
+def sheet_cells(ws) -> dict:
+    """{"K6": value} for every non-empty cell on a worksheet."""
+    return {c.coordinate: c.value for row in ws.iter_rows() for c in row
+            if c.value is not None and not (isinstance(c.value, str) and c.value == "")}
+
+
+def tracker_changes(before: dict, path) -> list[tuple]:
+    """
+    (cell, was, now) for every tracker cell in the workbook at `path` that is
+    not what `before` (sheet_cells of his sheet as it was loaded) held. Empty
+    when his sheet reached the new workbook cell for cell.
+    """
+    from openpyxl import load_workbook
+    from openpyxl.utils.cell import coordinate_to_tuple
+    wb = load_workbook(str(path), read_only=True)
+    try:
+        after = sheet_cells(wb[TRACKER_SHEET])
+    finally:
+        wb.close()
+    return [(k, before.get(k), after.get(k))
+            for k in sorted(set(before) | set(after), key=coordinate_to_tuple)
+            if k not in before or k not in after
+            or _cell_text(before[k]) != _cell_text(after[k])]
+
+
 def load_tracker(output_dir, log_path, announce: bool = True) -> TrackerSource:
     """
     The tracker as he last left it: the most recently saved weekly workbook

@@ -266,12 +266,15 @@ the next run reads the saved file, not the open window. The run prints
 `bet tracker charts: N redrawn (...)`, which should name exactly the charts
 still on your sheet.
 
-Your entries survive the next run. The tracker is merged across every weekly
-workbook in `output/` and the CSV mirror, most recently edited file winning
-per bet, so settling Week 3 on Monday and building Week 4 on Tuesday keeps
-everything. (It did not always: the first version only read the *current*
-week's file and fell back to a CSV written at the end of the previous run,
-which silently dropped anything typed in between.)
+**Your sheet survives the next run exactly as you left it.** Each new week's
+workbook is built around the Bet Tracker from the workbook you saved most
+recently: your bets, your own cells (the Kalshi converter in K6, total staked
+in M5) and any formula you add come through untouched. The run checks this
+every week and prints `bet tracker cells: N carried exactly as saved (...);
+formulas you added: M5, K6`. If it ever prints `WARNING: the Bet Tracker did
+NOT carry cleanly`, do not use that workbook. As with the charts, **save
+(Cmd+S) before the next run**: it reads the saved file. `data/bet_log.csv` is a
+backup of your rows only, used if every workbook is lost.
 
 ### The Bet Log tab
 

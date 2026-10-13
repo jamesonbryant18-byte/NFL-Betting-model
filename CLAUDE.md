@@ -13,7 +13,7 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-12 (Mon, before Week 5 MNF).** Everything on
+**Last updated 2026-10-13 (Tue, Week 5 not yet locked).** Everything on
 `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -260,6 +260,23 @@ bankroll, profit by week, win % vs break-even. The run now prints what it did,
 When he asked, the deletion was only in the open Excel window (3 charts there,
 4 on disk, `saved` false), so a build before he presses Cmd+S would put the
 fourth back; he was told to save.
+
+**2026-10-13 (Tue): his tracker cells and formulas, every week.** His ask:
+"keep the items like K6 and M5 on the Bet Tracker sheet the same, copy over the
+formulas I have added as well, and update the graphs if needed; that should be
+part of the weekly run." The carry already did this (the sheet itself comes
+through); the run now proves it. After saving, `build_workbook` reads his sheet
+back from the new file and compares every cell with the sheet it loaded
+(`betlog.tracker_changes`, `excel._tracker_carry_line`), printing
+`bet tracker cells: 2140 carried exactly as saved (1968 formulas); formulas you
+added: M5, K6`, or a `WARNING` naming each cell that differs. "Formulas you
+added" is any formula outside the model's own (`_TRACKER_MODEL_SUMMARY` and
+table columns J, K, N, O), so one he adds later is named without a code change.
+Rule in section 7. Checked against real Excel: the 380 cells Excel showed in
+A1:P60 of his open window matched both his saved file and a scratch Week 6 dry
+run, formula for formula. He saved Week 5 at 11:04 with "profit by bet type"
+deleted (3 charts on disk now). Week 5 is NOT locked and Week 6 is NOT built:
+run `review_week.py --week 5`, `miss_report.py`, then `run_week.py`.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
@@ -565,6 +582,16 @@ Fresh machine: `python3 -m venv .venv && .venv/bin/pip install -r requirements.t
   the bet wins. Grade his bets from HIS tracker lines (line taken), never the
   model's line.
 - **Weather**: shown and fed to the trend checker; no hand-set adjustment.
+- **Bet Tracker cells and formulas: carried exactly, every week**
+  (2026-10-13). K6 (his Kalshi price -> sportsbook odds converter), M5 (total
+  staked) and any formula or cell he adds to the sheet reach each new week's
+  workbook as he left them: never retyped, "tidied", moved or re-ranged (his M5
+  stops at row 300; leave it). Every week, read the run's `bet tracker cells:`
+  line. It should say "carried exactly as saved" and list his formulas under
+  "formulas you added". A `WARNING: the Bet Tracker did NOT carry cleanly` means
+  the build changed his sheet: stop, do not hand him that workbook, fix the
+  build. The run reads the SAVED file, so remind him to Cmd+S after adding
+  anything.
 - **Bet Tracker charts: every week, update the ones still on his sheet**
   (2026-10-12). Each weekly build redraws whichever of the model's charts he
   has kept, over all his logged bets, where and at the size he left them. Never

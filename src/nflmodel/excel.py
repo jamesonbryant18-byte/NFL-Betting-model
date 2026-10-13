@@ -57,7 +57,8 @@ from openpyxl.worksheet.datavalidation import DataValidation
 from .betlog import (BET_LOG_COLUMNS, TRACKER_FIRST_ROW, TRACKER_LAST_ROW,
                      TRACKER_SHEET, load_tracker,
                      protect_tracker_copies, read_csv_rows, read_tracker_rows,
-                     record_tracker_state, write_csv_rows)
+                     record_tracker_state, sheet_cells, tracker_changes,
+                     write_csv_rows)
 from .config import OUTPUT_DIR, REPO_ROOT, STAKING
 from .data import TEAMS
 from .market import format_spread
@@ -372,6 +373,8 @@ def build_workbook(
         print(f"WARNING: bet log history unavailable ({type(exc).__name__}: {exc})")
 
     wb = _start_workbook(tracker)
+    # His sheet as it was loaded, checked against the saved workbook below.
+    his_cells = sheet_cells(wb[TRACKER_SHEET]) if tracker.kind == "workbook" else None
 
     _sheet_lists(wb, pts_table)
     _sheet_bets(wb, slate, season, week, model_meta)
@@ -404,6 +407,8 @@ def build_workbook(
     wb[first].sheet_view.tabSelected = True
 
     wb.save(path)
+    if his_cells is not None:
+        print(_tracker_carry_line(his_cells, path))
     record_tracker_state(OUTPUT_DIR, tracker, path)
     if tracker.kind == "workbook":
         write_csv_rows(preserved, log_path)       # backup of his rows, as typed
@@ -464,6 +469,48 @@ def _place_tracker(wb) -> None:
     at = names.index("Power Ratings") + 1 if "Power Ratings" in names else len(names)
     wb._sheets.insert(at, ws)
     wb._sheets.extend(his)
+
+
+# The formula cells the model itself writes on the tracker: its summary block
+# and the four calculated columns of the table. A formula anywhere else on the
+# sheet is one he added (K6 and M5 so far).
+_TRACKER_MODEL_SUMMARY = frozenset({"B5", "B6", "B7", "B8", "B9", "B10", "E4", "E5", "G4", "G5"})
+_TRACKER_MODEL_COLS = frozenset({"J", "K", "N", "O"})
+
+
+def _is_formula(v) -> bool:
+    return (isinstance(v, str) and v.startswith("=")) or hasattr(v, "text")
+
+
+def _his_formulas(cells: dict) -> list:
+    """The formula cells on a tracker (sheet_cells) that are not the model's own, in sheet order."""
+    from openpyxl.utils.cell import coordinate_from_string, coordinate_to_tuple
+    his = []
+    for coord in sorted(cells, key=coordinate_to_tuple):
+        col, row = coordinate_from_string(coord)
+        ours = coord in _TRACKER_MODEL_SUMMARY or (col in _TRACKER_MODEL_COLS and row >= TRACKER_FIRST_ROW)
+        if _is_formula(cells[coord]) and not ours:
+            his.append(coord)
+    return his
+
+
+def _tracker_carry_line(before: dict, path) -> str:
+    """
+    The weekly run's check that his tracker reached the new workbook as he
+    left it (his standing ask, 2026-10-13: K6, M5 and every formula he adds
+    are kept the same each week). Every cell on his sheet is read back from
+    the file just written; the line names his own formulas, or what changed.
+    """
+    changed = tracker_changes(before, path)
+    if changed:
+        shown = "; ".join(f"{k} was {was!r}, now {now!r}" for k, was, now in changed[:6])
+        return (f"WARNING: the Bet Tracker did NOT carry cleanly: {len(changed)} cell(s) differ "
+                f"from the sheet he saved: {shown}" + (" ..." if len(changed) > 6 else ""))
+    his = _his_formulas(before)
+    named = ", ".join(his[:12]) + (f" +{len(his) - 12} more" if len(his) > 12 else "")
+    return (f"  bet tracker cells: {len(before)} carried exactly as saved "
+            f"({sum(1 for v in before.values() if _is_formula(v))} formulas)"
+            + (f"; formulas you added: {named}" if his else ""))
 
 
 def _drop_dangling_names(wb) -> None:

@@ -14,6 +14,10 @@ kept, and for charts beside the table that he can delete. The charts are the
 one thing the model draws on his sheet; the tests at the bottom pin that they
 go on once, that a deleted one stays deleted, and that none of it touches a
 cell.
+
+2026-10-13: his standing ask is that K6, M5 and any formula he adds are kept
+the same on every weekly run. The run now reads his sheet back from the
+workbook it wrote and says so (excel._tracker_carry_line).
 """
 import os
 import sys
@@ -28,7 +32,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 from nflmodel import excel
 from nflmodel.betlog import (TRACKER_LAST_ROW, TRACKER_SHEET, load_tracker,
-                             tracker_fingerprint)
+                             sheet_cells, tracker_fingerprint)
 
 KALSHI = "=IF(J6>=0.5, -ROUND(J6/(1-J6)*100,0), ROUND((1-J6)/J6*100,0))"
 MODEL_CHARTS = ["Profit since the start", "Winning weeks", "Your win %", "Made money"]
@@ -114,6 +118,42 @@ def test_tracker_is_carried_cell_for_cell(tmp_path):
     assert after_wb["This Week's Bets"]["A1"].value == "new model sheet"
     assert "Model Data" not in after_wb.sheetnames
     assert after_wb["My Notes"]["A1"].value == "a sheet he added himself"
+
+
+def test_weekly_run_says_his_formulas_were_carried(tmp_path):
+    out = tmp_path / "output"
+    out.mkdir()
+    src = _his_workbook(out / "NFL_Model_2026_Week04.xlsx")
+    his = load_workbook(str(src))[TRACKER_SHEET]
+    his["Q5"] = "=K6*2"                              # a formula he adds later
+    his.parent.save(str(src))
+
+    wb = excel._start_workbook(load_tracker(out, tmp_path / "bet_log.csv", announce=False))
+    before = sheet_cells(wb[TRACKER_SHEET])
+    dest = out / "NFL_Model_2026_Week05.xlsx"
+    wb.save(str(dest))
+    line = excel._tracker_carry_line(before, dest)
+    assert "WARNING" not in line
+    assert f"{len(before)} carried exactly as saved (4 formulas)" in line
+    # J12 is the table's own P&L column; the other three are his.
+    assert line.endswith("formulas you added: M5, Q5, K6")
+
+    # A build that touched his sheet is named, cell by cell.
+    wb[TRACKER_SHEET]["K6"] = "=J6*100"
+    wb[TRACKER_SHEET]["M5"] = None
+    wb.save(str(dest))
+    line = excel._tracker_carry_line(before, dest)
+    assert line.startswith("WARNING") and "2 cell(s) differ" in line
+    assert "K6 was" in line and "M5 was" in line
+
+
+def test_only_his_formulas_are_called_his():
+    # The sheet as the model builds it: every formula is the model's own
+    # except the two written back for him. A new model formula missing from
+    # excel._TRACKER_MODEL_SUMMARY would be reported to him as one he added.
+    wb = Workbook()
+    excel._sheet_tracker(wb, [])
+    assert excel._his_formulas(sheet_cells(wb[TRACKER_SHEET])) == ["M5", "K6"]
 
 
 def test_every_sheet_the_builders_create_is_registered():
