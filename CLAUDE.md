@@ -13,7 +13,7 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-13 (Tue, Week 5 not yet locked).** Everything on
+**Last updated 2026-10-14 (Wed, Week 6 re-priced before TNF).** Everything on
 `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -298,6 +298,28 @@ line moves 2.8 pts and ATL +3.5 likely becomes a bet), BAL (Lamar "real chance"
 to return; the model rates Huntley within 0.1 pt of him, the market does not),
 ATL (Penix questionable, ribs). Tracker carried: 2,140 cells exact, K6 and M5
 named, 3 charts redrawn. Weeks 1-5 workbooks' checksums unchanged.
+
+**2026-10-14 (Wed 10:20 ET): Week 6 re-priced ("confirm week 6 picks").**
+Re-run with `--refresh --qb TB="Jalon Daniels"` (Garafolo Wed: odds are
+Daniels one more week; nflverse's depth chart now lists Mayfield, ignore it).
+Excel had nothing open and the Week 6 file was unsaved since Tuesday's build,
+so it was rebuilt in place; tracker 2,140 cells exact, K6/M5 named, 3 charts
+redrawn; Weeks 1-5 checksums unchanged. Card, $5 each: PHI -1.5, JAX -2.5,
+IND -330, GB -116 (unchanged); DEN +3 -> **DEN +2.5 -104** (TNF); NYG -104 ML
+-> **NYG +1.5 -122**; **BAL -225 dropped** (Lamar hope moved it to -250);
+**ATL +3 -105 added**. TB +2.5 still qualified, left off. New bets were
+appended to `week06_first_leans.csv` (Tuesday's rows kept).
+
+**Flagged, not changed: the 3-pt trend-fix trigger is a cliff.** The
+"far from the line" fix pulls 1.5 only when the FROZEN projection is 3+ off,
+so a game at 3.1 off shows 1.6 of edge and one at 2.9 shows 2.9. Both of
+today's new/stronger bets came from crossing it: ATL (line 3.5 -> 3 toward
+the model, frozen gap 3.25 -> 2.66, pull switched off, final edge 1.4 -> 2.8)
+and NYG (frozen view of NYG fell ~0.5, gap 3.35 -> 2.88, edge 2.4 -> 3.5).
+A smooth pull has not been tested on the hold-out; his call whether to.
+Still open for the Sunday roster run: CHI (Williams Q hamstring, model assumes
+him; Bagent = 2.8 pt toward ATL), ATL (Penix Q ribs; Tua 1.0 pt), BAL (Lamar Q
+ankle; Huntley 0.1 pt in the model).
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
