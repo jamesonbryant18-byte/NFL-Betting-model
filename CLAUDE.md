@@ -321,6 +321,20 @@ Still open for the Sunday roster run: CHI (Williams Q hamstring, model assumes
 him; Bagent = 2.8 pt toward ATL), ATL (Penix Q ribs; Tua 1.0 pt), BAL (Lamar Q
 ankle; Huntley 0.1 pt in the model).
 
+**Same day: "Penix rated better than Williams?"** Yes in the QB column
+(Penix +1.57, Williams +0.40), but that column is the QB's share of a JOINT
+team+QB fit, not a QB ranking. ATL has many non-Penix games to compare
+(Cousins 22 starts 2024-25 at +0.26, Cooper Rush 2026 at -2.15); Williams
+started 38 of CHI's last 43, so ridge puts most of his value in CHI's team
+rating (+1.34 vs ATL -1.72). Team+QB: CHI +1.74, ATL -0.15. **Found while
+checking, untested:** the market prior (54% weight in Week 6) is backed out of
+2026 spreads with no QB term, so it already contains each team's QBs, and the
+model adds the QB on top. Backing the model's QB values out of those lines
+first moves CHI@ATL 0.33 toward CHI (ATL +3 edge 2.8 -> ~2.5, still above 1.5)
+and some teams up to 0.76 (ARI +0.76, MIA +0.73, TEN +0.70, TB +0.64 -- teams
+that started backups). Needs a 2021-25 hold-out test before any change; his
+call. Script: scratch only, logic is in this paragraph.
+
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
 "redo" a past week's `output/NFL_Model_*_WeekNN.xlsx`. Reading it read-only
