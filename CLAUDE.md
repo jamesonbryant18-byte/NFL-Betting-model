@@ -13,7 +13,7 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-14 (Wed, Week 6 re-priced before TNF).** Everything on
+**Last updated 2026-10-17 (Sat, Week 6 roster run).** Everything on
 `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -334,6 +334,30 @@ first moves CHI@ATL 0.33 toward CHI (ATL +3 edge 2.8 -> ~2.5, still above 1.5)
 and some teams up to 0.76 (ARI +0.76, MIA +0.73, TEN +0.70, TB +0.64 -- teams
 that started backups). Needs a 2021-25 hold-out test before any change; his
 call. Script: scratch only, logic is in this paragraph.
+
+**2026-10-17 (Sat 13:10 ET): Week 6 roster run** (he asked Saturday, not
+Sunday). News: Hurts OUT (calf blood clot, found moving on a Wed ultrasound),
+Tanner McKee starts; Lamar OUT Fri, Huntley starts; Mayfield OUT, Jalon Daniels
+starts (Bowles Fri); Winston starts for NYG; Penix cleared, no designation;
+**Caleb Williams Questionable** (full practice all week, Bears decide by Sun
+11:30 ET; if Bagent starts, 2.8 pts toward ATL, re-run with
+`--qb CHI="Tyson Bagent"`). Run: `--refresh --qb TB="Jalon Daniels" --qb
+PHI="Tanner McKee" --qb BAL="Tyler Huntley"`. **Re-pass all three.** McKee is
+unrated (replacement level -2.39), same as Daniels. Excel had Week 6 open with
+an unsaved tracker row (his TNF bet, SEA @ DEN DEN +3.5 -121 $5 W) and J6
+0.53 -> 0.547; he saved at 13:06 and closed it, the save matched the open
+window cell for cell, backed up to
+`output/superseded/NFL_Model_2026_Week06_saved_2026-10-17_1306.xlsx`. Tracker
+2,149 cells exact, K6/M5 named, 3 charts redrawn; Weeks 1-5 checksums
+unchanged. Card vs Wednesday: **PHI -1.5 -> PHI +3.5 -122** (line moved 5,
+CAR -3.5; straight-up pick flipped to CAR 53.5%; the bet rests on McKee at
+replacement level and the <8-starts watch item says such QBs run about 1 pt
+worse than the model), **ATL +3 dropped** (line now +1.5, still qualifies,
+ranked 9th), **BUF -245 added**; NYG +1.5 -122, JAX -2.5 -110, IND -340,
+GB -118 unchanged; DEN +2.5 carried (TNF). Straight-up flip: CHI -> ATL
+(53.5%). CLV note: first_leans keys on game+market+team, so Wednesday's
+PHI -1.5 stays the number CLV is measured from for PHI spread (about -5 pts
+against the model from the Hurts news). Left off: KC -7.5, ATL +1.5, BAL -3.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
