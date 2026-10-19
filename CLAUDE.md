@@ -13,7 +13,7 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-17 (Sat, Week 6 roster run).** Everything on
+**Last updated 2026-10-19 (Mon, Week 6 graded before MNF).** Everything on
 `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -358,6 +358,24 @@ GB -118 unchanged; DEN +2.5 carried (TNF). Straight-up flip: CHI -> ATL
 (53.5%). CLV note: first_leans keys on game+market+team, so Wednesday's
 PHI -1.5 stays the number CLV is measured from for PHI spread (about -5 pts
 against the model from the Hurts news). Left off: KC -7.5, ATL +1.5, BAL -3.
+
+**2026-10-19 (Mon, before MNF WAS @ SF): Week 6 graded, NOT locked.** The
+review was run with `lock_week` stubbed out (meta.json unchanged), so **lock
+it Wednesday with `review_week.py --week 6`**, which also records the closes.
+Sunday: 6-7 SU (expected 8.7, band 5.4-11.9, noise); FanDuel's closing
+favorites went 7-6. Card 3-4 (DEN +2.5, BUF, GB won; NYG +1.5, PHI +3.5,
+JAX -2.5, IND -340 lost), -$8.91 at $5. No input errors (Williams, McKee,
+Huntley, Daniels all correct). Provisional CLV of the Saturday card vs
+FanDuel's close: spreads +0.5 PHI, 0 on the rest; moneylines IND -340 ->
+-290 (-2.9%), GB -118 -> -104 (-3.1%), BUF even. Dropped bets closed worse
+(BAL -225 -> -174, lost; ATL +3 -> +1.5, lost). Season: 54-38 SU, model
+error 9.55 vs close 9.39, card 19-18-1. **He left the model's IND -340 out
+of his tracker on purpose** (it lost); it stays in the archive/Bet Log as a
+model bet. NYG +1.5 is not in his tracker either (unknown if he bet it).
+His tracker: Week 6 3-2 +$0.63, season 14-7 +$25.66. His `HOU @ JAX` row has
+Line Taken 2.5 for JAX (the favorite, so -2.5): result unaffected, but CLV
+shows +5.0 instead of 0.0; with the `MIN @ NO` typo his season spread CLV
+reads +1.05 on 11 when it is about +0.32. He was told.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
