@@ -13,7 +13,7 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-19 (Mon, Week 6 graded before MNF).** Everything on
+**Last updated 2026-10-21 (Wed, Week 6 locked, Week 7 built).** Everything on
 `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -376,6 +376,31 @@ His tracker: Week 6 3-2 +$0.63, season 14-7 +$25.66. His `HOU @ JAX` row has
 Line Taken 2.5 for JAX (the favorite, so -2.5): result unaffected, but CLV
 shows +5.0 instead of 0.0; with the `MIN @ NO` typo his season spread CLV
 reads +1.05 on 11 when it is about +0.32. He was told.
+
+**2026-10-21 (Wed): Week 6 locked, Week 7 built.** Week 6 final 7-7 SU
+(MNF WAS @ SF right; expected 9.5, band 6.2-12.8, noise), card 3-4, no input
+errors. Closes recorded (14 FanDuel). Season 55-38 SU, model error 9.49 vs
+close 9.31. CLV from first-published numbers: spreads +0.10 pts on 20,
+moneylines -0.3% on 22 -- the market is not being beaten. His tracker:
+14-7 +$25.66 (no MNF bet logged). Trend fixes unchanged (statuses and the
+one live pull identical; win-% calibration slope re-estimated 1.492 ->
+1.485). Factor card at 45 games: **EPA/play t = -1.7 (helped 14, hurt 21)**;
+the 48-game verdict lands after Week 7 -- if t <= -2 it is flagged for a
+re-fit/replacement in factor_lab.py, never an auto re-weight.
+
+Week 7 run with `--refresh --qb TB="Jalon Daniels" --qb BAL="Tyler Huntley"
+--qb PHI="Tanner McKee"`. **Re-pass all three.** Hurts out for the season
+(DVT/pulmonary emboli, IR). Mayfield Q: threw Mon, thumb swelled; Bowles
+game-planning for Daniels (Mayfield = 2.4 pts to TB if he plays). Lamar Q:
+no practice since 10/4 (Huntley = Lamar within 0.3 pt in the model; the
+market will move more). SEA = Darnold (Macdonald rejected benching him for
+Lock; nflverse game file still says Lock, ignore it). Replacement level is
+now -2.86 (was -2.39). Byes: BUF, JAX, LAC, WAS. TNF NE @ CHI = no bet.
+PIT @ NO is a 9:30 ET international game. Card, $5 each, exactly 7
+qualified: DEN -4.5, PHI +4.5 (MNF; rests on McKee at replacement level),
+CIN +2.5 -100, PIT -174, CLE -126, MIA +205, DET -172. Tracker 2,183 cells
+exact, K6/M5 named, 3 charts redrawn; Weeks 1-6 checksums unchanged.
+Sunday roster run: verify TB (Mayfield) and BAL (Lamar).
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or

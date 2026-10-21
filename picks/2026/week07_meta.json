@@ -1,0 +1,212 @@
+{
+  "season": 2026,
+  "week": 7,
+  "generated_utc": "2026-10-21T15:07:36+00:00",
+  "n_games": 14,
+  "n_leans": 7,
+  "starters": {
+    "ARI": "Jacoby Brissett",
+    "ATL": "Michael Penix",
+    "BAL": "Tyler Huntley",
+    "BUF": "Josh Allen",
+    "CAR": "Bryce Young",
+    "CHI": "Caleb Williams",
+    "CIN": "Joe Burrow",
+    "CLE": "Deshaun Watson",
+    "DAL": "Dak Prescott",
+    "DEN": "Bo Nix",
+    "DET": "Jared Goff",
+    "GB": "Jordan Love",
+    "HOU": "C.J. Stroud",
+    "IND": "Daniel Jones",
+    "JAX": "Trevor Lawrence",
+    "KC": "Patrick Mahomes",
+    "LA": "Matthew Stafford",
+    "LAC": "Justin Herbert",
+    "LV": "Kirk Cousins",
+    "MIA": "Malik Willis",
+    "MIN": "Kyler Murray",
+    "NE": "Drake Maye",
+    "NO": "Tyler Shough",
+    "NYG": "Jameis Winston",
+    "NYJ": "Geno Smith",
+    "PHI": "Tanner McKee",
+    "PIT": "Aaron Rodgers",
+    "SEA": "Sam Darnold",
+    "SF": "Brock Purdy",
+    "TB": "Jalon Daniels",
+    "TEN": "Cam Ward",
+    "WAS": "Jayden Daniels"
+  },
+  "starter_source": {
+    "ARI": "depth chart",
+    "ATL": "depth chart",
+    "BAL": "override",
+    "BUF": "depth chart",
+    "CAR": "depth chart",
+    "CHI": "depth chart",
+    "CIN": "depth chart",
+    "CLE": "depth chart",
+    "DAL": "depth chart",
+    "DEN": "depth chart",
+    "DET": "depth chart",
+    "GB": "depth chart",
+    "HOU": "depth chart",
+    "IND": "depth chart",
+    "JAX": "depth chart",
+    "KC": "depth chart",
+    "LA": "depth chart",
+    "LAC": "depth chart",
+    "LV": "depth chart",
+    "MIA": "depth chart",
+    "MIN": "depth chart",
+    "NE": "depth chart",
+    "NO": "depth chart",
+    "NYG": "depth chart",
+    "NYJ": "depth chart",
+    "PHI": "override",
+    "PIT": "depth chart",
+    "SEA": "depth chart",
+    "SF": "depth chart",
+    "TB": "override",
+    "TEN": "depth chart",
+    "WAS": "depth chart"
+  },
+  "locked": false,
+  "weather": {
+    "2026_07_NE_CHI": {
+      "label": "55\u00b0F, wind 6 mph",
+      "temp_f": 54.85,
+      "wind_mph": 6.4,
+      "precip_prob": 2.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_PIT_NO": {
+      "label": "59\u00b0F, wind 13 mph (gusts 32), 27% rain",
+      "temp_f": 59.075,
+      "wind_mph": 13.4,
+      "precip_prob": 27.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_SF_ATL": {
+      "label": "69\u00b0F, wind 12 mph (retractable roof)",
+      "temp_f": 69.05,
+      "wind_mph": 11.5,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_CIN_BAL": {
+      "label": "64\u00b0F, wind 6 mph",
+      "temp_f": 63.62500000000001,
+      "wind_mph": 5.9,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_TB_CAR": {
+      "label": "67\u00b0F, wind 9 mph",
+      "temp_f": 66.65,
+      "wind_mph": 8.7,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_NYG_HOU": {
+      "label": "80\u00b0F, wind 10 mph (retractable roof)",
+      "temp_f": 80.17500000000001,
+      "wind_mph": 10.2,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_IND_MIN": {
+      "label": "dome",
+      "temp_f": null,
+      "wind_mph": null,
+      "precip_prob": null,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_MIA_NYJ": {
+      "label": "64\u00b0F, wind 8 mph",
+      "temp_f": 64.4,
+      "wind_mph": 8.2,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_CLE_TEN": {
+      "label": "75\u00b0F, wind 4 mph",
+      "temp_f": 74.75,
+      "wind_mph": 3.5,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_DEN_ARI": {
+      "label": "80\u00b0F, wind 6 mph (retractable roof)",
+      "temp_f": 79.975,
+      "wind_mph": 5.6,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_GB_DET": {
+      "label": "dome",
+      "temp_f": null,
+      "wind_mph": null,
+      "precip_prob": null,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_LA_LV": {
+      "label": "dome",
+      "temp_f": null,
+      "wind_mph": null,
+      "precip_prob": null,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_KC_SEA": {
+      "label": "54\u00b0F, wind 6 mph, 25% rain",
+      "temp_f": 53.87500000000001,
+      "wind_mph": 5.6,
+      "precip_prob": 25.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_07_DAL_PHI": {
+      "label": "61\u00b0F, wind 6 mph (gusts 21)",
+      "temp_f": 61.05,
+      "wind_mph": 5.7,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    }
+  },
+  "trend_fixes": {
+    "generated_utc": "2026-10-21T15:06:15+00:00",
+    "margin": [
+      "model_far_from_market"
+    ],
+    "calibration": true,
+    "ml_max_underdog": 250
+  }
+}
