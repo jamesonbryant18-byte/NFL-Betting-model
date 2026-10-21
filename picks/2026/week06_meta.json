@@ -72,7 +72,7 @@
     "TEN": "depth chart",
     "WAS": "depth chart"
   },
-  "locked": false,
+  "locked": true,
   "weather": {
     "2026_06_HOU_JAX": {
       "label": "56\u00b0F, wind 13 mph (gusts 28), 26% rain",
