@@ -13,8 +13,8 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-21 (Wed, Week 6 locked, Week 7 built).** Everything on
-`main` and pushed.
+**Last updated 2026-10-26 (Mon, Week 7 graded before MNF, NOT locked).**
+Everything on `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
 
@@ -401,6 +401,45 @@ qualified: DEN -4.5, PHI +4.5 (MNF; rests on McKee at replacement level),
 CIN +2.5 -100, PIT -174, CLE -126, MIA +205, DET -172. Tracker 2,183 cells
 exact, K6/M5 named, 3 charts redrawn; Weeks 1-6 checksums unchanged.
 Sunday roster run: verify TB (Mayfield) and BAL (Lamar).
+
+**2026-10-25 (Sun 12:50 ET): Week 7 roster run, SCRATCH COPY ONLY.** Lamar
+OUT (Huntley), Mayfield PLAYED (depth chart had him; the TB="Jalon Daniels"
+override was dropped). Re-pass only `--qb BAL="Tyler Huntley" --qb
+PHI="Tanner McKee"`. Sunday card: DEN -4.5, PHI +4.5 (MNF), DET -190, CLE -130,
+PIT (carried); CIN +2.5 and MIA +205 dropped. His open workbook had unsaved
+tracker rows, so the real rebuild waited -- and never happened: the archive
+(`week07_*.csv`) is still the WEDNESDAY build, and that is what Week 7 grades.
+
+**2026-10-26 (Mon, before MNF DAL @ PHI): Week 7 graded, NOT locked** (review
+run with `lock_week` stubbed; lock Wednesday with `review_week.py --week 7`,
+which also records the closes). Straight up 8-5 (expected 8.4, noise); every
+pick was the market favorite except CIN @ BAL (picked BAL, lost). Wednesday
+card 6-0 with PHI +4.5 pending (DEN -4.5, CIN +2.5, PIT -174, CLE -126,
+MIA +205, DET -172; +$29.55 at $5). Expected about 3.3 wins by its own
+numbers; a sweep was ~2.5% (model) / ~1.5% (market). Model error 9.95 vs close
+9.96 that week (Week 6: 7.37 vs 6.71); season 9.54 vs 9.41. Provisional CLV
+from first-published numbers: DEN 0, CIN +5.5 pts (Lamar news; the model's own
+number was more pro-BAL than the close), PIT -1.1%, CLE +0.8%, MIA +4.8%, DET
++4.0%; season spreads +0.34 pts on 22, moneylines +0.1% on 26. By EPA the
+Week 7 card "deserved" 5-1 (DET out-played) and Week 6 4-3; three Week 7 wins
+were by exactly 3. Nothing in the code or config changed between the Week 6
+and Week 7 cards (only trends.json, statuses identical). Factor card at 58
+games: EPA/play t -1.7 (46 games), not flagged. Process: NYG started J.J.
+McCarthy (model used Winston from the depth chart; 0.1-pt swing, no bet
+affected); TB Daniels->Mayfield was caught only in the scratch Sunday run.
+The review flagged "Michael Penix" vs "Michael Penix Jr." as a wrong QB; fixed
+(process check compares `teamstats.normalize_name`). His tracker: Week 7 6-0
++$25.46, season 20-7 +$51.13. His CIN +2.5 was bought at -199 on Sunday (alt
+line; the market was CIN -3), so the tracker's +5.5 CLV on it overstates it;
+the real value is about zero.
+MNF re-priced in a scratch copy (`--refresh`, same two overrides): unchanged,
+PHI +4.5 -112 at FanDuel, model DAL by 2.5, edge 2.0 (needs 1.5), cover 58.4%.
+Injuries counted (PHI: D. Smith, Wicks, N. Smith, Carter out, Dickerson IR;
+DAL: Winters, Turpin out, J. Thompson IR; net 0.2 to DAL). It stops qualifying
+at +4 (edge 1.48) or if Barkley (Q, 0.74 starter-eq = 0.5 pt) is ruled out
+(edge ~1.46). Rests on McKee at replacement level; the <8-starts watch item
+(-0.86 if applied) would also drop it below 1.5. Real Week 7 workbook NOT
+rebuilt (MNF pick unchanged); his 11:00 save is untouched.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or

@@ -36,6 +36,7 @@ from nflmodel.history import grade_lean
 from nflmodel.closing import (record_closing, load_closing, close_for, side_close,
                               card_clv, summarize_clv)
 from nflmodel.market import closing_line_value
+from nflmodel.teamstats import normalize_name
 
 
 def _fmt_close(market, close):
@@ -334,7 +335,9 @@ def main():
             for side in ('home', 'away'):
                 team, actual_qb = g[f'{side}_team'], g[f'{side}_qb_name']
                 if isinstance(actual_qb, str) and team in assumed:
-                    if assumed[team] != actual_qb:
+                    # 'Michael Penix' vs 'Michael Penix Jr.' is the same QB
+                    # (2026 Week 7 flagged it as a wrong input).
+                    if normalize_name(assumed[team]) != normalize_name(actual_qb):
                         problems.append(f'{team}: assumed {assumed[team]}, '
                                         f'actually started {actual_qb}')
     # A tie has no straight-up winner, so it is never in `d`; that is not a
