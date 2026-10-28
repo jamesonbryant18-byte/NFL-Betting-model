@@ -13,7 +13,7 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-26 (Mon, Week 7 graded before MNF, NOT locked).**
+**Last updated 2026-10-27 (Tue night, Week 7 locked; Week 8 NOT built).**
 Everything on `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -440,6 +440,21 @@ at +4 (edge 1.48) or if Barkley (Q, 0.74 starter-eq = 0.5 pt) is ruled out
 (edge ~1.46). Rests on McKee at replacement level; the <8-starts watch item
 (-0.86 if applied) would also drop it below 1.5. Real Week 7 workbook NOT
 rebuilt (MNF pick unchanged); his 11:00 save is untouched.
+
+**2026-10-27 (Tue 21:20 ET): Week 7 locked** (he asked to grade only, no Week 8
+picks). MNF DAL 38-21 at PHI: straight-up pick DAL right, PHI +4.5 lost. Final
+9-5 SU (expected 8.9, noise); card 6-1 (+$24.55 at $5). Closes recorded (14
+FanDuel). Season 64-43 SU (59.8%), model error 9.59 vs close 9.41 (market
+sharper by 0.19). CLV from first-published numbers: spreads +0.33 pts on 23,
+moneylines +0.1% on 26 -- 49 bets, the 40-50 mark the plan set. The two big
+spread moves were QB news (CIN +5.5 Lamar out, PHI -4.5 Hurts out) and
+roughly cancel; the rest are mostly 0 or +1. Moneylines are flat: no edge
+shown yet. His tracker (saved 21:16, Excel closed): Week 7 6-1, season 20-8
++$46.13. Process check: TB (Daniels assumed, Mayfield started; caught only in
+the scratch Sunday run) and NYG (Winston vs McCarthy). Trend check: the one
+live fix unchanged; divisional underdogs moved absorbed -> watching (2021+
+MAE no longer improves; neither status is applied). Factor card at 59 games:
+EPA/play t -1.7 on 47, not flagged. Weeks 1-7 workbook checksums unchanged.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or

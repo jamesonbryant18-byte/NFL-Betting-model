@@ -72,7 +72,7 @@
     "TEN": "depth chart",
     "WAS": "depth chart"
   },
-  "locked": false,
+  "locked": true,
   "weather": {
     "2026_07_NE_CHI": {
       "label": "55\u00b0F, wind 6 mph",
