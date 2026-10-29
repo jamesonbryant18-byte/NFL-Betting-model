@@ -763,7 +763,7 @@ def test_calibration(h: pd.DataFrame, p_raw: np.ndarray, p_adj_disc: np.ndarray,
     """
     Moneyline win probability vs what actually happened.
 
-    p_raw       the model before any trend fix
+    p_raw       the model before any trend fix (frozen projection + game factors)
     p_adj_*     after the confirmed margin fixes (2013-2020 fit / all-games fit)
 
     The recalibration stretches or shrinks win probability symmetrically
@@ -1045,10 +1045,17 @@ def run_all(season: int, verbose: bool = True) -> dict:
     shift_d = _apply(subj, keys, joint["beta_disc"]) if keys else np.zeros(len(h))
     shift_a = _apply(subj, keys, joint["beta_all"]) if keys else np.zeros(len(h))
 
-    # 2. moneyline win probability, on top of the margin fixes
-    p_raw = win_probs(h.projected_margin, mm)
-    p_adj_d = win_probs(h.projected_margin + shift_d, mm)
-    p_adj_a = win_probs(h.projected_margin + shift_a, mm)
+    # 2. moneyline win probability, on top of the margin fixes AND the game
+    #    factors (config.FACTORS): the win-% correction is applied to the model
+    #    as it runs, so it is fit on that model. Until 2026-10-29 it was fit
+    #    without the factors and self-tune, which stretch the margins further,
+    #    and the shipped win % ran overconfident (expert review: picks called
+    #    67% won 59%). The margin fixes above still learn on the frozen model.
+    from .replay import history_factor_points
+    fac = history_factor_points(h, season, schedule)
+    p_raw = win_probs(h.projected_margin + fac, mm)
+    p_adj_d = win_probs(h.projected_margin + shift_d + fac, mm)
+    p_adj_a = win_probs(h.projected_margin + shift_a + fac, mm)
     cal = test_calibration(h, p_raw, p_adj_d, p_adj_a)
     p_new = calibrate(p_adj_d, cal["disc_fit"]) if cal["status"] == "confirmed" else p_adj_d
 
@@ -1056,8 +1063,8 @@ def run_all(season: int, verbose: bool = True) -> dict:
     #    fixes were fit on 2013-2020). No underdog cap here, so long prices
     #    stay visible to the test.
     uncapped = replace(THRESHOLDS, ml_max_underdog=100000)
-    h_new = h.assign(projected_margin=h.projected_margin + shift_d)
-    bets_old = replay_bets(h, p_raw, mm, uncapped)
+    h_new = h.assign(projected_margin=h.projected_margin + shift_d + fac)
+    bets_old = replay_bets(h.assign(projected_margin=h.projected_margin + fac), p_raw, mm, uncapped)
     bets_new = replay_bets(h_new, p_new, mm, uncapped)
     bet_rows = test_bet_types(bets_new)
     bets_live = replay_bets(h_new, p_new, mm, THRESHOLDS)
