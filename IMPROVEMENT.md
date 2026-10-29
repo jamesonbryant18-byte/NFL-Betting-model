@@ -119,6 +119,100 @@ direction that felt worst on Sunday.
 
 ## Log of tested candidates
 
+### EXPERT REVIEW, round 1 — the deployed model, measured one way (2026-10-29)
+
+Jameson asked for a grade on seven live weeks: "whats working and what hasnt
+and why, lets do more of whats working and fix what isnt." His goals, in
+order: pick more winners straight up, then edge bets that are "great and not
+lucky". A fresh grader scored round 1 at 40/100 against a locked rubric
+(`.expert-review/`, not committed). The main finding: nothing measured the
+model *as it runs*. Each lab rebuilt its own version; the hold-out replay used
+a different market prior than the live run (projections 0.34 pt apart;
+`fit_market_ratings` now uses the week being predicted on both); and the win-%
+slope was fit without the game factors it is applied on top of.
+
+`src/nflmodel/replay.py` is now the one canonical replay: everything fit on
+2013-2020, scored on 2021-2025. Quote its numbers, never a lab's own rebuild.
+
+**The deployed model on 2021-2025** (`scripts/replay_deployed.py`):
+
+| | model | the market |
+|---|---|---|
+| straight up | 65.99% | taking the favorite 66.48% (paired t −0.7) |
+| picks against the favorite | 52 of 111 right | |
+| margin error | 9.876 | closing line 9.762 |
+| Brier (win %) | 0.2156 | de-vigged close 0.2115 |
+| calibration slope | 0.934 (1 = honest) | |
+| weekly card, live rules, closing prices | 649 bets, won 55.6% vs break-even 56.0%, ROI +0.7% (SE 3.6%); the model said 61.5% | |
+
+It does not pick more winners than taking the favorite, its margins are a
+little worse than the line, and its card is break-even within noise. Its own
+odds overstate its bets by about 6 points of win rate.
+
+**Live 2026 Weeks 1-7, graded from the archive** (`review_week.py`, new VS THE
+FAVORITE and GOOD OR LUCKY? sections): model 64-42 straight up, taking every
+favorite 67-39; 2-5 when the model picked against the favorite. Card 25-19-1,
+close to what the model (24.3 wins) and FanDuel's close (21.8) expected, but
+its value at the price taken was −2.8% a bet (± 1.5%). Week 7's 6-1 was mostly
+luck.
+
+**What each piece is worth** (`scripts/ablation.py`, paired on the same
+2021-25 games; win-% slope held fixed):
+
+| piece | effect | now |
+|---|---|---|
+| trend pull (3+ pts from the line, 1.5 toward it) | error down, t −4.4 | kept |
+| non-QB injuries factor | error down, t −2.6; card ROI −3.5% without it | kept |
+| rest factor | zero | kept (0.048 pt a day) |
+| EPA/play factor | Brier worse, t +2.0 | **dropped** |
+| weekly self-tune (EPA) | neutral once the EPA factor is out | **off** |
+
+Factor weights, fit on 2013-2020 and scored on 2021-2025
+(`scripts/refit_factors.py`):
+
+| factors | SU | error | card ROI |
+|---|---|---|---|
+| none | 65.4% | 9.944 | −3.5% |
+| injuries + rest (live from Week 8) | 66.0% | 9.876 | +0.7% |
+| + EPA/play (live Weeks 4-7) | 66.0% | 9.881 | −2.4% |
+
+Shipped (re-fit on 2013-2025): injuries 0.637 pt per starter-equivalent out,
+rest 0.048 pt per day.
+
+The self-tune: with the EPA/play factor in, it cost 0.85 pt of straight-up
+accuracy (t −2.1), because both read EPA and it was counted twice. Without that
+factor it changes nothing either way. It is off because it adds nothing, not
+because it hurts.
+
+Also shipped: the win-% slope is fit on the model as it runs (the trend
+checker adds the game factors first; live slope 1.483 → 1.402); lab caches
+rebuilt with the live loader (2021-25 base MAE 10.079 → 10.026) and the trend
+gate re-checked (the one live fix still confirmed); moneyline CLV de-vigged at
+both ends; the model graded from its own card, never his tracker (his call).
+Declined by Jameson: picking the favorite in close games ("basic and boring")
+and game-day QB guardrails (his own check before betting).
+
+### TESTED, NOT SWITCHED — rank the card on a model/market blend (2026-10-29)
+
+Jameson thought the card was "a mix of model favorites and the games with the
+highest edge against the market." It is not: a bet qualifies on edge (spread
+1.5+ pts, moneyline 3%+) and the top 7 are ranked by the model's chance the bet
+wins. Professionals measure edge from a blend of model and market
+(w × model + (1 − w) × market), so the blend was tested: w chosen on 2013-2020,
+checked on 2021-2025, live card rules otherwise.
+
+| w (model weight) | 2021-25 card ROI |
+|---|---|
+| 1.00 (live) | +0.72% |
+| 0.75 | −2.88% |
+| 0.50 | −0.47% |
+| 0.35 (best on 2013-20: +9.0% vs +4.2% at w = 1) | −2.06% |
+| 0.25 | +0.96% |
+
+SE about 4% at every weight, and lower weights qualify fewer bets, so more of
+the card is filler. The tuning-block gain does not replicate. Recommended not
+to switch; his call.
+
 ### REJECTED — weekly self-correction from recent error (2026-09-22)
 
 The direct implementation of "see what you got wrong, adjust." After each week
@@ -323,6 +417,9 @@ EPA/score blend, and result vs the closing line.
   information — just small.
 
 Shipped: `SELFTUNE = signal epa, alpha 1.0, half-life 3, clip 14, ceiling 0.5`.
+
+**Turned OFF 2026-10-29** (alpha 0): neutral on the canonical replay once the
+EPA/play factor was dropped. See the expert review entry at the top of this log.
 
 ### REJECTED — weather × team style (2026-09-25)
 

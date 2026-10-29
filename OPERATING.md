@@ -29,7 +29,13 @@ The review prints four things:
 | Straight up | how many winners, against the number an unchanged model expects |
 | Calibration by tier | does "60%" actually mean 60%? |
 | Leans | the record of the picks that would have cost money |
+| **Vs the favorite** | would taking every favorite have done as well? (at publication and at the close, week and season, with the noise band; each pick against the favorite and why it lost) |
+| **Good or lucky?** | the model's card vs break-even, vs what the model expected, vs what FanDuel's close expected, and its **value at the price taken** (EV at the de-vigged close, which luck cannot move) |
+| Closing line value | each bet's number vs the close (moneylines de-vigged; non-FanDuel closes flagged) |
 | **Process check** | did the model have the wrong quarterback, or miss a game? |
+
+The model is graded on its own card (the archive and the Bet Log), never on
+his tracker; his bets have their own section (expert review, 2026-10-29).
 
 Reading it takes a minute. Then it locks the week, so those picks can never be
 rewritten.
@@ -77,12 +83,26 @@ before touching a parameter.
 .venv/bin/python -W ignore scripts/factor_check.py
 ```
 
-Grades each game factor (non-QB injuries, efficiency, rest) on every graded
-game it was applied to: did it move the projection toward the real result,
-and which winners did it flip. Report-only until 48 games; after that a factor
-worse at t <= -2 is FLAGGED for a re-fit or replacement in
-`scripts/factor_lab.py`. Injuries come partly from the Wed-Fri injury report,
-so run the week again late in the week before betting.
+Grades each game factor (non-QB injuries and rest; efficiency ran Weeks 4-7
+and was dropped 2026-10-29) on every graded game it was applied to: did it
+move the projection toward the real result, and which winners did it flip.
+Report-only until 48 games; after that a factor worse at t <= -2 is FLAGGED
+for a re-fit (`scripts/refit_factors.py`) or replacement
+(`scripts/factor_lab.py`). Injuries come partly from the Wed-Fri injury
+report, so run the week again late in the week before betting.
+
+### Step 0a3 — the deployed model on the hold-out (after any model change)
+
+```bash
+.venv/bin/python -W ignore scripts/replay_deployed.py   # the scorecard: SU vs favorite, error, win %, the card
+.venv/bin/python -W ignore scripts/ablation.py          # what each piece is worth
+.venv/bin/python -W ignore scripts/refit_factors.py     # re-weight the game factors
+```
+
+One canonical replay of the model as it runs (`src/nflmodel/replay.py`):
+everything fit on 2013-2020, scored on 2021-2025. Quote these numbers, never a
+lab's own rebuild. 2026-10-29: SU 65.99% vs the favorite's 66.48% (t -0.7),
+calibration slope 0.93, card ROI +0.7% (SE 3.6%).
 
 ### Step 0b — find the reasons the model keeps missing (and fix those)
 
@@ -374,14 +394,18 @@ git add data/bet_log.csv && git commit -m "bet log through week N" && git push
 If `output/` is ever lost, the next run rebuilds the workbook and restores the
 tracker from that CSV.
 
-## Current setup (2026-09-26)
+## Current setup (2026-10-29)
 
 - All lines and prices come from **FanDuel only** (`config.MY_BOOK`). No
   consensus, no shopping table. A game FanDuel is not carrying falls back to
   the stored line with a WARNING — check FanDuel by hand for that one.
-- Weekly self-tune is ON (`config.SELFTUNE`): learns from EPA margin, max 0.5 pt per game. The SELF-TUNE
-  block in the run output shows every nudge. See IMPROVEMENT.md for what it
-  is and is not worth.
+- Weekly self-tune is OFF (`config.SELFTUNE` alpha 0, 2026-10-29): it added
+  nothing on top of the game factors. Game factors ON: non-QB injuries 0.637
+  pt per starter out, rest 0.048 pt per day (`config.FACTORS`,
+  `scripts/refit_factors.py`). EPA/play dropped 2026-10-29.
+- His Bet Tracker: the build fills FanDuel's recorded close into Closing Line
+  / Closing Odds cells he left blank (his ask, 2026-10-29) and lists them on
+  their own line after the `bet tracker cells:` check.
 - Re-running mid-week (after TNF) re-prices only games not yet started; the
   published rows for played games are carried forward unchanged.
 - Trend fixes ON (`data/trends.json`, rebuilt weekly by `miss_report.py`),

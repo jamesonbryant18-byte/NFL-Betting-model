@@ -13,7 +13,8 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-27 (Tue night, Week 7 locked; Week 8 NOT built).**
+**Last updated 2026-10-29 (Thu, expert review round 1 shipped; Week 8 built
+before TNF).**
 Everything on `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -22,7 +23,7 @@ What changed 2026-09-25/26, all at Jameson's request:
    moneyline pair comes from FanDuel (`shop._attach_single_book`). No
    consensus, no best-of-six shopping table — he bets at one book and asked
    not to be shown others.
-2. **Weekly self-tune, EPA version** (`selftune.py`, `config.SELFTUNE`): each
+2. **Weekly self-tune, EPA version** (OFF since 2026-10-29) (`selftune.py`, `config.SELFTUNE`): each
    team is nudged by how well it actually PLAYED (EPA margin) vs what the
    model projected, never by the final score (the weekly ratings refit
    already uses scores, so a score nudge counts them twice). Max 0.5 pt per
@@ -98,6 +99,8 @@ injuries = latest roster status (IR etc.) + this week's Out/Doubtful report,
 so a Tuesday run undercounts -- re-run late week. Weekly report card:
 `scripts/factor_check.py` (flags a factor at 48+ games and t <= -2; a flag
 means re-fit/replace via factor_lab.py, never auto re-weight).
+**2026-10-29: EPA/play dropped, weights re-fit** (injuries 0.637, rest 0.048;
+see the 10-29 entry below).
 
 **2026-09-30 (Wed): Week 3 locked, stale-QB data fix, Week 4 built.**
 Week 3 final 8-8 SU (expected 10.4, inside the band), leans 4-1. His
@@ -456,6 +459,39 @@ live fix unchanged; divisional underdogs moved absorbed -> watching (2021+
 MAE no longer improves; neither status is applied). Factor card at 59 games:
 EPA/play t -1.7 on 47, not flagged. Weeks 1-7 workbook checksums unchanged.
 
+**2026-10-29 (Thu): expert review round 1, fixes shipped.** He asked for a
+grade on seven live weeks ("whats working and what hasnt and why, lets do more
+of whats working and fix what isnt"). Goals, in order: straight-up accuracy,
+then edge bets that are "great and not lucky". Locked, bug-checked only:
+FanDuel, spreads + moneylines, $5 a bet, 4-7 bets a week. A fresh grader scored
+round 1 at 40/100 (`.expert-review/`, untracked: rubric v2, brief, grades).
+He approved every fix except "pick the favorite in close games" ("basic and
+boring") and game-day QB guardrails (his own check). Branch
+`expert-review/round-1`, merged to main:
+- Replay = live: the market prior uses the week being predicted in both
+  (`fit_market_ratings`). One canonical replay, `src/nflmodel/replay.py` (fit
+  2013-20, score 2021-25), behind `scripts/replay_deployed.py`, `ablation.py`
+  and `refit_factors.py`. Quote these numbers, never a lab's own rebuild.
+- EPA/play factor DROPPED (Brier worse, t +2.0); `config.FACTORS` = injuries
+  0.637, rest 0.048. Self-tune OFF (neutral once EPA was out).
+- Win-% slope fit on the model as it runs (trends adds the factors): 1.483 ->
+  1.402. Caches rebuilt with the live loader; trend gate still holds.
+- `review_week.py`: VS THE FAVORITE and GOOD OR LUCKY? (`scorecard.py`), graded
+  from the archive, never his tracker (his call). Moneyline CLV de-vigged at
+  both ends; non-FanDuel closes flagged.
+- Bug in a locked part: a spread price borrowed from the stored line was
+  labeled FanDuel's; now labeled and warned.
+- His Bet Tracker: blank Closing Line/Odds cells filled from FanDuel's recorded
+  close (his ask), listed on their own line after `bet tracker cells:`.
+- Workbook: 'Bet Wins %' is the bet's own chance (was the game's win %); Bet
+  Log adds Favorite, Favorite Right?, Model Bet Value @ Close; Reference
+  verdict rewritten. The 2 test_history failures fixed; 236 tests.
+Deployed model on 2021-25: SU 65.99% vs taking the favorite 66.48%; error
+9.876 vs line 9.762; card ROI +0.7% (SE 3.6%), model said 61.5%, won 55.6%.
+Live Weeks 1-7: 64-42 vs favorite 67-39; card 25-19-1 but value at the price
+taken -2.8% a bet (+/- 1.5%). The card-ranking blend he asked about was
+tested and not switched (IMPROVEMENT.md).
+
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
 "redo" a past week's `output/NFL_Model_*_WeekNN.xlsx`. Reading it read-only
@@ -488,6 +524,11 @@ Hold-out (2021-25, seasons the tuner never saw), n = 1,424:
 | ATS @ 1.5pt edge | 50.1%, −4.3% ROI | break-even is 52.38% |
 | Moneyline @ 3% edge | 38.8%, −9.5% ROI | |
 
+**2026-10-29, the model as it runs** (`scripts/replay_deployed.py`, one
+canonical replay, fit 2013-20): straight up 65.99% vs taking the favorite
+66.48% (t −0.7), MAE 9.876 vs 9.762, Brier 0.2156 vs 0.2115, weekly card 649
+bets at closing prices ROI +0.7% (SE 3.6%). Still no edge; quote these.
+
 The decisive test: regress actual result on **both** the closing line and the
 model's projection. The model's incremental coefficient on hold-out is
 **−0.018 (t = −0.1)**. Zero information beyond the line. The line's coefficient
@@ -506,8 +547,9 @@ after the Wednesday run). No ratings parameters were changed on one week.
 
 ## 1b. Self-improvement — read IMPROVEMENT.md
 
-Two layers are LIVE since 2026-09-25/26 (see §0): the EPA per-team nudge
-(max 0.5 pt) and the miss-trend checker (`trends.py`). Weekly loop:
+The miss-trend checker (`trends.py`) is LIVE since 2026-09-26. The EPA
+per-team nudge ran 2026-09-25 to 10-27 and is OFF since 2026-10-29 (neutral on
+the canonical replay). Weekly loop:
 `review_week.py --week N` → `miss_report.py` → `factor_check.py` → commit
 `data/trends.json` → `run_week.py`. What follows is why the ORIGINAL design failed and must not be
 brought back.
@@ -685,7 +727,10 @@ tracker's merge-across-runs from `betlog.py`.
 .venv/bin/python -W ignore scripts/run_week.py --starters       # print all 32 starters + source
 .venv/bin/python -W ignore scripts/run_week.py --no-depth-chart # ignore depth charts
 .venv/bin/python -W ignore scripts/run_week.py --archive-anyway # archive a week that already kicked off
-.venv/bin/python -W ignore -m pytest tests/ -q                 # 179 tests
+.venv/bin/python -W ignore -m pytest tests/ -q                 # 236 tests
+.venv/bin/python -W ignore scripts/replay_deployed.py          # the model as it runs, on 2021-25
+.venv/bin/python -W ignore scripts/ablation.py                 # what each piece is worth
+.venv/bin/python -W ignore scripts/refit_factors.py            # re-weight the game factors
 .venv/bin/python -W ignore scripts/miss_report.py              # WEEKLY: trend check -> data/trends.json (commit it)
 .venv/bin/python -W ignore scripts/miss_report.py --no-save    # look without changing the model
 .venv/bin/python -W ignore scripts/build_base_projections.py   # rebuild cache the trend check reads (~1 min)
@@ -748,8 +793,8 @@ Fresh machine: `python3 -m venv .venv && .venv/bin/pip install -r requirements.t
   See the decision gate in `OPERATING.md`. (He moved to decision mode
   2026-09-14 anyway; he actually bets small, $5 a lean in Week 2.)
 - **One book: FanDuel** (2026-09-25). Do not show other books.
-- **Self-tune ON, gentle, EPA-based**, on everything (he chose "everything"
-  over "winners only" knowing it does not improve value picks).
+- **Self-tune OFF** (2026-10-29, expert review; he approved). It ran on
+  everything 09-25 to 10-27; neutral once the EPA factor was dropped.
 - **Trend fixes ON**: change the model for consistent miss-reasons only —
   "don't make the Falcons #1 because they looked good once." Every new
   statistical rule gets tried to be broken before it ships (he approved an
@@ -758,7 +803,14 @@ Fresh machine: `python3 -m venv .venv && .venv/bin/pip install -r requirements.t
 - **Longshot cap +250** on moneyline underdogs and win-% recalibration.
 - **Weekly card: at most 7 bets, at least 4** (2026-10-07), ranked by chance
   the bet wins. Grade his bets from HIS tracker lines (line taken), never the
-  model's line.
+  model's line. **Grade the MODEL from its own card** (archive / Bet Log),
+  never his tracker (2026-10-29). The ranking stays "chance the bet wins": a
+  model/market blend was tested and did not replicate (IMPROVEMENT.md).
+- **Declined 2026-10-29:** picking the favorite in close games ("basic and
+  boring") and game-day injury/QB guardrails (his own check before betting).
+- **Bet Tracker closes** (2026-10-29): the build fills FanDuel's recorded close
+  into Closing Line / Closing Odds cells he left BLANK, never one he typed,
+  and lists them on their own line. Not a carry error.
 - **Weather**: shown and fed to the trend checker; no hand-set adjustment.
 - **Bet Tracker cells and formulas: carried exactly, every week**
   (2026-10-13). K6 (his Kalshi price -> sportsbook odds converter), M5 (total
@@ -812,9 +864,9 @@ and has not taken it up.
 - Forecast wind is Open-Meteo 10 m open-field wind; historical wind is the
   gamebook's stadium reading. Same 15 mph threshold for both; forecast may
   run a little high. Retractable roofs never count as "outdoors" for flags.
-- The trend check's history is the frozen walk-forward backtest; it does not
-  include the EPA nudge. Fine at 0.5 pt, but rebuild base projections if the
-  ratings engine itself changes.
+- The trend check's history is the frozen walk-forward backtest plus the
+  live game factors (since 2026-10-29, `replay.history_factor_points`).
+  Rebuild base projections if the ratings engine itself changes.
 - ~~`odds.py` not wired in~~ **DONE 2026-09-22.** `shop.attach_live_odds()`
   now runs by default in `run_week.py`: six books, the *median* becomes the
   market number, best price per side rides along, `--no-live-odds` opts out,
@@ -836,14 +888,17 @@ and has not taken it up.
   the workbook's `Lists` sheet; moneyline CLV uses prices. `betlog.clv_for_row`
   reproduces the same arithmetic in Python and the two were checked to agree.
   Still no real settled bet has exercised it end to end.
-- The **injury-burden term ships at zero** and the roster feed is reporting
+- **Superseded:** the non-QB injuries factor is LIVE (`config.FACTORS`,
+  0.637 pt per starter out; t −2.6 on error in the canonical replay). Older
+  note: the **injury-burden term ships at zero** and the roster feed is reporting
   only. See `scripts/measure_injuries.py`: pooled it looks like the best factor
   in the repo, but it fails season-clustering, loses money in six of twelve
   seasons, and stale absences carry more signal than fresh ones — backwards for
   an injury story, and a sign it proxies team quality. Re-test it
   prospectively against CLV rather than re-running the pooled regression.
 - `HFA_TEAM_DELTAS` and several config knobs are declared but unused.
-- **Lab caches predate the live loader.** `data/cache/dataset_2010_2025.parquet`
+- **DONE 2026-10-29** (rebuilt, 2021-25 base MAE 10.079 -> 10.026, trend
+  gate re-checked). **Lab caches predate the live loader.** `data/cache/dataset_2010_2025.parquet`
   (and so `base_projections_2013_2025.parquet`, which the trend checker and
   factor lab read) was built before QB-name canonicalization and before the
   2026-09-30 stale-QB fix: 16 spelling-only rows + 42 wrong starters vs what
