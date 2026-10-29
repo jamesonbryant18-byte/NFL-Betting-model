@@ -30,7 +30,9 @@ from typing import Optional
 
 import pandas as pd
 
-from .archive import ARCHIVE_DIR
+# archive.ARCHIVE_DIR is looked up at call time, so a test that points the
+# archive at a scratch folder never reads the real closes (2026-10-29).
+from . import archive as _archive
 from .betlog import clv_for_row
 from .config import CURRENT_SEASON, MY_BOOK
 
@@ -40,7 +42,7 @@ CLOSE_COLS = ["game_id", "away_team", "home_team", "close_spread",
 
 
 def closing_path(season: int, week: int, archive_dir=None) -> Path:
-    return Path(archive_dir or ARCHIVE_DIR) / str(season) / f"week{week:02d}_closing.csv"
+    return Path(archive_dir or _archive.ARCHIVE_DIR) / str(season) / f"week{week:02d}_closing.csv"
 
 
 def _num(v) -> Optional[float]:
@@ -181,7 +183,7 @@ def model_card(season: int, week: int, archive_dir=None) -> Optional[pd.DataFram
     were kept (2026 weeks 1-4). CLV is measured from where a bet first went on
     the card; a Sunday re-run prices near the close and would hide it.
     """
-    d = Path(archive_dir or ARCHIVE_DIR) / str(season)
+    d = Path(archive_dir or _archive.ARCHIVE_DIR) / str(season)
     for name in (f"week{week:02d}_first_leans.csv", f"week{week:02d}_leans.csv"):
         p = d / name
         if p.exists():
