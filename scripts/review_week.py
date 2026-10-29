@@ -37,6 +37,8 @@ from nflmodel.closing import (record_closing, load_closing, close_for, side_clos
                               card_clv, summarize_clv)
 from nflmodel.market import closing_line_value
 from nflmodel.teamstats import normalize_name
+from nflmodel.scorecard import (straight_up, summarize_straight_up, model_bets,
+                                summarize_bets)
 
 
 def _fmt_close(market, close):
@@ -108,7 +110,8 @@ def _grade_bet(b, g, close_row=None):
 def clv_review(season, week):
     """Closing line value of the model's card: this week, then the season."""
     print()
-    print("  CLOSING LINE VALUE  (the model's bets vs the closing number; + = beat it)")
+    print("  CLOSING LINE VALUE  (the model's bets vs the closing number; + = beat it;")
+    print("                       moneylines in de-vigged win %)")
     this = card_clv(season, week)
     if this.empty:
         print('    no closing lines recorded for this week')
@@ -117,7 +120,9 @@ def clv_review(season, week):
     for _, r in this.iterrows():
         print(f"    {r.bet_side:<16}{'took':>5} {_fmt_close(r.market, r.taken):>6}"
               f"   close {_fmt_close(r.market, r.close):>6}"
-              f"   CLV {_fmt_clv(r.market, r.clv_pts if r.market == 'SPREAD' else r.clv_prob):>6}")
+              f"   CLV {_fmt_clv(r.market, r.clv_pts if r.market == 'SPREAD' else r.clv_prob):>6}"
+              + ('' if r.source is None or 'fanduel' in str(r.source).lower()
+                 else f"   (close from {str(r.source).split()[0]}, not FanDuel)"))
     season_rows = pd.concat([card_clv(season, w) for w in range(1, week + 1)],
                             ignore_index=True)
     s = summarize_clv(season_rows)
@@ -129,6 +134,94 @@ def clv_review(season, week):
                   f"{x['beat']}, matched {x['same']}, worse {x['worse']}")
     print('    CLV near zero = the model is not beating the market; consistently')
     print('    positive over 40-50 bets is the first real evidence of an edge.')
+
+
+def favorite_review(games, season, week):
+    """
+    Straight up against simply taking the favorite (expert review 2026-10-29).
+    The model only beats the favorite on the games where it picks against it,
+    so those are listed with why each loss happened.
+    """
+    su = straight_up(season, range(1, week + 1), games)
+    if su.empty:
+        return
+    print()
+    print('  VS THE FAVORITE  (would taking every favorite have done as well?)')
+    for label, x in ((f'week {week}', su[su.week == week]), ('season', su)):
+        s = summarize_straight_up(x)
+        if not s.get('n'):
+            continue
+        close = (f"{s['fav_close']}-{s['n_close'] - s['fav_close']}" if s['n_close'] == s['n']
+                 else f"{s['fav_close']} of {s['n_close']}")
+        print(f"    {label:<8} model {s['model']}-{s['n'] - s['model']},  favorite at publication "
+              f"{s['fav_pub']}-{s['n'] - s['fav_pub']},  at the close {close}")
+    s = summarize_straight_up(su)
+    gap, noise = s['diff_per_game'] * s['n'], 1.96 * s['diff_se'] * s['n']
+    print(f"    season: model {gap:+.0f} picks vs the favorite"
+          + (f" (anything inside +/-{noise:.0f} is noise)" if noise == noise else ''))
+    print(f"    expected wins: {s['expected_model']:.1f} by the model's own odds, "
+          f"{s['expected_market']:.1f} by FanDuel's closing odds ({s['n_market']} games); "
+          f"actual {s['model']}")
+    print(f"    picks against the favorite this season: {s['against_won']}-"
+          f"{s['against'] - s['against_won']}")
+    wk = su[(su.week == week) & su.against_pub]
+    if wk.empty:
+        return
+    try:
+        from nflmodel.trends import miss_luck, pbp_team_stats
+        st = pbp_team_stats([season]).set_index(['game_id', 'team'])
+    except Exception:                                        # noqa: BLE001
+        miss_luck, st = None, None
+    for _, r in wk.iterrows():
+        why = ''
+        if not r.model_right and miss_luck is not None:
+            why = miss_luck(st, r.game_id, r.pick, r.opp)
+        print(f"      {r.matchup:<14} picked {r.pick} ({r.said:.0%}) over favorite {r.fav_pub}: "
+              f"{'RIGHT' if r.model_right else 'wrong'}{'  -- ' + why if why else ''}")
+
+
+def bets_review(games, season, week):
+    """
+    The model's own bets (the archive / Bet Log, never his tracker): good or
+    lucky? Record vs break-even, vs what the model expected, vs what the
+    closing market expected, and the value at the price taken -- the expected
+    return if FanDuel's de-vigged close is the truth. Luck moves the record;
+    it cannot move the value at the price taken.
+    """
+    from nflmodel.trends import margin_model_for_history
+    b = model_bets(season, range(1, week + 1), games, margin_model_for_history())
+    if b.empty:
+        return
+    print()
+    print("  THE MODEL'S BETS: GOOD OR LUCKY?  (its published card, graded at FanDuel's close)")
+    for label, x in ((f'week {week}', b[b.week == week]), ('season', b)):
+        s = summarize_bets(x)
+        if not s.get('n'):
+            continue
+        push = f"-{s['push']}" if s['push'] else ''
+        print(f"    {label:<8} {s['won']}-{s['lost']}{push}, {s['units']:+.2f} units "
+              f"({s['roi']:+.1%} a bet), won {s['win_pct']:.0%} vs break-even {s['break_even']:.0%}")
+        print(f"             expected wins: {s['expected_model']:.1f} by the model, "
+              f"{s['expected_close']:.1f} +/- {s['expected_close_sd']:.1f} by the closing market; "
+              f"value at the price taken {s['value']:+.1%} a bet"
+              + (f" (+/- {1.96 * s['value_se']:.1%})" if s['value_se'] == s['value_se'] else ''))
+    s = summarize_bets(b)
+    if s['not_fanduel']:
+        print(f"    {s['not_fanduel']} close(s) not from FanDuel (flagged; FanDuel's was not recorded)")
+    verdict = ('the prices it took were WORSE than the close: the record is running ahead of the bets'
+               if s['value'] + 1.96 * s['value_se'] < 0 else
+               'the prices it took BEAT the close: that is what a real edge looks like'
+               if s['value'] - 1.96 * s['value_se'] > 0 else
+               'value at the price taken is not clearly different from zero yet')
+    print(f"    season verdict: {verdict}")
+    wk = b[b.week == week]
+    if len(wk):
+        print(f"    {'bet':<16}{'price':>7}{'result':>8}{'model':>8}{'close':>8}{'value':>8}")
+        for _, r in wk.iterrows():
+            val = '' if pd.isna(r.value_at_close) else f'{r.value_at_close:+.1%}'
+            pc = '' if pd.isna(r.p_close) else f'{r.p_close:.0%}'
+            flag = '  (not FanDuel)' if r.not_fanduel else ''
+            print(f"    {r.bet:<16}{r.odds:>+7.0f}{r.out:>8}{r.p_model:>8.0%}{pc:>8}{val:>8}{flag}")
 
 
 def tracker_review(games, season, week, leans):
@@ -320,6 +413,8 @@ def main():
                   f'{max(0, int(graded/2 - 1.96*np.sqrt(graded)/2))} to '
                   f'{int(graded/2 + 1.96*np.sqrt(graded)/2)} wins')
 
+    favorite_review(games, args.season, week)
+    bets_review(games, args.season, week)
     clv_review(args.season, week)
     tracker_review(games, args.season, week, leans)
 

@@ -1,0 +1,62 @@
+"""The honest scorecard (scorecard.py, closing._fair_move) — added 2026-10-29."""
+import sys
+sys.path.insert(0, "src")
+
+import pandas as pd
+import pytest
+
+
+@pytest.fixture(scope="module")
+def mm():
+    from nflmodel.trends import margin_model_for_history
+    return margin_model_for_history()
+
+
+def _close(spread=0.0, h_odds=-110.0, a_odds=-110.0, h_ml=-110.0, a_ml=-110.0):
+    return pd.Series(dict(home_team="KC", away_team="DEN", close_spread=spread,
+                          close_home_spread_odds=h_odds, close_away_spread_odds=a_odds,
+                          close_home_ml=h_ml, close_away_ml=a_ml, close_source="fanduel"))
+
+
+def test_value_at_price_moneyline_is_ev_at_the_fair_close(mm):
+    from nflmodel.scorecard import value_at_price
+    ev, p = value_at_price(mm, "MONEYLINE", True, None, 100.0, _close())
+    assert p == pytest.approx(0.5) and ev == pytest.approx(0.0)
+    ev, _ = value_at_price(mm, "MONEYLINE", True, None, -110.0, _close())
+    assert ev == pytest.approx(0.5 * 100 / 110 - 0.5)          # paying the cut
+
+
+def test_value_at_price_spread_counts_the_number(mm):
+    """Getting 3 on a game that closed pick'em is worth a lot; the same number is worth the cut."""
+    from nflmodel.scorecard import value_at_price
+    same, p = value_at_price(mm, "SPREAD", True, 0.0, -110.0, _close())
+    assert p == pytest.approx(0.5, abs=1e-6) and same < 0
+    plus3, p3 = value_at_price(mm, "SPREAD", True, 3.0, -110.0, _close())
+    assert p3 > 0.55 and plus3 > 0.05
+    # from the away side: +3 for DEN is the same bet mirrored (the empirical
+    # margin distribution is not perfectly symmetric, so close, not equal)
+    away3, _ = value_at_price(mm, "SPREAD", False, 3.0, -110.0, _close())
+    assert away3 == pytest.approx(plus3, abs=0.01)
+
+
+def test_value_at_price_needs_a_close(mm):
+    from nflmodel.scorecard import value_at_price
+    assert value_at_price(mm, "MONEYLINE", True, None, 120.0, None) == (None, None)
+
+
+def test_moneyline_clv_is_devigged_at_both_ends():
+    from nflmodel.closing import _fair_move
+    close = _close(h_ml=-150.0, a_ml=130.0)
+    move = _fair_move(True, -110.0, -110.0, close)
+    fair_close = (150 / 250) / (150 / 250 + 100 / 230)
+    assert move == pytest.approx(fair_close - 0.5)
+    assert _fair_move(False, -110.0, -110.0, close) == pytest.approx(-(fair_close - 0.5))
+    assert _fair_move(True, None, -110.0, close) is None
+
+
+def test_close_favorite_uses_moneyline_on_a_pickem():
+    from nflmodel.scorecard import _close_favorite
+    assert _close_favorite(_close(spread=3.0), "KC", "DEN") == "KC"
+    assert _close_favorite(_close(spread=-2.5), "KC", "DEN") == "DEN"
+    assert _close_favorite(_close(spread=0.0, h_ml=-115.0, a_ml=-105.0), "KC", "DEN") == "KC"
+    assert _close_favorite(None, "KC", "DEN") is None

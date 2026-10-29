@@ -949,6 +949,27 @@ def ml_underdog_cap(bet_rows: list[dict]) -> int | None:
 
 # ── this season's misses, with reasons ──────────────────────────────────
 
+def miss_luck(st, game_id: str, pick: str, opp: str) -> str:
+    """
+    Why a pick lost, from the play-by-play: out-played it anyway (bad luck),
+    lost the turnover battle by 2+, or was simply out-played (a model miss).
+    `st` is pbp_team_stats indexed by (game_id, team); "" if not available.
+    """
+    if st is None:
+        return ""
+    try:
+        me, them = st.loc[(game_id, pick)], st.loc[(game_id, opp)]
+    except KeyError:
+        return ""
+    epa_m = me.epa - them.epa
+    to_m = them.tos - me.tos
+    if epa_m > 0:
+        return f"bad luck: {pick} out-played them (EPA {epa_m:+.0f}) but lost"
+    if to_m <= -2:
+        return f"turnovers: {pick} lost the turnover battle by {-to_m:.0f}"
+    return f"model miss: {pick} was out-played (EPA {epa_m:+.0f})"
+
+
 def explain_misses(h: pd.DataFrame, stats: pd.DataFrame | None = None) -> pd.DataFrame:
     """One row per graded pick this season that went wrong straight up."""
     cur = h[h.source == "published"].copy()
@@ -973,21 +994,7 @@ def explain_misses(h: pd.DataFrame, stats: pd.DataFrame | None = None) -> pd.Dat
             if s != 0:
                 side = g.home_team if s > 0 else g.away_team
                 reasons.append(f"{desc.lower()} [{side}]")
-        luck = ""
-        if st is not None:
-            try:
-                me = st.loc[(g.game_id, pick)]
-                opp = st.loc[(g.game_id, g.away_team if pick_home else g.home_team)]
-                epa_m = me.epa - opp.epa
-                to_m = opp.tos - me.tos
-                if epa_m > 0:
-                    luck = f"bad luck: {pick} out-played them (EPA {epa_m:+.0f}) but lost"
-                elif to_m <= -2:
-                    luck = f"turnovers: {pick} lost the turnover battle by {-to_m:.0f}"
-                else:
-                    luck = f"model miss: {pick} was out-played (EPA {epa_m:+.0f})"
-            except KeyError:
-                pass
+        luck = miss_luck(st, g.game_id, pick, g.away_team if pick_home else g.home_team)
         rows.append(dict(week=int(g.week), matchup=f"{g.away_team} @ {g.home_team}",
                          pick=pick, projected=round(float(g.projected_margin) * s_pick, 1),
                          actual=float(g.result) * s_pick, luck=luck,

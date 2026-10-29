@@ -281,10 +281,12 @@ MY_BOOK = "fanduel"  # or None
 
 # Weekly self-tune: OFF since 2026-10-29 (expert review, Jameson approved).
 # It learned from each team's EPA margin vs what the model projected, max 0.5
-# pt a game. Alone it helped a little (scripts/adjust_lab.py), but on top of
-# the game factors it cost 0.85 pt of straight-up accuracy on 2021-25 (about
-# 12 picks, t -2.1) and improved nothing (scripts/ablation.py). alpha 0 = off;
-# the other settings are the version that ran 2026-09-25 to 10-28.
+# pt a game. On top of the factors as they were (with EPA/play) it cost 0.85
+# pt of straight-up accuracy on 2021-25 (about 12 picks, t -2.1): EPA counted
+# twice. With EPA/play dropped it is neutral (scripts/ablation.py: SU +0.07
+# pt, t 0.2; error -0.001; card ROI 0.7% -> -0.9%, noise), so it adds nothing
+# and stays off. alpha 0 = off; the other settings are the version that ran
+# 2026-09-25 to 10-28.
 #   signal       "epa"  -- "score" is the old version
 #   alpha        0.0    -- 1.0 was the live strength
 #   max_game_adj 0.5    -- no game moves more than half a point

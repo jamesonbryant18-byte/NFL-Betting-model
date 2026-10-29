@@ -176,6 +176,19 @@ def bet_clv(market: str, side_team: str, taken_line, taken_odds, close_row,
     return (close, pts, prob)
 
 
+def _fair_move(bet_home: bool, pub_home_ml, pub_away_ml, close_row) -> Optional[float]:
+    """The bet side's de-vigged win % at the close minus at publication, or None."""
+    from .market import devig
+    ph, pa = _num(pub_home_ml), _num(pub_away_ml)
+    if close_row is None or ph is None or pa is None:
+        return None
+    ch, ca = _num(close_row["close_home_ml"]), _num(close_row["close_away_ml"])
+    if ch is None or ca is None:
+        return None
+    pub, close = devig(ph, pa)[0], devig(ch, ca)[0]
+    return float(close - pub) if bet_home else float(pub - close)
+
+
 def model_card(season: int, week: int, archive_dir=None) -> Optional[pd.DataFrame]:
     """
     The model's bets for the week AS FIRST PUBLISHED (weekNN_first_leans.csv),
@@ -207,6 +220,14 @@ def card_clv(season: int, week: int, archive_dir=None, pts_table=None) -> pd.Dat
         row = close_for(closing, l["home_team"], l["away_team"])
         close, pts, prob = bet_clv(market, side.split()[0], ticket(side),
                                    _num(l.get("bet_odds")), row, pts_table)
+        if market == "MONEYLINE":
+            # Both ends de-vigged when both sides' prices are known (expert
+            # review 2026-10-29): raw implied odds carry the book's cut, which
+            # changes size as the price moves and reads as fake CLV.
+            fair = _fair_move(side.split()[0] == l["home_team"], l.get("home_ml"),
+                              l.get("away_ml"), row)
+            if fair is not None:
+                prob = fair
         rows.append(dict(season=season, week=week, bet_side=side, market=market,
                          taken=ticket(side) if market == "SPREAD" else _num(l.get("bet_odds")),
                          close=close, clv_pts=pts, clv_prob=prob,

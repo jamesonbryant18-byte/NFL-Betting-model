@@ -37,7 +37,7 @@ def test_config_weights_are_the_measured_ones():
 
 
 def test_selftune_is_off():
-    """Off since 2026-10-29: on top of the factors it cost straight-up picks (scripts/ablation.py)."""
+    """Off since 2026-10-29: it adds nothing on top of the factors (scripts/ablation.py)."""
     from nflmodel.config import SELFTUNE
     assert SELFTUNE["alpha"] == 0
 
