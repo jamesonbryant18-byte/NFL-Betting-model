@@ -10,8 +10,8 @@ import sys, argparse, json
 sys.path.insert(0, 'src')
 import numpy as np, pandas as pd
 
-from nflmodel.config import (ADVISORY_MODE, CURRENT_SEASON, MY_BOOK, OUTPUT_DIR,
-                             PARAMS_FILE, RATINGS, SELFTUNE, STAKING,
+from nflmodel.config import (ADVISORY_MODE, CURRENT_SEASON, FACTORS, MY_BOOK,
+                             OUTPUT_DIR, PARAMS_FILE, RATINGS, SELFTUNE, STAKING,
                              TRAIN_SEASON_START)
 from nflmodel.data import build_dataset, load_games
 from nflmodel.model import NFLModel
@@ -22,6 +22,8 @@ from nflmodel.market import format_spread
 from nflmodel.report import straight_up_ranking, format_ranking
 from nflmodel.archive import archive_week, kicked_off, load_archived
 from nflmodel.teamstats import team_stats_bundle
+
+_FACTOR_NAMES = dict(inj_total='injuries', eff_epa='efficiency', rt_rest_diff='rest')
 
 
 def load_fitted():
@@ -305,14 +307,13 @@ def main():
     # scripts/factor_lab.py): non-QB injuries, efficiency, rest.
     factor_rows = pd.DataFrame()
     if not args.no_factors:
-        from nflmodel.config import FACTORS
         from nflmodel.factors import live_factor_shifts
         try:
             factor_rows = live_factor_shifts(slate_games, args.season, week, FACTORS)
             model.factor_adjust = dict(zip(factor_rows.game_id, factor_rows.factor_adj))
-            print(f"game factors: injuries x{FACTORS['inj_total']}, efficiency "
-                  f"x{FACTORS['eff_epa']}, rest x{FACTORS['rt_rest_diff']} "
-                  f"(largest move {factor_rows.factor_adj.abs().max():.1f} pts)")
+            print("game factors: " + ", ".join(
+                      f"{_FACTOR_NAMES.get(k, k)} x{v}" for k, v in FACTORS.items() if v)
+                  + f" (largest move {factor_rows.factor_adj.abs().max():.1f} pts)")
         except Exception as e:                                   # noqa: BLE001
             print(f'WARNING: game factors skipped ({e})')
 
@@ -591,7 +592,11 @@ def main():
                      trend_fixes=dict(generated_utc=trend_state.get('generated_utc'),
                                       margin=[r['key'] for r in trend_state.get('margin', [])],
                                       calibration=bool(model.calibration),
-                                      ml_max_underdog=int(model.thresholds.ml_max_underdog))))
+                                      ml_max_underdog=int(model.thresholds.ml_max_underdog)),
+                     # The weights behind the archived factor_* points, so the
+                     # trend check can rebuild them (replay.archived_factors).
+                     factor_weights={} if args.no_factors else dict(FACTORS),
+                     selftune_alpha=float(SELFTUNE.get('alpha', 0))))
 
     # Rosters, injuries and records for the Team Stats sheet. Reporting only;
     # nothing here reaches the ratings. A feed outage degrades to an empty

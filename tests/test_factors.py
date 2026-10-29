@@ -30,9 +30,16 @@ def test_factor_adjust_reaches_the_projection():
 
 
 def test_config_weights_are_the_measured_ones():
+    """scripts/refit_factors.py, 2026-10-29: EPA/play dropped (expert review), the rest re-fit."""
     from nflmodel.config import FACTORS
-    assert set(FACTORS) == {"inj_total", "eff_epa", "rt_rest_diff"}
-    assert all(v > 0 for v in FACTORS.values())       # healthier/better/rested side gains
+    assert set(FACTORS) == {"inj_total", "rt_rest_diff"}
+    assert all(v > 0 for v in FACTORS.values())       # healthier/rested side gains
+
+
+def test_selftune_is_off():
+    """Off since 2026-10-29: on top of the factors it cost straight-up picks (scripts/ablation.py)."""
+    from nflmodel.config import SELFTUNE
+    assert SELFTUNE["alpha"] == 0
 
 
 def test_archive_raw_margin_excludes_factors(tmp_path, monkeypatch):

@@ -30,7 +30,9 @@ from nflmodel.config import CURRENT_SEASON
 from nflmodel.data import load_games
 
 MIN_GAMES = 48
-FACTORS = [("factor_inj", "non-QB injuries"), ("factor_epa", "efficiency (EPA/play)"),
+# Efficiency (EPA/play) ran Weeks 4-7 of 2026 and was switched off 2026-10-29
+# (expert review); its row reports those weeks only.
+FACTORS = [("factor_inj", "non-QB injuries"), ("factor_epa", "efficiency (off from Wk 8)"),
            ("factor_rest", "rest days")]
 
 games = load_games()

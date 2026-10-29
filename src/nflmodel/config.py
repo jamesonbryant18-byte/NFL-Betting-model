@@ -279,17 +279,17 @@ BOOKS: list = []
 # always a matched pair from one book. None restores consensus + shopping.
 MY_BOOK = "fanduel"  # or None
 
-# Weekly self-tune, live since 2026-09-25. Learns from each team's EPA margin
-# (how well it actually played, play by play) vs what the model projected --
-# NOT from the final score, which the weekly ratings re-fit already uses.
+# Weekly self-tune: OFF since 2026-10-29 (expert review, Jameson approved).
+# It learned from each team's EPA margin vs what the model projected, max 0.5
+# pt a game. Alone it helped a little (scripts/adjust_lab.py), but on top of
+# the game factors it cost 0.85 pt of straight-up accuracy on 2021-25 (about
+# 12 picks, t -2.1) and improved nothing (scripts/ablation.py). alpha 0 = off;
+# the other settings are the version that ran 2026-09-25 to 10-28.
 #   signal       "epa"  -- "score" is the old version
-#   alpha        1.0    -- full strength is safe here; the ceiling sets the dose
+#   alpha        0.0    -- 1.0 was the live strength
 #   max_game_adj 0.5    -- no game moves more than half a point
 #   resid_clip   14.0   -- one game can teach at most a 14-point EPA miss
-# Measured (scripts/adjust_lab.py, 2013-2020 pick, 2021-2025 confirm): at a
-# 0.5-pt ceiling all 27 EPA variants improved hold-out accuracy; bigger
-# ceilings made it worse. Value picks were NOT improved. See IMPROVEMENT.md.
-SELFTUNE = dict(signal="epa", alpha=1.0, half_life=3.0, cap=99.0,
+SELFTUNE = dict(signal="epa", alpha=0.0, half_life=3.0, cap=99.0,
                 max_game_adj=0.5, resid_clip=14.0)
 
 # ─────────────────────────────────────────────
@@ -298,15 +298,17 @@ SELFTUNE = dict(signal="epa", alpha=1.0, half_life=3.0, cap=99.0,
 # Points added to a side, per unit of each factor (home minus away):
 #   inj_total     non-QB starter-equivalents out (prior-season snap share),
 #                 away minus home -- per full-time starter missing
-#   eff_epa       opponent-adjusted net EPA/play (offense minus defense allowed)
 #   rt_rest_diff  rest days, home minus away, clipped to +/-7
-# Chosen and weighted in scripts/factor_lab.py: ridge on the frozen model's
-# miss, penalty picked on 2013-20; this combination on 2021-25 (never seen):
-# straight-up 64.4% -> 65.4%, margin error 10.079 -> 10.000 (t 2.6, 3/5
-# seasons). Weights below are the same fit on 2013-2025. Injuries alone scored
-# best for betting; EPA adds winners, rest is neutral. Re-fit with
-# scripts/factor_lab.py; weekly health check in scripts/factor_check.py.
-FACTORS = dict(inj_total=0.703, eff_epa=1.191, rt_rest_diff=0.087)
+# Weights: scripts/refit_factors.py (2026-10-29), ridge on the miss of the
+# model as it runs (frozen projection + trend fix, self-tune off), fit on
+# 2013-2025. Same set fit on 2013-20 only, on 2021-25 (never seen): straight
+# up 65.4% -> 66.0%, margin error 9.944 -> 9.876 (t -2.6). Injuries carry it;
+# rest is about neutral (its 2013-20 weight is 0.004 a day).
+# Opponent-adjusted EPA/play (eff_epa, 1.191) ran Weeks 4-7 of 2026 and was
+# dropped 2026-10-29: on 2021-25 it lowered card ROI +0.7% -> -2.4% and
+# helped neither straight-up picks nor error. Weekly health check:
+# scripts/factor_check.py.
+FACTORS = dict(inj_total=0.637, rt_rest_diff=0.048)
 
 # ─────────────────────────────────────────────
 # VALIDATION BAR
