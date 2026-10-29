@@ -192,6 +192,11 @@ def test_market_ratings_respect_asof_cutoff():
     early, _ = fit_market_ratings(g, 2025, asof_week=3)
     assert any(abs(full[t] - early[t]) > 1e-6 for t in full), \
         "asof_week had no effect — the leak guard is not working"
+    # Same rule live and in replay: weeks 1-3 in, week 4 on out.
+    s = g[g.season == 2025]
+    same, _ = fit_market_ratings(s[s.week <= 3], 2025)
+    assert all(abs(same[t] - early[t]) < 1e-9 for t in early), \
+        "asof_week should keep exactly the lines through the week being predicted"
 
 
 # ── key numbers ──────────────────────────────────────────────────
@@ -271,14 +276,28 @@ def test_deployed_model_is_leak_free():
 
     full = NFLModel().fit(df, season, week, market_games=df)
 
+    # This week's lines are posted before kickoff, so the prior may use them
+    # (live does). Nothing from a later week may matter.
     cut = season * RATINGS.offseason_weeks_equiv + week
-    trunc = df[_time_index(df.season, df.week, RATINGS) < cut]
+    trunc = df[_time_index(df.season, df.week, RATINGS) <= cut]
     truncated = NFLModel().fit(trunc, season, week, market_games=trunc)
 
     for team in full.team_ratings:
         assert full.team_ratings[team] == pytest.approx(
             truncated.team_ratings[team], abs=1e-9), f'{team} leaks future data'
     assert full.hfa == pytest.approx(truncated.hfa, abs=1e-9)
+
+    # ...and this week's RESULTS must not matter: flip every score this week.
+    flipped = trunc.copy()
+    now = (flipped.season == season) & (flipped.week == week)
+    assert now.sum() > 0
+    flipped.loc[now, 'result'] = -flipped.loc[now, 'result']
+    flipped.loc[now, ['home_score', 'away_score']] = \
+        flipped.loc[now, ['away_score', 'home_score']].to_numpy()
+    blind = NFLModel().fit(flipped, season, week, market_games=flipped)
+    for team in full.team_ratings:
+        assert full.team_ratings[team] == pytest.approx(
+            blind.team_ratings[team], abs=1e-9), f'{team} sees this week\'s result'
 
 
 # ── quarterback identity & starter resolution ────────────────────

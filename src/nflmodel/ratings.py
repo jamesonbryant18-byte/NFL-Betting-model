@@ -152,12 +152,18 @@ def fit_market_ratings(
 
     This is the sharpest preseason prior obtainable without paying for one.
 
-    asof_week is a leak guard. Live it is harmless -- only this week's lines
-    exist yet. But replayed over a COMPLETED season the unfiltered version sees
-    every closing line in the year, including games not yet played at the
-    simulated moment, which is worth about a quarter point of counterfeit
-    accuracy. Pass asof_week in any backfill or backtest; leave it None only
-    when genuinely running forward in time.
+    asof_week is a leak guard: it keeps lines from earlier weeks AND the week
+    being predicted (those lines are posted before kickoff), never later weeks.
+    Without it, a replay of a COMPLETED season sees every closing line in the
+    year, worth about a quarter point of counterfeit accuracy.
+
+    The rule is the same live and in replay (expert review 2026-10-28). It used
+    to keep "earlier weeks or anything unplayed", which live meant this week's
+    lines plus lines already posted for future weeks, and in replay meant only
+    earlier weeks -- so the hold-out measured a different model from the one
+    that ran (projections 0.34 pt apart on average, 2021-25 MAE 10.079 vs
+    10.022). In replay the week's own line is its close; live it is the line at
+    run time, which on the game-day run is close to the close.
     """
     teams = teams or TEAMS
     idx = {t: i for i, t in enumerate(teams)}
@@ -168,9 +174,8 @@ def fit_market_ratings(
     ].copy()
 
     if asof_week is not None:
-        # Keep lines from earlier weeks and from any game not yet played.
-        already_played = lines.get("played", pd.Series(False, index=lines.index))
-        lines = lines[(lines["week"] < asof_week) | (~already_played.fillna(False))]
+        # Earlier weeks plus the week being predicted; never a later week.
+        lines = lines[lines["week"] <= asof_week]
 
     if len(lines) < n_teams:
         return {t: 0.0 for t in teams}, params_hfa_default()
