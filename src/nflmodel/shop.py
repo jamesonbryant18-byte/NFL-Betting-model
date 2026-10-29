@@ -189,7 +189,7 @@ def _attach_single_book(out: pd.DataFrame, raw: pd.DataFrame, book: str,
     d = odds.dedupe(raw)
     mine = d[d.book == book].set_index("game")
     report["books"] = [book]
-    missing, moved, matched = [], [], 0
+    missing, moved, matched, borrowed = [], [], 0, []
     cols = {c: [] for c in ("spread_line", "home_moneyline", "away_moneyline",
                             "home_spread_odds", "away_spread_odds",
                             "n_books", "odds_source")}
@@ -208,9 +208,19 @@ def _attach_single_book(out: pd.DataFrame, raw: pd.DataFrame, book: str,
                         home_spread_odds=r.get("spread_odds"),
                         away_spread_odds=r.get("away_spread_odds"),
                         n_books=1, odds_source=book)
-            for c in ("home_spread_odds", "away_spread_odds"):
-                if vals[c] is None or pd.isna(vals[c]):
-                    vals[c] = g.get(c)
+            # A spread price the book did not post is borrowed from the stored
+            # (nflverse/DraftKings) line and SAID so: never shown as the book's
+            # own (expert review 2026-10-29). If the stored line is a different
+            # number, its price does not apply at all and -110 is assumed.
+            gaps = [c for c in ("home_spread_odds", "away_spread_odds")
+                    if vals[c] is None or pd.isna(vals[c])]
+            if gaps:
+                same = pd.notna(old) and float(old) == float(r.spread)
+                for c in gaps:
+                    vals[c] = g.get(c) if same else None
+                vals["odds_source"] = (f"{book} (spread price: stored line)" if same
+                                       else f"{book} (spread price: -110 assumed)")
+                borrowed.append((k, vals["odds_source"]))
         else:
             missing.append(k)
             vals = dict(spread_line=g.get("spread_line"),
@@ -225,7 +235,8 @@ def _attach_single_book(out: pd.DataFrame, raw: pd.DataFrame, book: str,
         out[c] = v
 
     report.update(ok=matched > 0, n_matched=matched, moved=moved,
-                  missing=missing, source=book if matched else "nflverse",
+                  missing=missing, borrowed=borrowed,
+                  source=book if matched else "nflverse",
                   single_book=book,
                   reason=None if matched else f"{book} not in the odds feed")
     if verbose:
@@ -235,6 +246,9 @@ def _attach_single_book(out: pd.DataFrame, raw: pd.DataFrame, book: str,
                   f"nflverse line; check {book} before betting it")
         for k, old, new in moved:
             print(f"           {k:<10} stored {old:+.1f} -> {book} {new:+.1f}")
+        for k, src in borrowed:
+            print(f"  WARNING: {book} posted no spread price for {k} -- {src}; "
+                  f"check {book}'s price before betting the spread")
     return out, report
 
 

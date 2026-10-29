@@ -32,6 +32,26 @@ def test_single_book_uses_only_that_books_numbers(monkeypatch):
     assert r.odds_source == "fanduel" and rep["single_book"] == "fanduel"
 
 
+def test_single_book_never_labels_a_borrowed_price_as_its_own(monkeypatch):
+    """Expert review 2026-10-29: FanDuel spread juice missing -> say where it came from."""
+    raw = _raw()
+    raw.loc[raw.book == "fanduel", ["spread_odds", "away_spread_odds"]] = None
+    monkeypatch.setattr(shop.odds, "live_odds", lambda s, w: raw)
+    base = dict(game_id="g", home_team="BBB", away_team="AAA", home_moneyline=-110,
+                away_moneyline=-110, home_spread_odds=-125, away_spread_odds=105)
+    out, rep = shop.attach_live_odds(pd.DataFrame([dict(base, spread_line=-3.0)]),
+                                     2026, 3, book="fanduel", verbose=False)
+    r = out.iloc[0]
+    assert r.odds_source == "fanduel (spread price: stored line)"   # same number: price kept
+    assert (r.home_spread_odds, r.away_spread_odds) == (-125, 105)
+    out, _ = shop.attach_live_odds(pd.DataFrame([dict(base, spread_line=-1.0)]),
+                                   2026, 3, book="fanduel", verbose=False)
+    r = out.iloc[0]
+    assert r.odds_source == "fanduel (spread price: -110 assumed)"  # other number: not its price
+    assert pd.isna(r.home_spread_odds) and pd.isna(r.away_spread_odds)
+    assert rep["borrowed"] == [("AAA@BBB", "fanduel (spread price: stored line)")]
+
+
 def test_single_book_missing_game_keeps_stored_line(monkeypatch):
     monkeypatch.setattr(shop.odds, "live_odds", lambda s, w: _raw())
     slate = pd.DataFrame([dict(game_id="g", home_team="ZZZ", away_team="YYY",
