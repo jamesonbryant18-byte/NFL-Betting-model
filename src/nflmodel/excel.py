@@ -59,7 +59,7 @@ from .betlog import (BET_LOG_COLUMNS, TRACKER_FIRST_ROW, TRACKER_LAST_ROW,
                      protect_tracker_copies, read_csv_rows, read_tracker_rows,
                      record_tracker_state, sheet_cells, tracker_changes,
                      write_csv_rows)
-from .config import OUTPUT_DIR, REPO_ROOT, STAKING
+from .config import FACTORS, OUTPUT_DIR, REPO_ROOT, STAKING
 from .data import TEAMS
 from .market import format_spread
 
@@ -92,13 +92,19 @@ CHART_GRID = "E0E0E0"
 # The hold-out verdict, quoted on the sheets that show an edge. These are the
 # README's numbers; they are here so the workbook cannot drift into
 # presenting picks as more confident than the validation supports.
+# The model as it runs from 2026 Week 8, replayed on 2021-25 with everything
+# fit on 2013-20 only (scripts/replay_deployed.py, expert review 2026-10-29).
 HOLDOUT = {
     "seasons": "2021-25 hold-out, n = 1,424",
-    "bare_ats": "48.6% ATS, −7.3% ROI at a 1.5-pt edge (bare ratings)",
-    "deployed_ats": "50.1% ATS, −4.3% ROI at a 1.5-pt edge (deployed model, with market prior)",
-    "ml": "38.8%, −9.5% ROI on moneylines at a 3% edge",
-    "mae": "MAE 10.08 vs the closing line's 9.76",
-    "coef": "incremental coefficient vs the line −0.018 (t = −0.1): zero information beyond the line",
+    "su": "straight up 66.0% vs 66.5% for simply taking the closing favorite "
+          "(−0.5 pt, t −0.7: level within the noise)",
+    "card": "the weekly card at closing prices won 55.6% against a 56.0% break-even, "
+            "ROI +0.7% (SE 3.6%) on 649 bets; the model said 61.5%",
+    "mae": "margin error 9.88 vs the closing line's 9.76",
+    "coef": "incremental coefficient vs the line +0.34 (t = 1.9): a hint of information "
+            "beyond the line, not proven",
+    "calibration": "win % calibration slope 0.93 (1.00 = honest): picks called 75% won 73%, "
+                   "84% won 81%",
     "breakeven": "break-even at −110 is 52.38%",
 }
 
@@ -393,7 +399,7 @@ def build_workbook(
         # First workbook ever, or output/ was lost: build the sheet, and
         # restore his rows from the CSV backup if there is one.
         _sheet_tracker(wb, preserved)
-    _sheet_history(wb, history, season, week)
+    _sheet_history(wb, history, season, week, _bet_values(games, season))
     _sheet_miss_report(wb, trends_state)
     _sheet_rosters(wb, team_stats)
     _sheet_injuries(wb, team_stats)
@@ -805,7 +811,10 @@ def _sheet_model_data(wb, slate):
 # PICKS
 # ─────────────────────────────────────────────
 
-BETS_HEADERS = ["Game", "Kickoff", "Bet", "Market", "Odds", "Stake", "Model Picks", "Win Chance",
+# "Bet Wins %" is the chance THIS BET wins (a spread's cover %, pushes left
+# out), not the game win %: a 76% favorite laying 4.5 covers about 55%
+# (expert review 2026-10-29).
+BETS_HEADERS = ["Game", "Kickoff", "Bet", "Market", "Odds", "Stake", "Model Picks", "Bet Wins %",
                 "Why"]
 
 
@@ -848,10 +857,15 @@ def _sheet_bets(wb, slate, season, week, model_meta):
             d = g.to_dict()
             home, away = d["home_team"], d["away_team"]
             hwp = _num(d.get("home_win_prob")) or 0.5
-            pick, wp = (home, hwp) if hwp >= 0.5 else (away, 1 - hwp)
+            pick = home if hwp >= 0.5 else away
+            chance = _num(d.get("bet_chance"))
+            if chance is None:
+                from .model import bet_chance
+                chance = _num(bet_chance(d))
             vals = [f"{away} @ {home}", _kickoff(d.get("weekday"), d.get("gametime")),
                     _text(d.get("bet_side")), _text(d.get("bet_market")).title(),
-                    _num(d.get("bet_odds")), _num(d.get("stake")), pick, wp, _text(d.get("bet_why"))]
+                    _num(d.get("bet_odds")), _num(d.get("stake")), pick, chance,
+                    _text(d.get("bet_why"))]
             for j, v in enumerate(vals, start=1):
                 c = ws.cell(row=r, column=j, value=_clean(v))
                 c.border = thin_border()
@@ -976,12 +990,11 @@ SLATE_LAST_COL = get_column_letter(len(SLATE_HEADERS))
 
 def _advisory_banner(model_meta) -> str:
     if model_meta.get("advisory", True):
-        return ("ADVISORY MODE — LEANs, $0 staked. The hold-out backtest (2021-25) found no "
-                f"edge against closing lines: {HOLDOUT['bare_ats']}; deployed model "
-                "50.1%, −4.3% ROI. Read an edge as a disagreement worth logging for CLV, "
+        return ("ADVISORY MODE — LEANs, $0 staked. No proven edge on the 2021-25 hold-out: "
+                f"{HOLDOUT['card']}. Read an edge as a disagreement worth logging for CLV, "
                 "not as a bet. Full verdict on Reference & Glossary.")
-    return ("LIVE STAKING — ADVISORY_MODE is off in config.py. The hold-out backtest still "
-            f"shows no edge against closing lines ({HOLDOUT['bare_ats']}). "
+    return ("LIVE STAKING — ADVISORY_MODE is off in config.py. No proven edge on the 2021-25 "
+            f"hold-out: {HOLDOUT['card']}. "
             + (f"Every bet is a flat ${STAKING.flat_stake:.0f}; " if STAKING.flat_stake
                else "Stakes are half-Kelly, capped; ")
             + "see Reference & Glossary.")
@@ -2101,8 +2114,10 @@ def _tracker_charts(ws, install_all: bool) -> list:
 
 LOG_HEADERS = ["Week", "Date", "Game", "Model Picked", "Win Chance", "Confidence",
                "Final Score", "Winner", "Model Right?", "Model Bet", "Bet Type", "Model Bet Result",
-               "Your Bet", "Stake", "Your Result", "Your P&L"]
-LOG_HEADER_ROW = 8
+               "Your Bet", "Stake", "Your Result", "Your P&L",
+               # expert review 2026-10-29: the yardsticks a lucky streak can't fake
+               "Favorite", "Favorite Right?", "Model Bet Value @ Close"]
+LOG_HEADER_ROW = 10
 
 
 def _your_bet_outcome(d):
@@ -2138,7 +2153,33 @@ def _your_bet_outcome(d):
     return res, (win if res == "WIN" else (-stake if res == "LOSS" else 0.0))
 
 
-def _sheet_history(wb, hist, season, week):
+def _bool_cell(v) -> bool:
+    if isinstance(v, str):
+        return v.strip().lower() in ("true", "1", "yes", "y")
+    try:
+        return bool(v) and not pd.isna(v)
+    except (TypeError, ValueError):
+        return bool(v)
+
+
+def _bet_values(games, season) -> dict:
+    """(week, bet) -> each model bet's value at the price taken (scorecard.py); {} on failure."""
+    if games is None:
+        return {}
+    try:
+        from .scorecard import model_bets
+        from .trends import margin_model_for_history
+        b = model_bets(season, range(1, 23), games, margin_model_for_history())
+    except Exception as exc:                          # noqa: BLE001
+        print(f"WARNING: Bet Log value at the close unavailable ({type(exc).__name__}: {exc})")
+        return {}
+    if b.empty:
+        return {}
+    return {(int(r.week), r.bet): float(r.value_at_close)
+            for r in b.itertuples() if pd.notna(r.value_at_close)}
+
+
+def _sheet_history(wb, hist, season, week, bet_values=None):
     """
     Bet Log: one row per game the model has ever picked, in plain terms --
     who it picked, who won, whether it was right, plus the model's bet and
@@ -2146,18 +2187,28 @@ def _sheet_history(wb, hist, season, week):
 
     Rows come from the tracked picks/ archive, never a rebuild, so every game
     is scored against what the model actually said at the time.
+
+    Two yardsticks sit beside the model (expert review 2026-10-29): simply
+    taking the market favorite (at publication), and each model bet's value
+    at the price taken -- its expected return if FanDuel's de-vigged close is
+    the truth (scorecard.value_at_price). `bet_values` maps (week, bet) to it.
     """
+    bet_values = bet_values or {}
     ws = wb.create_sheet("Bet Log")
     ws.tab_color = DARK_GOLD
     set_widths(ws, {"A": 7, "B": 9, "C": 13, "D": 13, "E": 11, "F": 11, "G": 18, "H": 9,
-                    "I": 13, "J": 14, "K": 21, "L": 15, "M": 17, "N": 8, "O": 12, "P": 10})
+                    "I": 13, "J": 14, "K": 21, "L": 15, "M": 17, "N": 8, "O": 12, "P": 10,
+                    "Q": 10, "R": 13, "S": 14})
     lastc = get_column_letter(len(LOG_HEADERS))
     apply_header(ws, "A1", "BET LOG — who the model picked, who won, and whether it was right",
                  merge_to=f"{lastc}1", size=16)
     ws.row_dimensions[1].height = 30
     _banner(ws, 2, "One row per game. Green = right, red = wrong. \"Model Bet\" is the model's bet; "
                    "\"Bet Type\" says if it backs the model's pick or is a value bet on the other team; \"Your Bet\" is pulled from the Bet Tracker and graded "
-                   "from the final score. A few weeks is still mostly luck.", lastc, height=30)
+                   "from the final score. \"Favorite\" is the market favorite when the pick was "
+                   "published; \"Model Bet Value @ Close\" is what the model's bet was worth at "
+                   "FanDuel's closing price (+ = it beat the market). A few weeks is still mostly "
+                   "luck; the value column is not.", lastc, height=44)
 
     H = LOG_HEADER_ROW
     first = H + 1
@@ -2170,11 +2221,16 @@ def _sheet_history(wb, hist, season, week):
     right, wrong = f'COUNTIF({rng("I")},"YES")', f'COUNTIF({rng("I")},"NO")'
     vcount = lambda x: f'COUNTIFS({rng("K")},"VALUE — AGAINST PICK",{rng("L")},"{x}")'
     vw, vl = vcount("WIN"), vcount("LOSS")
+    fav_r, fav_w = f'COUNTIF({rng("R")},"YES")', f'COUNTIF({rng("R")},"NO")'
     board = [
         (5, "Model's pick won the game",
          f'=IFERROR({right}/({right}+{wrong}),"—")', f'={right}&" of "&({right}+{wrong})'),
         (6, "Value picks won",
          f'=IFERROR({vw}/({vw}+{vl}),"—")', f'={vw}&" of "&({vw}+{vl})'),
+        (7, "Taking every favorite won",
+         f'=IFERROR({fav_r}/({fav_r}+{fav_w}),"—")', f'={fav_r}&" of "&({fav_r}+{fav_w})'),
+        (8, "Model's bets: value at the price taken",
+         f'=IFERROR(AVERAGE({rng("S")}),"—")', f'=COUNT({rng("S")})&" bets, FanDuel close"'),
     ]
     for row, label, pct, count in board:
         lc = ws.cell(row=row, column=1, value=label)
@@ -2182,7 +2238,7 @@ def _sheet_history(wb, hist, season, week):
         ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=3)
         c = ws.cell(row=row, column=4, value=pct)
         c.font, c.alignment, c.border, c.fill = Font(bold=True, color=NAVY, size=14), center(), thin_border(), fill(LIGHT_GRAY)
-        c.number_format = "0%"
+        c.number_format = "+0.0%;-0.0%" if row == 8 else "0%"
         n = ws.cell(row=row, column=5, value=count)
         n.font, n.alignment, n.border = Font(color=MUTED, size=10), center(), thin_border()
         ws.row_dimensions[row].height = 24
@@ -2212,6 +2268,11 @@ def _sheet_history(wb, hist, season, week):
             if your_bet and odds is not None:
                 your_bet += f" ({odds:+.0f})"
             your_res, pnl = _your_bet_outcome(d)
+            home, away = _text(d.get("home")), _text(d.get("away"))
+            fav = (_text(d.get("pick")) if _bool_cell(d.get("market_favorite"))
+                   else (away if _text(d.get("pick")) == home else home))
+            winner = _text(d.get("actual_winner"))
+            fav_right = ("YES" if winner == fav else "NO") if winner and winner != "TIE" else "—"
             rows.append([
                 d.get("week"), _as_date(d.get("gameday")), d.get("matchup"), d.get("pick"),
                 _num(d.get("win_prob")), _text(d.get("tier")),
@@ -2219,10 +2280,13 @@ def _sheet_history(wb, hist, season, week):
                 model_bet, _text(d.get("lean_type")) or "—", model_res,
                 your_bet or "—", _num(d.get("bet_stake")) if your_bet else None,
                 your_res or ("—" if not your_bet else "pending"), pnl,
+                fav, fav_right,
+                bet_values.get((int(_num(d.get("week")) or 0), model_bet)),
             ])
     last = _write_table(
         ws, H, LOG_HEADERS, rows,
-        formats={2: "m/d/yy", 5: "0%", 14: '"$"#,##0', 16: '"+$"#,##0.00;"-$"#,##0.00;"$0.00"'},
+        formats={2: "m/d/yy", 5: "0%", 14: '"$"#,##0', 16: '"+$"#,##0.00;"-$"#,##0.00;"$0.00"',
+                 19: "+0.0%;-0.0%"},
         bold_cols=(4, 8, 9),
     )
     if n_rows == 0:
@@ -2238,6 +2302,10 @@ def _sheet_history(wb, hist, season, week):
     good_bad("I", "YES", "NO")
     good_bad("L", "WIN", "LOSS")
     good_bad("O", "WIN", "LOSS")
+    good_bad("R", "YES", "NO")
+    for col, op, color in (("S", ">", "1B5E20"), ("S", "<", "B71C1C")):
+        ws.conditional_formatting.add(f"{col}{first}:{col}{last}", FormulaRule(
+            formula=[f"AND(ISNUMBER({col}{first}),{col}{first}{op}0)"], font=Font(bold=True, color=color)))
     ws.conditional_formatting.add(f"P{first}:P{last}", FormulaRule(
         formula=[f"AND(ISNUMBER(P{first}),P{first}>0)"], font=Font(bold=True, color="1B5E20")))
     ws.conditional_formatting.add(f"P{first}:P{last}", FormulaRule(
@@ -2270,8 +2338,8 @@ SHEET_GUIDE = [
     ("Game Detail", "The matchup picker: choose a game from the dropdown and every cell looks up that game — ratings, QB terms, home field, market prior, cover/push, moneyline edges, the ticket."),
     ("Team Stats", "One row per team: record, points for/against, differential, ATS record, rating and rank, starting QB and where that name came from, roster by position group, the injured list with expected returns."),
     ("Power Ratings", "The fitted ratings entering this week, in points against an average team."),
-    ("Bet Tracker", "Yours to fill in. The model reads it (Your Bet on the Bet Log, the weekly review) and never edits it; each new workbook carries it forward exactly as you left it, backed up to data/bet_log.csv. The four charts to the right of the table update as you log and grade bets; delete any you do not want and it stays deleted."),
-    ("Bet Log", "One row per game: who the model picked, who won, whether it was right, the model's bet and your bet with results. Win rate of the model's picks and of its value picks at the top."),
+    ("Bet Tracker", "Yours to fill in. The model reads it (Your Bet on the Bet Log, the weekly review) and never changes what you typed; the one thing it adds is FanDuel's closing number in Closing Line / Closing Odds cells you left blank (your ask, 2026-10-29), so the CLV columns work. Each new workbook carries it forward exactly as you left it, backed up to data/bet_log.csv. The four charts to the right of the table update as you log and grade bets; delete any you do not want and it stays deleted."),
+    ("Bet Log", "One row per game: who the model picked, who won, whether it was right, the model's bet and your bet with results, the market favorite (did simply taking it do better?), and each model bet's value at FanDuel's closing price. Those rates are at the top."),
     ("Rosters / Injuries", "The player-level detail behind Team Stats, one row per player, filterable."),
 ]
 
@@ -2413,15 +2481,21 @@ def _sheet_reference(wb, backtest_summary, model_meta=None):
         row += 1
 
     section("READ THIS FIRST — WHAT THE VALIDATION SAYS")
-    entry("Verdict", "This model has no demonstrated edge against NFL closing lines. It ships in ADVISORY MODE: "
-                     "every sheet reports LEANs, not BETs, and stakes $0. That default is a measured finding, not "
-                     "an unfinished feature.", emphasis=True)
-    entry("Hold-out, bare ratings", f"{HOLDOUT['bare_ats']} ({HOLDOUT['seasons']}). {HOLDOUT['breakeven']}.")
-    entry("Hold-out, deployed model", f"{HOLDOUT['deployed_ats']}. {HOLDOUT['mae']}. The lower error is more deference to the market, not model improvement.")
-    entry("Moneyline", HOLDOUT["ml"] + ".")
+    entry("Verdict", "This model has no proven edge against NFL closing lines. "
+                     + ("It runs in ADVISORY MODE: LEANs, $0 staked." if model_meta.get("advisory", True)
+                        else "It runs in decision mode by your choice (2026-09-14): "
+                             + (f"flat ${STAKING.flat_stake:.0f} bets" if STAKING.flat_stake else "half-Kelly stakes")
+                             + (f", {STAKING.card_min}-{STAKING.card_max} a week" if STAKING.card_max else "")
+                             + ". Every bet is graded twice on the Bet Log: by the result (mostly luck "
+                               "over a few weeks) and by its value at FanDuel's closing price (much less luck)."),
+          emphasis=True)
+    cap = lambda t: t[:1].upper() + t[1:]
+    entry("Hold-out, straight up", f"{cap(HOLDOUT['su'])} ({HOLDOUT['seasons']}). {cap(HOLDOUT['calibration'])}.")
+    entry("Hold-out, the bets", f"{cap(HOLDOUT['card'])}. {cap(HOLDOUT['breakeven'])}.")
+    entry("Hold-out, margin", f"{cap(HOLDOUT['mae'])}. Most of the model's accuracy comes from leaning on the market.")
     entry("The decisive test", "Regress actual results on both the closing line and the model's projection: " + HOLDOUT["coef"] + ".")
     entry("Tuning seasons looked good", "2013-20 showed 53.2% ATS and +1.6% ROI. That gap between tuning and hold-out IS the overfitting, made visible. Never quote tuning-season numbers as results.")
-    entry("What would change this", "Closing line value. Log leans on the Bet Tracker at the numbers you can get; after ~40-50 picks, consistently positive CLV is the first real evidence. Flat or negative means the hold-out was right.")
+    entry("What would change this", "Beating the close. The Bet Log's 'Model Bet Value @ Close' is each bet's expected return at FanDuel's de-vigged closing price; over 40-50 bets a clearly positive average is the first real evidence of an edge. Through 2026 Week 7 it was about −2.8% a bet: the record ran ahead of the bets.")
     entry("Mode this run", ("Advisory (LEANs, $0)" if model_meta.get("advisory", True) else "LIVE STAKING — ADVISORY_MODE is off")
                            + (f"; home field {model_meta['hfa']:+.2f} pts" if model_meta.get("hfa") is not None else "")
                            + (f"; market prior weight {model_meta['market_prior_weight']:.0%}" if model_meta.get("market_prior_weight") is not None else "")
@@ -2454,7 +2528,7 @@ def _sheet_reference(wb, backtest_summary, model_meta=None):
     if STAKING.flat_stake:
         entry("Half Kelly", f"Used only as a yes/no test: a bet qualifies when it clears its edge threshold AND half-Kelly on a ${STAKING.bankroll:,.0f} reference bankroll would stake at least ${STAKING.min_bet:.0f}. The amount is always a flat ${STAKING.flat_stake:.0f} (your choice, 2026-09-30).")
         if STAKING.card_max:
-            entry("Weekly card", f"At most {STAKING.card_max} bets a week (your choice, 2026-10-07): every qualifying bet is ranked by the model's chance that the BET wins, and the top {STAKING.card_max} make the card. Fewer than {STAKING.card_min} qualifying: the closest misses that still have positive expected value fill in, marked FILLER. On the 2021-25 hold-out, top {STAKING.card_max} vs everything: won 55.4% vs 52.2%, ROI -0.7% vs -3.9%. That is not a proven edge, just a better-sorted card.")
+            entry("Weekly card", f"At most {STAKING.card_max} bets a week (your choice, 2026-10-07): every qualifying bet is ranked by the model's chance that the BET wins, and the top {STAKING.card_max} make the card. Fewer than {STAKING.card_min} qualifying: the closest misses that still have positive expected value fill in, marked FILLER. On the 2021-25 hold-out (scripts/replay_deployed.py): {HOLDOUT['card']}. Not a proven edge.")
     else:
         entry("Half Kelly", f"This model stakes at {STAKING.kelly_fraction:.0%} of Kelly, capped at {STAKING.max_bet_pct:.1%} of bankroll and {STAKING.max_weekly_exposure_pct:.0%} per week — roughly three-quarters of the growth at half the volatility. In advisory mode every stake is $0.")
 
@@ -2465,8 +2539,12 @@ def _sheet_reference(wb, backtest_summary, model_meta=None):
         entry("Model error (MAE)", f"{backtest_summary.get('model_mae', 0):.2f} points per game")
         entry("Closing line error (MAE)", f"{backtest_summary.get('market_mae', 0):.2f} points per game")
         entry("Verdict", backtest_summary.get("verdict", ""))
-    entry("Situational factors", "Rest, weather, travel, divisional games and Week 17-18 spots were each measured against 5,431 games of closing lines. None showed mispricing at even |t|=2, so all ship at zero. They are not missing — they were tested and rejected.")
-    entry("Injuries", "An aggregate injury-burden term was measured too: pooled it looks like an edge, but it fails season-clustering, loses money in six of twelve seasons, and stale absences carry more signal than fresh ones. It ships at zero; the roster data earns its place through the quarterback and through the Team Stats sheet.")
+    entry("Situational factors", "Weather, travel, divisional games and Week 17-18 spots were each measured against 5,431 games of closing lines. None showed mispricing at even |t|=2, so they ship at zero: tested and rejected, not missing. Rest rides in the game factors at "
+          + f"{FACTORS.get('rt_rest_diff', 0):.3f} pt per day of rest difference (measured about neutral).")
+    entry("Injuries", "Non-QB injuries are a live game factor (2026 Week 4 on): "
+          + f"{FACTORS.get('inj_total', 0):.2f} pt per full-time starter out, by prior-season snap share. "
+            "On 2021-25, with the weight fit on 2013-20, they lower margin error (t −2.6) and add straight-up winners; without them the card replay falls from +0.7% to −3.5%. "
+            "Opponent-adjusted EPA/play ran Weeks 4-7 of 2026 and was dropped 2026-10-29 (it made the win % and the card worse); the weekly self-tune was switched off the same day (it added nothing).")
 
     section("HONEST LIMITS")
     entry("The line is very good", "The closing spread is among the most accurate forecasts in any domain. Most public models do not beat it, and a model that claims a large edge is usually leaking future information.")
