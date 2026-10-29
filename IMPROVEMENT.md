@@ -124,8 +124,8 @@ direction that felt worst on Sunday.
 Jameson asked for a grade on seven live weeks: "whats working and what hasnt
 and why, lets do more of whats working and fix what isnt." His goals, in
 order: pick more winners straight up, then edge bets that are "great and not
-lucky". A fresh grader scored round 1 at 40/100 against a locked rubric
-(`.expert-review/`, not committed). The main finding: nothing measured the
+lucky". A fresh grader scored round 1 against a locked rubric
+(`.expert-review/`, not committed; scores are kept there, not here). The main finding: nothing measured the
 model *as it runs*. Each lab rebuilt its own version; the hold-out replay used
 a different market prior than the live run (projections 0.34 pt apart;
 `fit_market_ratings` now uses the week being predicted on both); and the win-%

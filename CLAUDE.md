@@ -464,7 +464,9 @@ grade on seven live weeks ("whats working and what hasnt and why, lets do more
 of whats working and fix what isnt"). Goals, in order: straight-up accuracy,
 then edge bets that are "great and not lucky". Locked, bug-checked only:
 FanDuel, spreads + moneylines, $5 a bet, 4-7 bets a week. A fresh grader scored
-round 1 at 40/100 (`.expert-review/`, untracked: rubric v2, brief, grades).
+round 1 against a locked rubric (`.expert-review/`, untracked: rubric v2,
+brief, grades; scores stay there, out of the repo docs, so each fresh grader
+starts unanchored).
 He approved every fix except "pick the favorite in close games" ("basic and
 boring") and game-day QB guardrails (his own check). Branch
 `expert-review/round-1`, merged to main:
@@ -491,6 +493,22 @@ Deployed model on 2021-25: SU 65.99% vs taking the favorite 66.48%; error
 Live Weeks 1-7: 64-42 vs favorite 67-39; card 25-19-1 but value at the price
 taken -2.8% a bet (+/- 1.5%). The card-ranking blend he asked about was
 tested and not switched (IMPROVEMENT.md).
+
+**Week 8 built 2026-10-29 11:49 ET (before TNF CAR @ GB), on the fixed
+model**: `run_week.py --week 8 --refresh`, NO overrides (the depth chart
+already has BAL Lamar Jackson, Questionable ankle, full practice Wed, reported
+likely to play; PHI Tanner McKee, Hurts on IR for the season). Card, $5 each:
+PHI +5.5 (rests on McKee at replacement level, -3.30), MIN +3.5, SEA -3,
+LV +1.5, MIA +7, BUF -168 (assumes Lamar; Huntley = 1.5 pts toward BUF).
+TNF CAR @ GB: no bet, GB 66.8%. Straight-up picks against the market
+favorite: LV over NYJ (52.6%), DEN over KC (50.6%). Tracker: 2,242 cells
+exact, K6/M5 named, 3 charts redrawn, 42 blank closing cells filled from
+FanDuel. Weeks 1-7 checksums unchanged. `week08_meta.json` records
+factor_weights and selftune_alpha 0. **Sunday roster run: verify BAL; if Lamar
+sits, re-run with `--qb BAL="Tyler Huntley"`.** His tracker typos still show
+in its CLV columns now that closes are filled: MIN @ NO line 1.5 (is MIN
+-1.5), HOU @ JAX 2.5 for JAX (is -2.5); his alt-line rows (CIN +2.5 at -199,
+TB +3.5 at -148) are measured against the main-line close.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
