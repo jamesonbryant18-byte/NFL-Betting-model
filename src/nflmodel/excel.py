@@ -375,6 +375,10 @@ def build_workbook(
     wb = _start_workbook(tracker)
     # His sheet as it was loaded, checked against the saved workbook below.
     his_cells = sheet_cells(wb[TRACKER_SHEET]) if tracker.kind == "workbook" else None
+    # FanDuel's recorded closes in the Closing Line / Closing Odds cells he
+    # left blank (his ask, 2026-10-29). Blank cells only; reported apart.
+    close_fills = (_fill_tracker_closes(wb[TRACKER_SHEET], games, season)
+                   if his_cells is not None else {})
 
     _sheet_lists(wb, pts_table)
     _sheet_bets(wb, slate, season, week, model_meta)
@@ -408,7 +412,7 @@ def build_workbook(
 
     wb.save(path)
     if his_cells is not None:
-        print(_tracker_carry_line(his_cells, path))
+        print(_tracker_carry_line(his_cells, path, close_fills))
     record_tracker_state(OUTPUT_DIR, tracker, path)
     if tracker.kind == "workbook":
         write_csv_rows(preserved, log_path)       # backup of his rows, as typed
@@ -494,23 +498,64 @@ def _his_formulas(cells: dict) -> list:
     return his
 
 
-def _tracker_carry_line(before: dict, path) -> str:
+def _tracker_carry_line(before: dict, path, filled: dict | None = None) -> str:
     """
     The weekly run's check that his tracker reached the new workbook as he
     left it (his standing ask, 2026-10-13: K6, M5 and every formula he adds
     are kept the same each week). Every cell on his sheet is read back from
     the file just written; the line names his own formulas, or what changed.
+    `filled` are the blank closing cells the build filled in on purpose
+    (_fill_tracker_closes): expected in the file, and listed on their own.
     """
-    changed = tracker_changes(before, path)
+    filled = filled or {}
+    changed = tracker_changes({**before, **filled}, path)
     if changed:
         shown = "; ".join(f"{k} was {was!r}, now {now!r}" for k, was, now in changed[:6])
         return (f"WARNING: the Bet Tracker did NOT carry cleanly: {len(changed)} cell(s) differ "
                 f"from the sheet he saved: {shown}" + (" ..." if len(changed) > 6 else ""))
     his = _his_formulas(before)
     named = ", ".join(his[:12]) + (f" +{len(his) - 12} more" if len(his) > 12 else "")
-    return (f"  bet tracker cells: {len(before)} carried exactly as saved "
+    line = (f"  bet tracker cells: {len(before)} carried exactly as saved "
             f"({sum(1 for v in before.values() if _is_formula(v))} formulas)"
             + (f"; formulas you added: {named}" if his else ""))
+    if filled:
+        from openpyxl.utils.cell import coordinate_to_tuple
+        cells = sorted(filled, key=coordinate_to_tuple)
+        line += (f"\n  bet tracker closing numbers: {len(filled)} blank cell(s) filled from "
+                 f"FanDuel's recorded closes: " + ", ".join(cells[:16])
+                 + (f" +{len(cells) - 16} more" if len(cells) > 16 else ""))
+    return line
+
+
+def _fill_tracker_closes(ws, games, season) -> dict:
+    """
+    Write FanDuel's recorded closing numbers into the Closing Line (L) and
+    Closing Odds (M) cells he left blank, so the tracker's own CLV columns
+    work. Returns {cell: value}. Nothing he typed is touched; a failure is a
+    WARNING and no fills, never a lost workbook.
+    """
+    from .betlog import TRACKER_LAST_ROW, _EXTRA_COLS, _USER_COLS
+    from .history import tracker_close_fills
+
+    def val(r, c):                     # read without creating cells
+        cell = ws._cells.get((r, c))
+        return None if cell is None else cell.value
+
+    try:
+        rows = {}
+        for r in range(TRACKER_FIRST_ROW, TRACKER_LAST_ROW + 1):
+            vals = [val(r, c) for c in _USER_COLS]
+            if all(v is None or (isinstance(v, str) and not v.strip()) for v in vals):
+                continue
+            rows[r] = vals + [val(r, c) for c in _EXTRA_COLS]
+        fills = tracker_close_fills(rows, games, season)
+    except Exception as exc:                          # noqa: BLE001
+        print(f"WARNING: closing numbers not filled on the Bet Tracker "
+              f"({type(exc).__name__}: {exc})")
+        return {}
+    for coord, v in fills.items():
+        ws[coord].value = v
+    return fills
 
 
 def _drop_dangling_names(wb) -> None:

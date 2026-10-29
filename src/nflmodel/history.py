@@ -377,6 +377,67 @@ def _with_recorded_close(bet: dict, close_row) -> dict:
     return out
 
 
+def tracker_close_fills(rows_by_number: dict, games: Optional[pd.DataFrame], season: int,
+                        archive_dir=None) -> dict:
+    """
+    {"L14": 3.5, "M14": -110.0, ...}: FanDuel's recorded closing numbers for
+    the tracker cells he left blank (his ask, 2026-10-29). `rows_by_number`
+    maps a sheet row to its raw 12-value row (A..I, L, M, P), as
+    read_tracker_rows reads it.
+
+    A spread bet gets the closing spread from his side (L) and its price (M);
+    a moneyline bet gets the closing price (M). A cell he typed anything into
+    is never in the result, and a close from another book is not used.
+    """
+    bets = []
+    for n, raw in rows_by_number.items():
+        b = parse_row(raw)
+        if b.get("matchup") and b.get("bet_side"):
+            bets.append({**b, "_row": int(n),
+                         "_blank_l": _blank(raw[9]), "_blank_m": _blank(raw[10])})
+    bets = [b for b in bets if b["_blank_l"] or b["_blank_m"]]
+    if not bets:
+        return {}
+    fills: dict = {}
+    for week in range(1, 23):
+        closing = load_closing(season, week, archive_dir)
+        if closing is None or closing.empty:
+            continue
+        for _, c in closing.iterrows():
+            if "fanduel" not in str(c.get("close_source", "")).lower():
+                continue
+            home, away = _text(c["home_team"]), _text(c["away_team"])
+            game = _game_index(games, season, week).get((home, away))
+            for b in match_bets(bets, season, week, f"{away} @ {home}",
+                                _as_date(_get(game, "gameday"))):
+                side = str(b["bet_side"]).split()[0]
+                n = b["_row"]
+                if b["market"] == "SPREAD":
+                    if b["_blank_l"]:
+                        v = side_close(c, "SPREAD", side)
+                        if v is not None:
+                            fills[f"L{n}"] = _cell_num(v)
+                    if b["_blank_m"]:
+                        col = "close_home_spread_odds" if side == home else "close_away_spread_odds"
+                        if pd.notna(c.get(col)):
+                            fills[f"M{n}"] = _cell_num(c[col])
+                elif b["market"] == "MONEYLINE" and b["_blank_m"]:
+                    v = side_close(c, "MONEYLINE", side)
+                    if v is not None:
+                        fills[f"M{n}"] = _cell_num(v)
+    return fills
+
+
+def _cell_num(v):
+    """-150.0 -> -150 (a whole number reads back from the sheet as an int), 3.5 stays."""
+    v = float(v)
+    return int(v) if v.is_integer() else v
+
+
+def _blank(v) -> bool:
+    return v is None or (isinstance(v, str) and not v.strip())
+
+
 def _parsed_bets(tracker_rows) -> list[dict]:
     """Raw tracker rows (or already-parsed dicts) as parse_row dicts."""
     out = []

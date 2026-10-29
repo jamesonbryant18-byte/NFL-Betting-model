@@ -256,3 +256,57 @@ def test_a_tracker_rebuilt_from_scratch_keeps_his_converter():
     assert (ws["J5"].value, ws["K5"].value, ws["J6"].value) == ("Kalshi Odds", "Sports Book Odds", 0.53)
     assert ws["M5"].value == "=SUM($H$12:$H$500)"
     assert _names(ws) == MODEL_CHARTS
+
+
+def test_blank_closing_cells_are_filled_from_fanduel_closes_only(tmp_path, monkeypatch):
+    """His ask, 2026-10-29: fill Closing Line / Closing Odds he left blank; never his own entries."""
+    import pandas as pd
+    from nflmodel import archive
+    monkeypatch.setattr(archive, "ARCHIVE_DIR", tmp_path / "picks")
+    week = tmp_path / "picks" / "2026"
+    week.mkdir(parents=True)
+    pd.DataFrame([
+        dict(game_id="g1", away_team="TEN", home_team="NYG", close_spread=3.0,
+             close_home_spread_odds=-112.0, close_away_spread_odds=-108.0,
+             close_home_ml=-150.0, close_away_ml=128.0, close_source="fanduel (action network)",
+             captured_utc=""),
+        dict(game_id="g2", away_team="DEN", home_team="KC", close_spread=7.0,
+             close_home_spread_odds=-110.0, close_away_spread_odds=-110.0,
+             close_home_ml=-320.0, close_away_ml=260.0, close_source="draftkings (nflverse)",
+             captured_utc=""),
+    ]).to_csv(week / "week03_closing.csv", index=False)
+    games = pd.DataFrame([
+        dict(season=2026, week=3, home_team="NYG", away_team="TEN",
+             gameday=pd.Timestamp("2026-09-27"), result=7.0),
+        dict(season=2026, week=3, home_team="KC", away_team="DEN",
+             gameday=pd.Timestamp("2026-09-27"), result=3.0)])
+
+    out = tmp_path / "output"
+    out.mkdir()
+    src = _his_workbook(out / "NFL_Model_2026_Week04.xlsx")
+    his = load_workbook(str(src))
+    ws = his[TRACKER_SHEET]
+    # row 12 (fixture): TEN @ NY moneyline on HOME, closing odds blank
+    for col, v in zip("ABCDEFGHI", [datetime(2026, 9, 27), 3, "TEN @ NYG", "SPREAD",
+                                     "TEN +3.5", 3.5, -110, 5, "L"]):
+        ws[f"{col}13"] = v                              # spread, both closes blank
+    for col, v in zip("ABCDEFGHI", [datetime(2026, 9, 27), 3, "TEN @ NYG", "SPREAD",
+                                     "TEN +3.5", 3.5, -110, 5, "L"]):
+        ws[f"{col}14"] = v
+    ws["L14"] = 2.5                                     # he typed this close: keep it
+    for col, v in zip("ABCDEFGHI", [datetime(2026, 9, 27), 3, "DEN @ KC", "MONEYLINE",
+                                     "DEN +250", None, 250, 5, "L"]):
+        ws[f"{col}15"] = v                              # DraftKings close: not used
+    his.save(str(src))
+
+    wb = excel._start_workbook(load_tracker(out, tmp_path / "bet_log.csv", announce=False))
+    before = sheet_cells(wb[TRACKER_SHEET])
+    fills = excel._fill_tracker_closes(wb[TRACKER_SHEET], games, 2026)
+    assert fills == {"M12": -150.0, "L13": 3.0, "M13": -108.0, "M14": -108.0}
+    dest = out / "NFL_Model_2026_Week05.xlsx"
+    wb.save(str(dest))
+    after = load_workbook(str(dest))[TRACKER_SHEET]
+    assert after["L14"].value == 2.5 and after["L15"].value is None and after["M15"].value is None
+    line = excel._tracker_carry_line(before, dest, fills)
+    assert "WARNING" not in line and "formulas you added: M5, K6" in line
+    assert line.endswith("4 blank cell(s) filled from FanDuel's recorded closes: M12, L13, M13, M14")
