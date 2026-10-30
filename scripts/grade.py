@@ -89,7 +89,14 @@ def _t_and_p(x: np.ndarray) -> tuple[float, float]:
 # ── season scorecard ─────────────────────────────────────────────────────
 
 def season_scorecard(season: int) -> dict | None:
-    """Grade every pick published this season, from the picks/ archive."""
+    """
+    Grade every pick published this season, from the picks/ archive.
+
+    Each pick is graded against ITS OWN week's game: a rematch later in the
+    season is a different game (an unplayed rematch is not graded at all). A
+    tie is a tie, never a loss: it is left out of the straight-up record and
+    counted on its own. The favorite at publication is graded on the same games.
+    """
     games = load_games()
     games = games[(games.season == season) & games.result.notna()]
     if games.empty:
@@ -99,19 +106,23 @@ def season_scorecard(season: int) -> dict | None:
     for pf in sorted((PICKS_DIR / str(season)).glob('week*_picks.csv')):
         week = int(pf.stem.split('_')[0].replace('week', ''))
         picks = pd.read_csv(pf)
+        wk = games[games.week == week]
         for _, r in picks.iterrows():
-            g = games[((games.home_team == r.winner) & (games.away_team == r.loser))
-                      | ((games.home_team == r.loser) & (games.away_team == r.winner))]
+            g = wk[((wk.home_team == r.winner) & (wk.away_team == r.loser))
+                   | ((wk.home_team == r.loser) & (wk.away_team == r.winner))]
             if g.empty:
                 continue
             g = g.iloc[0]
             # margin from the PICKED team's perspective
             actual = g.result if g.home_team == r.winner else -g.result
             market = -g.spread_line if g.home_team == r.winner else g.spread_line
+            fav_is_pick = bool(r.market_favorite) if 'market_favorite' in r else True
             rows.append(dict(week=week, pick=r.winner, opp=r.loser,
                              proj=float(r.proj_margin), actual=float(actual),
                              market=float(-market), win_prob=float(r.win_prob),
-                             confidence=r.confidence, won=bool(actual > 0)))
+                             confidence=r.confidence, won=bool(actual > 0),
+                             tie=bool(actual == 0),
+                             fav_won=bool(actual > 0) if fav_is_pick else bool(actual < 0)))
 
         lf = pf.with_name(pf.name.replace('_picks', '_leans'))
         if lf.exists():
@@ -144,15 +155,23 @@ def season_scorecard(season: int) -> dict | None:
     d['model_err'] = (d.proj - d.actual).abs()
     d['market_err'] = (d.market - d.actual).abs()
     d['signed_err'] = d.proj - d.actual
+    dec = d[~d.tie]                           # decided games: the SU record
+
+    # model minus favorite, paired on the same games: the noise band is 2 SE
+    diff = dec.won.astype(float) - dec.fav_won.astype(float)
+    band = float(2 * diff.std(ddof=1) * np.sqrt(len(diff))) if len(diff) > 1 else float('nan')
 
     tiers = []
     for lo, hi, name in [(.50, .55, 'coin flip'), (.55, .60, 'slight'),
                          (.60, .65, 'lean'), (.65, .70, 'solid'),
                          (.70, 1.01, 'strong')]:
-        s = d[(d.win_prob >= lo) & (d.win_prob < hi)]
+        s = dec[(dec.win_prob >= lo) & (dec.win_prob < hi)]
         if len(s):
-            tiers.append(dict(tier=name, n=len(s), said=float(s.win_prob.mean()),
-                              actual=float(s.won.mean())))
+            said = float(s.win_prob.mean())
+            half = 1.96 * np.sqrt(said * (1 - said) / len(s))
+            tiers.append(dict(tier=name, n=len(s), said=said,
+                              actual=float(s.won.mean()),
+                              band_lo=max(0.0, said - half), band_hi=min(1.0, said + half)))
 
     lean = pd.DataFrame(lean_rows)
     lean_rec = dict(n=0, w=0, l=0, p=0)
@@ -162,8 +181,10 @@ def season_scorecard(season: int) -> dict | None:
                         p=int((lean.result == 'P').sum()))
 
     return dict(season=season, n=len(d), weeks=sorted(d.week.unique().tolist()),
-                su_w=int(d.won.sum()), su_l=int((~d.won).sum()),
-                su_pct=float(d.won.mean()),
+                su_w=int(dec.won.sum()), su_l=int((~dec.won).sum()),
+                su_pct=float(dec.won.mean()), ties=int(d.tie.sum()),
+                fav_w=int(dec.fav_won.sum()), fav_l=int((~dec.fav_won).sum()),
+                vs_fav=int(diff.sum()), vs_fav_band=band,
                 model_mae=float(d.model_err.mean()),
                 market_mae=float(d.market_err.mean()),
                 bias=float(d.signed_err.mean()),
@@ -248,21 +269,33 @@ def print_scorecard(sc: dict) -> None:
     print('=' * 78)
     print()
     print('  PREDICTION ACCURACY  (this is the product)')
+    ties = f", {sc['ties']} tie(s) left out" if sc.get('ties') else ''
     print(f"    straight up            {sc['su_w']}-{sc['su_l']}  "
-          f"({sc['su_pct']*100:.1f}%)")
+          f"({sc['su_pct']*100:.1f}%){ties}")
+    if 'fav_w' in sc:
+        n = sc['fav_w'] + sc['fav_l']
+        print(f"    taking every favorite  {sc['fav_w']}-{sc['fav_l']}  "
+              f"({sc['fav_w'] / n * 100:.1f}%)   <-- benchmark (favorite when published)")
+        print(f"    model vs favorite      {sc['vs_fav']:+d} pick(s)   "
+              f"(noise band +/-{sc['vs_fav_band']:.0f})")
     print(f"    average error          {sc['model_mae']:.2f} pts")
     print(f"    closing line error     {sc['market_mae']:.2f} pts   <-- benchmark")
     delta = sc['model_mae'] - sc['market_mae']
     verdict = 'MODEL IS SHARPER' if delta < 0 else 'market is sharper'
     print(f"    difference             {delta:+.2f} pts   <-- {verdict}")
+    # proj and actual are both from the PICKED team's side, so a positive bias
+    # means the model expects its picks to win by more than they do
     print(f"    directional bias       {sc['bias']:+.2f} pts "
-          f"({'favors home too much' if sc['bias'] > 0 else 'favors away too much'})")
+          f"({'overrates the team it picks' if sc['bias'] > 0 else 'underrates the team it picks'})")
     print()
     print('  CALIBRATION  (does a stated confidence mean anything?)')
-    print(f"    {'tier':<12} {'n':>4} {'said':>8} {'actual':>8}")
+    print(f"    {'tier':<12} {'n':>4} {'said':>8} {'actual':>8}   95% band if honest")
     for t in sc['tiers']:
+        band = (f"   {t['band_lo']*100:.0f}-{t['band_hi']*100:.0f}%"
+                + ('' if t['band_lo'] <= t['actual'] <= t['band_hi'] else '  OUTSIDE')
+                if 'band_lo' in t else '')
         print(f"    {t['tier']:<12} {t['n']:>4} {t['said']*100:>7.1f}% "
-              f"{t['actual']*100:>7.1f}%")
+              f"{t['actual']*100:>7.1f}%{band}")
     print()
     lr = sc['leans']
     if lr['n']:
