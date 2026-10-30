@@ -727,13 +727,20 @@ def fit_joint(h: pd.DataFrame, rows: list[dict]) -> dict:
     return out
 
 
-def margin_model_for_history():
-    """The same key-number margin distribution run_week.py uses."""
+def margin_model_for_history(through_season: int | None = None):
+    """
+    The same key-number margin distribution run_week.py uses, built from final
+    scores. `through_season` keeps only seasons up to it: a hold-out replay
+    must not build its probabilities from the results it is scored on.
+    """
     from .market import MarginModel
     res_path = CACHE_DIR / "residuals.npy"
     residuals = np.load(res_path) if res_path.exists() else None
     ds = pd.read_parquet(CACHE_DIR / "dataset_2010_2025.parquet")
-    margins = ds.loc[ds.result.notna(), "result"].to_numpy()
+    keep = ds.result.notna()
+    if through_season is not None:
+        keep &= ds.season <= through_season
+    margins = ds.loc[keep, "result"].to_numpy()
     return MarginModel(residuals=residuals, sigma=MARKET.margin_sigma, margins=margins)
 
 

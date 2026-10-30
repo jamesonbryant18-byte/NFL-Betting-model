@@ -10,7 +10,8 @@ back the two pieces switched off 2026-10-29, to show why:
 Effect = full model minus the variant, paired over the same games:
   SU  + = the piece adds correct picks      MAE / Brier  - = the piece helps
 A piece HURTS if it is worse on any of them at |t| >= 2 with no significant
-gain elsewhere. The win-% slope is held at the full model's for every variant
+gain elsewhere. The win-% side is held at the full model's walk-forward plan
+(per-season slope and margin table, replay.win_plan) for every variant
 (re-fitting it per variant would credit the recalibration with the change).
 
 Not covered here (each needs a full walk-forward re-run of the ratings):
@@ -28,7 +29,7 @@ import pandas as pd
 from nflmodel import replay
 
 d = replay.deployed()
-b = d.attrs["win_slope"]
+plan = d.attrs["win_plan"]
 hold = d.season.isin(replay.HOLD).to_numpy()
 
 # + EPA/play: the three-factor set, re-fit on 2013-2020
@@ -61,7 +62,7 @@ dec = res != 0
 
 def metrics(proj, recal=True):
     proj = np.asarray(proj, float)[hold]
-    wp = replay.win_pct(proj, b if recal else None)
+    wp = replay.apply_win_pct(H, proj, plan, recalibrate=recal)
     su = ((wp >= 0.5) == (res > 0)).astype(float)
     card = replay.card_summary(replay.card(H.assign(proj=proj, wp=wp)))
     return np.abs(res - proj), (wp - y) ** 2, su, card

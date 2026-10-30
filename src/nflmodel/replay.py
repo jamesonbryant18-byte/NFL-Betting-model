@@ -22,11 +22,16 @@ Each piece stays in its own column, so dropping one is a subtraction:
 The weekly self-tune is off (2026-10-29) and is not part of the replay; the
 ablation script adds it back to measure it.
 
-Hold-out rule: `deployed()` FITS the factor weights and the win-% slope on
-2013-2020 only, so 2021-2025 is a clean test. `deployed(live=True)` uses the
-shipped numbers instead (config.FACTORS and trends.json, fit on every season):
-right for "what does the live model do", in-sample for 2021-25, never quoted as
-a hold-out result.
+Hold-out rule: `deployed()` FITS the factor weights on 2013-2020 only, and
+the win-% side walk-forward, as live does it: each 2021-2025 season gets the
+win-% slope fit on every earlier season (live refits it every week) and a
+key-number margin table built only from earlier seasons' scores (expert review
+round 2: a table that includes the scored seasons flattered the hold-out by
+about 0.3 pt straight up). `d.attrs["win_plan"]` holds, per season, the slope
+and the last season in its margin table. `deployed(live=True)` uses the shipped
+numbers instead (config.FACTORS and trends.json, fit on every season): right
+for "what does the live model do", in-sample for 2021-25, never quoted as a
+hold-out result.
 
     from nflmodel import replay
     d = replay.deployed()
@@ -136,17 +141,65 @@ def add_factors(d: pd.DataFrame, weights: dict) -> pd.DataFrame:
     return d
 
 
-def win_pct(margins, b: float | None) -> np.ndarray:
-    """Home win % from a home margin: run_week's margin distribution, then logit(p') = b logit(p)."""
-    p = win_probs(margins, margin_model_for_history())
+_MARGIN_MODELS: dict = {}
+
+
+def margin_model(through_season: int | None = None):
+    """The key-number margin table from final scores up to `through_season` (None = every season)."""
+    if through_season not in _MARGIN_MODELS:
+        _MARGIN_MODELS[through_season] = margin_model_for_history(through_season)
+    return _MARGIN_MODELS[through_season]
+
+
+def win_pct(margins, b: float | None, mm=None) -> np.ndarray:
+    """Home win % from a home margin: the margin distribution, then logit(p') = b logit(p)."""
+    p = win_probs(margins, mm if mm is not None else margin_model())
     return calibrate(p, dict(a=0.0, b=b)) if b else p
 
 
-def fit_win_slope(d: pd.DataFrame, margin_col: str = "proj", seasons=TUNE) -> float:
-    """The recalibration slope b, fit on `seasons` on the given margin."""
+def fit_win_slope(d: pd.DataFrame, margin_col: str = "proj", seasons=TUNE, mm=None) -> float:
+    """The recalibration slope b, fit on `seasons` on the given margin (table: through the last of them)."""
+    seasons = list(seasons)
+    mm = mm if mm is not None else margin_model(max(seasons))
     m = d.season.isin(seasons).to_numpy() & (d.result != 0).to_numpy()
-    p = win_probs(d.loc[m, margin_col], margin_model_for_history())
+    p = win_probs(d.loc[m, margin_col], mm)
     return float(fit_logistic_slope(_logit(p), (d.result[m] > 0).to_numpy().astype(float)))
+
+
+def win_plan(d: pd.DataFrame, margin_col: str = "proj", live: bool = False,
+             state: dict | None = None) -> dict:
+    """
+    Per season: (win-% slope, last season in its margin table). Clean replay:
+    2013-2020 share the fit on 2013-2020; each later season is fit on every
+    season before it, with a table from those seasons only. Live: the shipped
+    slope (trends.json) and every season's scores.
+    """
+    seasons = sorted(int(s) for s in d.season.unique())
+    if live:
+        state = state if state is not None else json.loads(TRENDS_FILE.read_text())
+        cal = state.get("calibration") or {}
+        b = cal.get("b") if cal.get("status") == "confirmed" else None
+        return {s: (b, None) for s in seasons}
+    b_tune = fit_win_slope(d, margin_col, TUNE)
+    plan = {}
+    for s in seasons:
+        if s <= TUNE[-1]:
+            plan[s] = (b_tune, TUNE[-1])
+        else:
+            plan[s] = (fit_win_slope(d, margin_col, range(TUNE[0], s)), s - 1)
+    return plan
+
+
+def apply_win_pct(d: pd.DataFrame, margins, plan: dict, recalibrate: bool = True) -> np.ndarray:
+    """Home win % for every row of `d`, each season with its own slope and margin table."""
+    m = np.asarray(margins, dtype=float)
+    out = np.full(len(d), np.nan)
+    season = d.season.to_numpy()
+    for s, (b, thru) in plan.items():
+        idx = season == s
+        if idx.any():
+            out[idx] = win_pct(m[idx], b if recalibrate else None, margin_model(thru))
+    return out
 
 
 def deployed(live: bool = False, factors: dict | None = None, state: dict | None = None,
@@ -171,13 +224,10 @@ def deployed(live: bool = False, factors: dict | None = None, state: dict | None
             factors, _ = fit_factor_weights(d, keys, d.result - (d.base + d.trend))
     d = add_factors(d, factors)
     d["proj"] = d.base + d.trend + d.fac
-    if live:
-        cal = state.get("calibration") or {}
-        b = cal.get("b") if cal.get("status") == "confirmed" else None
-    else:
-        b = fit_win_slope(d)
-    d["wp"] = win_pct(d.proj, b)
-    d.attrs.update(factor_weights=factors, win_slope=b, live=live)
+    plan = win_plan(d, live=live, state=state)
+    d["wp"] = apply_win_pct(d, d.proj, plan)
+    b = plan[min(plan)][0]
+    d.attrs.update(factor_weights=factors, win_slope=b, win_plan=plan, live=live)
     return d
 
 
@@ -244,15 +294,21 @@ def scorecard(d: pd.DataFrame, wp_col: str = "wp", margin_col: str = "proj") -> 
 
 
 def calibration_table(d: pd.DataFrame, wp_col: str = "wp",
-                      bins=(0.5, 0.55, 0.6, 0.65, 0.7, 0.8, 0.9, 1.01)) -> pd.DataFrame:
-    """What the model said for its pick vs how often the pick won, by band."""
+                      bins=(0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.01)) -> pd.DataFrame:
+    """
+    What the model said for its pick vs how often the pick won, in 5-pt bands
+    from 50%, with the count and how many standard errors off each band is.
+    """
     x = d[d.result != 0]
     p = np.maximum(x[wp_col], 1 - x[wp_col])
     won = np.where(x[wp_col] >= 0.5, x.result > 0, x.result < 0)
     t = pd.DataFrame(dict(said=p, won=won.astype(float)))
     t["band"] = pd.cut(t.said, list(bins), right=False)
-    return t.groupby("band", observed=True).agg(n=("won", "size"), said=("said", "mean"),
-                                                won=("won", "mean")).reset_index()
+    out = t.groupby("band", observed=True).agg(n=("won", "size"), said=("said", "mean"),
+                                               won=("won", "mean")).reset_index()
+    out["off"] = out.won - out.said
+    out["z"] = out.off / np.sqrt(out.said * (1 - out.said) / out.n)
+    return out
 
 
 def _payout(odds):
@@ -268,9 +324,10 @@ def card(d: pd.DataFrame, wp_col: str = "wp", margin_col: str = "proj", model=No
     """
     from .model import NFLModel
     mdl = model or NFLModel()
-    mm = margin_model_for_history()
+    plan = d.attrs.get("win_plan") or {}
     out = []
     for (season, week), wk in d.groupby(["season", "week"], sort=True):
+        mm = margin_model(plan[season][1] if season in plan else None)
         rows = []
         for _, g in wk.iterrows():
             proj, line, hwp = float(g[margin_col]), float(g.spread_line), float(g[wp_col])

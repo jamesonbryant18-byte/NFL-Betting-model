@@ -10,7 +10,7 @@ the self-tune off. Ridge, penalty by leave-one-season-out (factor_lab.py's
 procedure, via replay.fit_factor_weights).
 
   1. Each factor set fit on 2013-2020 only, scored on 2021-2025 (never seen),
-     with its own 2013-2020 win-% slope. This decides the SET.
+     with its own walk-forward win-% side (replay.win_plan). This decides the SET.
   2. The chosen set re-fit on 2013-2025: the weights that go in config.FACTORS.
 
     .venv/bin/python -W ignore scripts/refit_factors.py
@@ -43,8 +43,10 @@ for name, cols in SETS.items():
     w, a = replay.fit_factor_weights(d, cols, target) if cols else ({}, float("nan"))
     x = replay.add_factors(d, w)
     x["proj"] = x.base + x.trend + x.fac
-    b = replay.fit_win_slope(x)
-    x["wp"] = replay.win_pct(x.proj, b)
+    plan = replay.win_plan(x)
+    b = plan[replay.TUNE[0]][0]
+    x["wp"] = replay.apply_win_pct(x, x.proj, plan)
+    x.attrs["win_plan"] = plan
     h = x[hold]
     sc = replay.scorecard(h)
     err = np.abs(h.result - h.proj).to_numpy()

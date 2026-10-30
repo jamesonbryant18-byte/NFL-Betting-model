@@ -6,8 +6,9 @@ every hold-out number about the deployed model -- straight up vs the favorite,
 margin error vs the line, win % vs the closing moneyline, the weekly card at
 closing prices -- comes from here, so every round measures the same thing.
 
-  clean (default)  factor weights and win-% slope fit on 2013-2020 only;
-                   2021-2025 never seen. THE number to quote.
+  clean (default)  factor weights fit on 2013-2020 only; the win-% side
+                   walk-forward (each season's slope and margin table from
+                   earlier seasons only, as live refits it). THE number to quote.
   --live           the shipped weights (fit on every season): in-sample for
                    2021-25, shown for reference only.
 
@@ -34,8 +35,11 @@ print("=" * 78)
 print(f"  DEPLOYED MODEL, REPLAYED ON 2021-2025 ({len(hold)} games) -- "
       + ("LIVE weights (in-sample)" if args.live else "fit on 2013-2020 only"))
 print("=" * 78)
-print("  factors: " + (", ".join(f"{k} {v:+.3f}" for k, v in w.items()) or "none")
-      + f";  win-% slope b {d.attrs['win_slope']:.3f}")
+plan = d.attrs["win_plan"]
+print("  factors: " + (", ".join(f"{k} {v:+.3f}" for k, v in w.items()) or "none"))
+print("  win-% slope b by season: " + ", ".join(
+    f"{s} {plan[s][0]:.3f}" for s in replay.HOLD if s in plan and plan[s][0])
+    + ("  (fit on earlier seasons only)" if not args.live else "  (shipped)"))
 
 s = replay.scorecard(hold)
 print("\n  STRAIGHT UP  (same games; ties left out)")
@@ -51,8 +55,11 @@ print(f"    Brier  model {s['brier_model']:.4f}  market {s['brier_market']:.4f} 
       f"log loss {s['logloss_model']:.4f} vs {s['logloss_market']:.4f}")
 print(f"    calibration slope {s['calibration_slope']:.3f}  (1.00 = honest; below 1 = overconfident)")
 t = replay.calibration_table(hold)
+print("    picked side, 5-pt bands:")
 print("    said  " + "  ".join(f"{r.said:5.1%}" for r in t.itertuples()))
 print("    won   " + "  ".join(f"{r.won:5.1%}" for r in t.itertuples()))
+print("    off   " + "  ".join(f"{100 * r.off:+5.1f}" for r in t.itertuples()))
+print("    SEs   " + "  ".join(f"{r.z:+5.1f}" for r in t.itertuples()))
 print("    games " + "  ".join(f"{r.n:>5}" for r in t.itertuples()))
 
 bets = replay.card(hold)
