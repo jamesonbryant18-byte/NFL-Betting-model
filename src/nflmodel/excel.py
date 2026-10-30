@@ -841,7 +841,9 @@ def _sheet_bets(wb, slate, season, week, model_meta):
          "The team the model expects to win, at a price it likes.", GREEN),
         ("VALUE BETS AGAINST THE PICK", AGAINST_PICK,
          "The model still expects the OTHER team to win — but thinks this price pays more than "
-         "the real chance deserves. These lose more often and are sized to match.", "E65100"),
+         "the real chance deserves. These lose more often"
+         + (f"; every bet is the same flat ${STAKING.flat_stake:.0f}." if STAKING.flat_stake
+            else " and are sized to match."), "E65100"),
     ):
         apply_section(ws, f"A{row}", title, merge_to=f"{lastc}{row}")
         ws.cell(row=row + 1, column=1, value=blurb).font = Font(italic=True, color=color, size=10)
@@ -2338,7 +2340,7 @@ SHEET_GUIDE = [
     ("Game Detail", "The matchup picker: choose a game from the dropdown and every cell looks up that game — ratings, QB terms, home field, market prior, cover/push, moneyline edges, the ticket."),
     ("Team Stats", "One row per team: record, points for/against, differential, ATS record, rating and rank, starting QB and where that name came from, roster by position group, the injured list with expected returns."),
     ("Power Ratings", "The fitted ratings entering this week, in points against an average team."),
-    ("Bet Tracker", "Yours to fill in. The model reads it (Your Bet on the Bet Log, the weekly review) and never changes what you typed; the one thing it adds is FanDuel's closing number in Closing Line / Closing Odds cells you left blank (your ask, 2026-10-29), so the CLV columns work. Each new workbook carries it forward exactly as you left it, backed up to data/bet_log.csv. The four charts to the right of the table update as you log and grade bets; delete any you do not want and it stays deleted."),
+    ("Bet Tracker", "Yours to fill in. The model reads it (Your Bet on the Bet Log, the weekly review) and never changes what you typed; the one thing it adds is FanDuel's closing number in Closing Line / Closing Odds cells you left blank (your ask, 2026-10-29), so the CLV columns work. Each new workbook carries it forward exactly as you left it, backed up to data/bet_log.csv. The charts to the right of the table (the ones you have kept) update as you log and grade bets; delete any you do not want and it stays deleted."),
     ("Bet Log", "One row per game: who the model picked, who won, whether it was right, the model's bet and your bet with results, the market favorite (did simply taking it do better?), and each model bet's value at FanDuel's closing price. Those rates are at the top."),
     ("Rosters / Injuries", "The player-level detail behind Team Stats, one row per player, filterable."),
 ]
@@ -2513,7 +2515,10 @@ def _sheet_reference(wb, backtest_summary, model_meta=None):
     entry("Market prior", "Early in the season ratings are blended toward ratings backed out of posted spreads (Week 1 ≈ 80% market). The model has seen no current-season football; the line has priced every offseason move. The weight decays as games are played.")
     entry("Model line", "home rating − away rating + home field advantage. This is the spread the model would set.")
     entry("Edge (points)", "Model line minus the Vegas line. The model's disagreement with the market.")
-    entry("Home field", "Fitted from data at ~2.1 points, not the folk-wisdom 3. It was 0.2 in the fanless 2020 season, which is good evidence the effect is crowd-driven.")
+    hfa = model_meta.get("hfa")
+    entry("Home field", "Fitted from the data every week, with recent games weighted most"
+          + (f": {hfa:+.2f} points this week." if hfa is not None else ".")
+          + " Across 1999-2025 it averaged about 2.1, not the folk-wisdom 3, and it has fallen in recent seasons. It was 0.2 in the fanless 2020 season, which is good evidence the effect is crowd-driven.")
     entry("Key numbers", "Margin → probability by exponential tilting of the empirical margin distribution, which preserves the spikes at 3 and 7. A whole-number line therefore carries real push probability.")
 
     section("MARKET TERMS")
@@ -2533,12 +2538,11 @@ def _sheet_reference(wb, backtest_summary, model_meta=None):
         entry("Half Kelly", f"This model stakes at {STAKING.kelly_fraction:.0%} of Kelly, capped at {STAKING.max_bet_pct:.1%} of bankroll and {STAKING.max_weekly_exposure_pct:.0%} per week — roughly three-quarters of the growth at half the volatility. In advisory mode every stake is $0.")
 
     section("WHAT THE BACKTEST FOUND")
+    entry("Method", "Walk-forward: to predict week W the model only ever sees games finished before week W, and is refit from scratch each week. The model as it runs (market prior, trend fix, game factors, win-% correction) is replayed by scripts/replay_deployed.py, with everything fit on 2013-20 and scored on 2021-25.")
+    entry("The model as it runs", f"{cap(HOLDOUT['mae'])}; {HOLDOUT['su']}; {HOLDOUT['card']}.")
     if backtest_summary:
-        entry("Method", "Walk-forward: to predict week W the model only ever sees games finished before week W, and is refit from scratch each week. No result the model is scored on informs it.")
-        entry("Games scored", f"{backtest_summary.get('n_games', 0):,} games, {backtest_summary.get('seasons','')}")
-        entry("Model error (MAE)", f"{backtest_summary.get('model_mae', 0):.2f} points per game")
-        entry("Closing line error (MAE)", f"{backtest_summary.get('market_mae', 0):.2f} points per game")
-        entry("Verdict", backtest_summary.get("verdict", ""))
+        entry("The bare ratings alone", f"{backtest_summary.get('model_mae', 0):.2f} points per game vs the closing line's {backtest_summary.get('market_mae', 0):.2f} on {backtest_summary.get('n_games', 0):,} games ({backtest_summary.get('seasons','')}), before the market prior and the fixes. Most of the improvement since is from leaning on the market.")
+    entry("Verdict", "The model does not beat the closing line out of sample. No demonstrated edge: judge it by straight-up winners against the favorite and by value at the price taken, not by a hot week."),
     entry("Situational factors", "Weather, travel, divisional games and Week 17-18 spots were each measured against 5,431 games of closing lines. None showed mispricing at even |t|=2, so they ship at zero: tested and rejected, not missing. Rest rides in the game factors at "
           + f"{FACTORS.get('rt_rest_diff', 0):.3f} pt per day of rest difference (measured about neutral).")
     entry("Injuries", "Non-QB injuries are a live game factor (2026 Week 4 on): "

@@ -279,6 +279,8 @@ def tracker_review(games, season, week, leans):
             tot['pnl'] += pnl
             if clv is not None:
                 tot['clv' if b['market'] == 'SPREAD' else 'clv_ml'].append(clv)
+                if b['market'] == 'SPREAD' and abs(clv) >= 3:
+                    tot.setdefault('odd', []).append((b, g, clv))
             if int(g.week) == week:
                 this_week.append((b, g, res, pnl, close, clv))
 
@@ -302,9 +304,18 @@ def tracker_review(games, season, week, leans):
         if tot['clv_ml']:
             parts.append(f"moneyline CLV {np.mean(tot['clv_ml']):+.1%} avg on {len(tot['clv_ml'])}, "
                          f"beat the close {sum(c > 0 for c in tot['clv_ml'])}")
-        clv = '; '.join(parts) if parts else 'no CLV yet' 
+        clv = '; '.join(parts) if parts else 'no CLV yet'
         print(f"    season to date: {tot['w']}-{tot['l']}-{tot['p']}, "
               f"P&L ${tot['pnl']:+,.2f} ({roi:+.1%} ROI), {clv}")
+        odd = tot.get('odd', [])
+        if odd:
+            rest = [c for c in tot['clv'] if abs(c) < 3]
+            print(f"    check these rows: a spread CLV of 3+ pts is usually a sign typo in Line Taken "
+                  f"or an alternate line, not real value")
+            for b, g, c in odd:
+                print(f"      wk{int(g.week)} {b['bet_side']:<14} line taken {b.get('line_taken'):+g} at {b.get('odds'):+.0f}  CLV {c:+.1f}")
+            if rest:
+                print(f"    spread CLV without them: {np.mean(rest):+.2f} pts avg on {len(rest)}")
 
 
 def main():

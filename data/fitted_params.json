@@ -27,6 +27,7 @@
     "model_mae": 10.079294698831838,
     "market_mae": 9.762289325842696,
     "mean_abs_edge": 2.1015105468830337,
-    "note": "NFLModel with market-prior blending \u2014 the estimator run_week.py ships. Lower MAE here is increased deference to the market, not model improvement."
+    "note": "NFLModel with market-prior blending \u2014 the estimator run_week.py ships. Lower MAE here is increased deference to the market, not model improvement.",
+    "superseded": "2026-10-29: the model as it runs is replayed by scripts/replay_deployed.py (MAE 9.876 vs 9.762); these numbers are the 2026-08 NFLModel backtest"
   }
 }
