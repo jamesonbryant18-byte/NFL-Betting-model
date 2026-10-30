@@ -38,7 +38,7 @@ from nflmodel.closing import (record_closing, load_closing, close_for, side_clos
 from nflmodel.market import closing_line_value
 from nflmodel.teamstats import normalize_name
 from nflmodel.scorecard import (straight_up, summarize_straight_up, model_bets,
-                                summarize_bets)
+                                summarize_bets, slice_bets)
 
 
 def _fmt_close(market, close):
@@ -214,6 +214,15 @@ def bets_review(games, season, week):
                if s['value'] - 1.96 * s['value_se'] > 0 else
                'value at the price taken is not clearly different from zero yet')
     print(f"    season verdict: {verdict}")
+    sl = slice_bets(b)
+    if len(sl):
+        print(f"    {'by type, season':<22}{'bets':>5}{'record':>10}{'ROI':>9}   value at the close")
+        for _, r in sl.iterrows():
+            rec = f"{r.won}-{r.lost}" + (f"-{r.push}" if r.push else '')
+            val = ('' if r.value != r.value else f"{r.value:+.1%}"
+                   + (f" +/- {1.96 * r.value_se:.1%}" if r.value_se == r.value_se else ''))
+            print(f"    {r.slice:<22}{r.n:>5}{rec:>10}{r.roi:>+9.1%}   {val}")
+        print("    (a slice is good only if its value at the close is above zero; a record alone can be luck)")
     wk = b[b.week == week]
     if len(wk):
         print(f"    {'bet':<16}{'price':>7}{'result':>8}{'model':>8}{'close':>8}{'value':>8}")

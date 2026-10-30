@@ -214,13 +214,83 @@ def model_bets(season: int, weeks, games: pd.DataFrame, mm, archive_dir=None) ->
             crow = close_for(closing, l.home_team, l.away_team)
             ev, p_close = value_at_price(mm, market, bet_home, tick, odds, crow)
             src = None if crow is None else str(crow.get("close_source") or "")
+            if market == "MONEYLINE":
+                edge = _num(l.get("ml_edge_home") if bet_home else l.get("ml_edge_away"))
+            else:
+                edge = _num(l.get("spread_edge_pts"))
+                edge = None if edge is None else abs(edge)
+            hm, am = _num(l.get("home_ml")), _num(l.get("away_ml"))
+            if market == "SPREAD" and tick:
+                favorite = tick < 0                      # laying points
+            elif hm is not None and am is not None and hm != am:
+                favorite = (hm < am) if bet_home else (am < hm)
+            else:
+                favorite = odds < -100
             rows.append(dict(
-                week=week, bet=side, market=market, odds=odds,
+                week=week, bet=side, market=market, odds=odds, line=tick, edge=edge,
+                favorite=bool(favorite),
                 filler=str(l.get("confidence", "")) == "Filler",
                 out="W" if units > 0 else ("P" if units == 0 else "L"), units=units,
                 p_model=p_model, p_close=p_close, value_at_close=ev,
                 break_even=_break_even(odds), close_source=src,
                 not_fanduel=bool(src) and "fanduel" not in src.lower()))
+    return pd.DataFrame(rows)
+
+
+def _price_bucket(market: str, odds: float, line) -> str:
+    if market == "MONEYLINE":
+        return ("ML -200 or shorter" if odds <= -200 else "ML -199 to -101" if odds < -100
+                else "ML +100 to +150" if odds <= 150 else "ML +151 or longer")
+    a = abs(line) if line is not None and line == line else 0.0
+    return "spread within 3" if a <= 3 else "spread 3.5 to 7" if a <= 7 else "spread 7.5 or more"
+
+
+def _edge_bucket(market: str, edge) -> str | None:
+    if edge is None or edge != edge:
+        return None
+    if market == "MONEYLINE":
+        return "ML edge 3-5%" if edge < 0.05 else "ML edge 5-8%" if edge < 0.08 else "ML edge 8%+"
+    return ("spread edge 1.5-2.5" if edge < 2.5 else "spread edge 2.5-3.5" if edge < 3.5
+            else "spread edge 3.5+")
+
+
+SLICE_ORDER = {
+    "market": ["spreads", "moneylines"],
+    "side": ["favorites", "underdogs"],
+    "price": ["spread within 3", "spread 3.5 to 7", "spread 7.5 or more", "ML -200 or shorter",
+              "ML -199 to -101", "ML +100 to +150", "ML +151 or longer"],
+    "edge": ["spread edge 1.5-2.5", "spread edge 2.5-3.5", "spread edge 3.5+",
+             "ML edge 3-5%", "ML edge 5-8%", "ML edge 8%+"],
+}
+
+
+def slice_bets(b: pd.DataFrame) -> pd.DataFrame:
+    """
+    The model's bets by market, favorite/underdog, price and edge size: record,
+    ROI and value at the close per slice. A slice is only good if its value at
+    the close is above zero; a record by itself can be luck.
+    """
+    if b.empty:
+        return pd.DataFrame()
+    key = {
+        "market": b.market.map({"SPREAD": "spreads", "MONEYLINE": "moneylines"}),
+        "side": pd.Series(np.where(b.favorite.astype(bool), "favorites", "underdogs"), index=b.index),
+        "price": pd.Series([_price_bucket(m, o, ln) for m, o, ln in zip(b.market, b.odds, b.line)],
+                           index=b.index),
+        "edge": pd.Series([_edge_bucket(m, e) for m, e in zip(b.market, b.edge)], index=b.index),
+    }
+    rows = []
+    for group, labels in SLICE_ORDER.items():
+        for label in labels:
+            g = b[key[group] == label]
+            if g.empty:
+                continue
+            roi, roi_se = _band(g.units)
+            val, val_se = _band(g.value_at_close.dropna())
+            rows.append(dict(group=group, slice=label, n=int(len(g)),
+                             won=int((g.out == "W").sum()), lost=int((g.out == "L").sum()),
+                             push=int((g.out == "P").sum()), roi=roi, roi_se=roi_se,
+                             value=val, value_se=val_se))
     return pd.DataFrame(rows)
 
 

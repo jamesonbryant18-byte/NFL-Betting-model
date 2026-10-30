@@ -60,3 +60,20 @@ def test_close_favorite_uses_moneyline_on_a_pickem():
     assert _close_favorite(_close(spread=-2.5), "KC", "DEN") == "DEN"
     assert _close_favorite(_close(spread=0.0, h_ml=-115.0, a_ml=-105.0), "KC", "DEN") == "KC"
     assert _close_favorite(None, "KC", "DEN") is None
+
+
+def test_bet_slices_cover_every_bet_once_per_group():
+    from nflmodel.scorecard import slice_bets
+    b = pd.DataFrame(dict(
+        market=["SPREAD", "SPREAD", "MONEYLINE", "MONEYLINE"],
+        odds=[-110.0, -105.0, -170.0, 205.0], line=[-3.0, 4.5, None, None],
+        edge=[1.8, 3.6, 0.04, 0.09], favorite=[True, False, True, False],
+        out=["W", "L", "W", "P"], units=[100 / 110, -1.0, 100 / 170, 0.0],
+        value_at_close=[-0.02, 0.01, -0.03, None]))
+    sl = slice_bets(b)
+    for group in ("market", "side", "price", "edge"):
+        assert sl[sl.group == group].n.sum() == len(b)
+    sp = sl[(sl.group == "market") & (sl.slice == "spreads")].iloc[0]
+    assert (sp.won, sp.lost, sp.push) == (1, 1, 0)
+    assert set(sl[sl.group == "edge"].slice) == {"spread edge 1.5-2.5", "spread edge 3.5+",
+                                                 "ML edge 3-5%", "ML edge 8%+"}
