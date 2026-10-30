@@ -1,0 +1,79 @@
+ week       bet    market   odds result              profit  p_model  p_mkt_pub  p_close  ev_close  ev_close_first  first_changed
+    1  NYG +3.0    SPREAD -115.0      W  0.8695652173913043    0.582      0.511    0.489    -0.079          -0.079          False
+    1  TEN -122 MONEYLINE -122.0      L                -1.0    0.571      0.526    0.520    -0.054          -0.054          False
+    1  IND +145 MONEYLINE  145.0      L                -1.0    0.441      0.391    0.407    -0.004          -0.004          False
+    1  CLE +360 MONEYLINE  360.0      L                -1.0    0.309      0.209    0.214    -0.017          -0.017          False
+    1  ARI +390 MONEYLINE  390.0      W                 3.9    0.254      0.196    0.201    -0.017          -0.017          False
+    1   SF +164 MONEYLINE  164.0      W                1.64    0.421      0.363    0.361    -0.046          -0.046          False
+    1  CAR +136 MONEYLINE  136.0      L                -1.0    0.437      0.407    0.407    -0.040          -0.040          False
+    1   NO +250 MONEYLINE  250.0      L                -1.0    0.325      0.274    0.257    -0.102          -0.102          False
+    1   TB +170 MONEYLINE  170.0      L                -1.0    0.407      0.355    0.370    -0.001          -0.001          False
+    2  ATL +2.5    SPREAD -108.0      L                -1.0    0.552      0.496    0.489    -0.058          -0.058          False
+    2  JAX +2.5    SPREAD -102.0      L                -1.0    0.540      0.483    0.489    -0.031          -0.031          False
+    2  CLE +8.5    SPREAD -112.0      W  0.8928571428571429    0.602      0.504    0.515    -0.025          -0.025          False
+    2  DET +185 MONEYLINE  185.0      L                -1.0    0.390      0.336    0.322    -0.082          -0.082          False
+    3  CHI +4.5    SPREAD -105.0      W  0.9523809523809523    0.604      0.489    0.532     0.039           0.039          False
+    3 MIA +10.5    SPREAD -108.0      L                -1.0    0.587      0.496    0.510    -0.018          -0.018          False
+    3  NYG -138 MONEYLINE -138.0      W  0.7246376811594203    0.652      0.558    0.563    -0.028          -0.028          False
+    3  IND +108 MONEYLINE  108.0      W                1.08    0.498      0.463    0.467    -0.028          -0.028          False
+    3  BAL -178 MONEYLINE -178.0      W  0.5617977528089888    0.669      0.615    0.613    -0.043          -0.043          False
+    4  JAX +2.5    SPREAD -108.0      W  0.9259259259259259    0.563      0.496    0.491    -0.054          -0.054          False
+    4  ATL +2.5    SPREAD -115.0      W  0.8695652173913043    0.562      0.511    0.531    -0.006          -0.006          False
+    4  CHI -3.5    SPREAD -110.0      W  0.9090909090909091    0.545      0.500    0.500    -0.045          -0.045          False
+    4   TB +3.0    SPREAD -112.0      P                 0.0    0.578      0.504    0.528    -0.001          -0.001          False
+    4  BUF -350 MONEYLINE -350.0      L                -1.0    0.796      0.747    0.747    -0.039          -0.039          False
+    4  NYG +118 MONEYLINE  118.0      W                1.18    0.473      0.442    0.449    -0.022          -0.022          False
+    5   TB +8.5    SPREAD -108.0      W  0.9259259259259259    0.643        NaN    0.490    -0.056          -0.056          False
+    5  NYG +3.5    SPREAD -110.0      W  0.9090909090909091    0.625      0.500    0.511    -0.025           0.002           True
+    5  MIN -2.5    SPREAD -110.0      W  0.9090909090909091    0.586      0.500    0.496    -0.054          -0.045           True
+    5  BAL +3.5    SPREAD -122.0      W   0.819672131147541    0.594      0.524    0.524    -0.047          -0.033           True
+    5  TEN +6.5    SPREAD -108.0      L                -1.0    0.584      0.496    0.500    -0.037           0.001           True
+    5  SEA -172 MONEYLINE -172.0      L                -1.0    0.664      0.607    0.597    -0.057          -0.035           True
+    5  CHI -120 MONEYLINE -120.0      L                -1.0    0.582      0.524    0.524    -0.039          -0.039          False
+    6  DEN +2.5    SPREAD -104.0      W  0.9615384615384616    0.533        NaN    0.489    -0.040          -0.012           True
+    6  NYG +1.5    SPREAD -122.0      L                -1.0    0.573      0.524    0.524    -0.047          -0.047          False
+    6  PHI +3.5    SPREAD -122.0      L                -1.0    0.594      0.524    0.541    -0.016          -0.216           True
+    6  JAX -2.5    SPREAD -110.0      L                -1.0    0.572      0.500    0.504    -0.037          -0.057           True
+    6  IND -340 MONEYLINE -340.0      L                -1.0    0.791      0.743    0.714    -0.077          -0.077          False
+    6  BUF -245 MONEYLINE -245.0      W 0.40816326530612246    0.714      0.681    0.684    -0.037          -0.037          False
+    6   GB -118 MONEYLINE -118.0      W   0.847457627118644    0.559      0.520    0.491    -0.093          -0.062           True
+    7  DEN -4.5    SPREAD -110.0      W  0.9090909090909091    0.545      0.500    0.509    -0.029          -0.029          False
+    7  PHI +4.5    SPREAD -110.0      L                -1.0    0.596      0.500    0.511    -0.025          -0.025          False
+    7  CIN +2.5    SPREAD -100.0      W                 1.0    0.525      0.476    0.616     0.232           0.232          False
+    7  PIT -174 MONEYLINE -174.0      W  0.5747126436781609    0.652      0.610    0.600    -0.056          -0.056          False
+    7  CLE -126 MONEYLINE -126.0      W  0.7936507936507936    0.587      0.537    0.543    -0.027          -0.027          False
+    7  MIA +205 MONEYLINE  205.0      W                2.05    0.359      0.315    0.361     0.102           0.102          False
+    7  DET -172 MONEYLINE -172.0      W  0.5813953488372093    0.642      0.605    0.646     0.022           0.022          False
+
+MODEL CARD wk1-7: 45 bets, 25-19-1, units +7.20, ROI/bet +0.160
+  expected wins under model p               : 24.3 +/- 3.2 (n=44; actual 25)
+  expected wins under market p @publication : 20.6 +/- 3.2 (n=42; actual 23)
+  expected wins under market p @close       : 21.8 +/- 3.2 (n=44; actual 25)
+  break-even win rate of prices taken (decided bets): 0.511; actual 0.568
+  ROI +0.160 per unit, SE 0.169
+   spread         n=22 13-8 ROI +0.175
+   moneyline      n=23 12-11 ROI +0.145
+   favorite side  n=16 10-6 ROI +0.076
+   underdog side  n=29 15-13 ROI +0.206
+                    n  won       roi
+market    eb                        
+MONEYLINE (0, 5]   11    7   0.24743
+          (5, 8]   10    4  0.089545
+          (8, 99]   2    1 -0.137681
+SPREAD    (0, 2]    5    3  0.170879
+          (2, 3]   11    5 -0.049109
+          (3, 99]   6    5  0.589933
+  closing EV, final card number        n=45 mean -0.0277 sd 0.0522 t -3.56
+      spreads    n=22 mean -0.0210 t -1.60
+      moneylines n=23 mean -0.0341 t -3.92
+      without largest move (CIN +2.5, wk7, +0.232): mean -0.0336 t -6.48
+  closing EV, first-published number   n=45 mean -0.0288 sd 0.0589 t -3.28
+      spreads    n=22 mean -0.0257 t -1.61
+      moneylines n=23 mean -0.0319 t -3.82
+      without largest move (CIN +2.5, wk7, +0.232): mean -0.0348 t -5.24
+
+REPO CLV (closing.card_clv: first-published wk5-7, final card wk1-4):
+{'spread': {'n': 23, 'avg': 0.32608695652173914, 'beat': 9, 'same': 12, 'worse': 2}, 'moneyline': {'n': 26, 'avg': 0.0007476911926799459, 'beat': 13, 'same': 4, 'worse': 9}}
+  SPREAD clv_pts: n=23 mean +0.3261 sd 1.6069 t +0.97
+  SPREAD clv_prob: n=23 mean +0.0148 sd 0.0436 t +1.63
+  MONEYLINE clv_prob: n=26 mean +0.0007 sd 0.0200 t +0.19

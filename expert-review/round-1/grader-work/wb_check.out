@@ -1,0 +1,16 @@
+cells checked: 363; mismatches: 1
+     sheet cell                                        shown         expected    ok                            note
+Chart Data   R2 BANKROLL $146.13   (+$46.13 since the start) BANKROLL $146.13 False chart title (format may differ)
+              size  sum
+sheet                  
+Bet Tracker     64   64
+Chart Data      96   95
+Picks           84   84
+Weekly Slate   119  119
+
+Bet Tracker rows 1-32, Week 6 vs Week 7, cells that differ (formula text / typed values): 1
+   ('J6', 0.537, 0.52)
+wk06 charts on Bet Tracker: [(11, 17, ''), (11, 27, 'PROFIT BY WEEK'), (28, 17, 'WIN % vs. BREAK-EVEN')]
+wk07 charts on Bet Tracker: [(11, 17, ''), (11, 27, 'PROFIT BY WEEK'), (28, 17, 'WIN % vs. BREAK-EVEN')]
+wk06 chart series refs: ["'Chart Data'!$A$2:$A$491", "'Chart Data'!$A$3:$A$491", "'Chart Data'!$B$2:$B$491", "'Chart Data'!$C$3:$C$491", "'Chart Data'!$E$3:$E$491", "'Chart Data'!$G$2:$G$20", "'Chart Data'!$J$2:$J$20", "'Chart Data'!$K$2:$K$20", "'Chart Data'!$R$2"]
+wk07 chart series refs: ["'Chart Data'!$A$2:$A$491", "'Chart Data'!$A$3:$A$491", "'Chart Data'!$B$2:$B$491", "'Chart Data'!$C$3:$C$491", "'Chart Data'!$E$3:$E$491", "'Chart Data'!$G$2:$G$20", "'Chart Data'!$J$2:$J$20", "'Chart Data'!$K$2:$K$20", "'Chart Data'!$R$2"]

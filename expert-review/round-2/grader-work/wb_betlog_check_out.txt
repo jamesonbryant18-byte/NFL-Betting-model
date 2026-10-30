@@ -1,0 +1,8 @@
+Bet Log rows: 121 {1: 16, 2: 16, 3: 16, 4: 16, 5: 15, 6: 14, 7: 14, 8: 14}
+model bets in Bet Log wk1-7: 45  mine: 45
+{'both': 45, 'left_only': 0, 'right_only': 0}
+result mismatches: 0
+
+value@close max abs diff: 9.71445146547012e-17  mean in sheet: -0.027687898492405848  mine: -0.027687898492405806
+per-game mismatches: 0
+D5 model pick won: 64/106 = 0.6038; D7 favorite: 67/106 = 0.6321; D6 value picks: 12/23 = 0.5217; D8 value avg -0.0277 over 45

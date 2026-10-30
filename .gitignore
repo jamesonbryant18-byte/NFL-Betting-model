@@ -9,3 +9,8 @@ output/
 !data/bet_log.csv
 .DS_Store
 .env
+
+# expert review: raw third-party source texts/data and bulky derived files stay local
+expert-review/research/sources/
+expert-review/**/*.parquet
+expert-review/**/*.xlsx

@@ -1,0 +1,46 @@
+ week      game    market           his         model                       status  his_ev  model_ev his_res           his_units  model_units
+    3   LV @ NO MONEYLINE       LV +156                                   off-card  -0.035       NaN       W                1.56          NaN
+    3 BAL @ DAL    SPREAD BAL -3.5 +104      BAL -178 same game, other market/side  -0.019       NaN       L                -1.0          NaN
+    3 TEN @ NYG MONEYLINE      NYG -127 NYG -138 -138                     same bet   0.007    -0.028       W  0.7874015748031497        0.725
+    3  LA @ DEN MONEYLINE       LA -122                                   off-card  -0.090       NaN       L                -1.0          NaN
+    4 NYJ @ CHI MONEYLINE      CHI -191      CHI -3.5 same game, other market/side  -0.058       NaN       W  0.5235602094240838          NaN
+    4 DET @ CAR MONEYLINE      CAR +174                                   off-card  -0.093       NaN       W                1.74          NaN
+    4 JAX @ CIN    SPREAD  JAX 2.5 -107 JAX +2.5 -108                     same bet  -0.049    -0.054       W  0.9345794392523364        0.926
+    4   GB @ TB    SPREAD   TB 3.5 -148  TB +3.0 -112                     same bet  -0.058    -0.001       W  0.6756756756756757        0.000
+    4  NE @ BUF MONEYLINE      BUF -305 BUF -350 -350                     same bet  -0.008    -0.039       L                -1.0       -1.000
+    5  TB @ DAL    SPREAD   TB 8.5 -107  TB +8.5 -108                     same bet  -0.052    -0.056       W  0.9345794392523364        0.926
+    5 CIN @ MIA MONEYLINE      CIN -322                                   off-card  -0.026       NaN       W  0.3105590062111801          NaN
+    5 NYG @ WAS    SPREAD  NYG 3.5 -121 NYG +3.5 -110                     same bet  -0.067    -0.025       W  0.8264462809917356        0.909
+    5  MIN @ NO    SPREAD MIN -1.5 -121 MIN -2.5 -110                     same bet  -0.055    -0.054       W  0.8264462809917356        0.909
+    5 HOU @ TEN    SPREAD  TEN 7.5 -142 TEN +6.5 -108                     same bet  -0.063    -0.037       L                -1.0       -1.000
+    5  SF @ SEA MONEYLINE      SEA -156 SEA -172 -172                     same bet  -0.021    -0.057       L                -1.0       -1.000
+    5 BAL @ ATL    SPREAD  BAL 3.5 -113 BAL +3.5 -122                     same bet  -0.013    -0.047       W  0.8849557522123894        0.820
+    6 SEA @ DEN    SPREAD  DEN 3.5 -121 DEN +2.5 -104                     same bet   0.027    -0.040       W  0.8264462809917356        0.962
+    6 HOU @ JAX    SPREAD JAX -2.5 -116 JAX -2.5 -110                     same bet  -0.061    -0.037       L                -1.0       -1.000
+    6 CAR @ PHI    SPREAD  PHI 3.5 -126 PHI +3.5 -122                     same bet  -0.030    -0.016       L                -1.0       -1.000
+    6  BUF @ LV MONEYLINE      BUF -228 BUF -245 -245                     same bet  -0.016    -0.037       W 0.43859649122807015        0.408
+    6  DAL @ GB MONEYLINE       GB -116  GB -118 -118                     same bet  -0.086    -0.093       W  0.8620689655172413        0.847
+    7  PIT @ NO MONEYLINE      PIT -167 PIT -174 -174                     same bet  -0.041    -0.056       W  0.5988023952095808        0.575
+    7 CLE @ TEN MONEYLINE      CLE -136 CLE -126 -126                     same bet  -0.058    -0.027       W  0.7352941176470589        0.794
+    7 CIN @ BAL    SPREAD  CIN 2.5 -199 CIN +2.5 -100                     same bet  -0.074     0.232       W  0.5025125628140703        1.000
+    7 MIA @ NYJ MONEYLINE      MIA +182 MIA +205 +205                     same bet   0.019     0.102       W                1.82        2.050
+    7  GB @ DET MONEYLINE      DET -199 DET -172 -172                     same bet  -0.029     0.022       W  0.5025125628140703        0.581
+    7 DEN @ ARI    SPREAD DEN -4.5 -107 DEN -4.5 -110                     same bet  -0.016    -0.029       W  0.9345794392523364        0.909
+    7 DAL @ PHI    SPREAD  PHI 4.5 -108 PHI +4.5 -110                     same bet  -0.016    -0.025       L                -1.0       -1.000
+
+HIS 28 BETS: closing EV mean -0.0386/unit (t -6.51); realized +9.23 units
+  same bet as the model card: n=22; his closing EV -0.0346 vs model number -0.0182 (his - model -0.0164); units his +7.09 vs model +7.34
+  same game, other market/side: n=2 closing EV -0.0386; units -0.48; ['BAL @ DAL', 'NYJ @ CHI']
+  off-card: n=4 closing EV -0.0609; units +2.61; ['LV @ NO', 'LA @ DEN', 'DET @ CAR', 'CIN @ MIA']
+  model card bets wk3-7 not in his tracker: n=10, closing EV -0.0287, units +1.55
+ week       bet    market   odds result  profit  ev_close
+    3  CHI +4.5    SPREAD -105.0      W   0.952     0.039
+    3 MIA +10.5    SPREAD -108.0      L  -1.000    -0.018
+    3  IND +108 MONEYLINE  108.0      W   1.080    -0.028
+    3  BAL -178 MONEYLINE -178.0      W   0.562    -0.043
+    4  ATL +2.5    SPREAD -115.0      W   0.870    -0.006
+    4  CHI -3.5    SPREAD -110.0      W   0.909    -0.045
+    4  NYG +118 MONEYLINE  118.0      W   1.180    -0.022
+    5  CHI -120 MONEYLINE -120.0      L  -1.000    -0.039
+    6  NYG +1.5    SPREAD -122.0      L  -1.000    -0.047
+    6  IND -340 MONEYLINE -340.0      L  -1.000    -0.077

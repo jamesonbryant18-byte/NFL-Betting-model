@@ -1,0 +1,8 @@
+games 1424
+|live-prior proj - replay proj|: mean 0.342 pts, 90th pct 0.833, max 6.602
+by week bucket mean |diff|: {Interval(0, 2, closed='right'): 0.808, Interval(2, 4, closed='right'): 0.739, Interval(4, 8, closed='right'): 0.384, Interval(8, 12, closed='right'): 0.211, Interval(12, 22, closed='right'): 0.128}
+|base - line| replay 2.102  live-prior 1.859
+  replay (as scored)   MAE 10.079  SU 0.6444 (fav 0.6648) disagreements 175  games with |edge|>=1.5: 778  >=3: 339
+  live-style prior     MAE 10.022  SU 0.6486 (fav 0.6648) disagreements 137  games with |edge|>=1.5: 703  >=3: 253
+  MAE live-style minus replay -0.058 (t -3.40) -- note: live-style here leaks nothing; these lines are known pregame
+2026 unplayed games with a spread_line in the loader today: {8: 14, 9: 15}

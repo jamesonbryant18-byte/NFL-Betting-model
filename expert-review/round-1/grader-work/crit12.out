@@ -1,0 +1,58 @@
+hold-out games 1424
+
+=== 1a SU vs closing favorite (2021-25) ===
+deployed (facA 2013-20 weights)          n=1420 (excl pk 0, ties 4) model 0.6528 fav 0.6648 diff -1.20 pts se 0.82 t -1.46 | disagree n=135 hit 0.437 wins 927 vs 944
+deployed w/ facB weights                 n=1420 (excl pk 0, ties 4) model 0.6521 fav 0.6648 diff -1.27 pts se 0.80 t -1.59 | disagree n=128 hit 0.430 wins 926 vs 944
+deployed w/ LIVE weights (in-sample)     n=1420 (excl pk 0, ties 4) model 0.6634 fav 0.6648 diff -0.14 pts se 0.86 t -0.16 | disagree n=148 hit 0.493 wins 942 vs 944
+frozen base only                         n=1420 (excl pk 0, ties 4) model 0.6444 fav 0.6648 diff -2.04 pts se 0.95 t -2.16 | disagree n=181 hit 0.420 wins 915 vs 944
+per season (deployed facA):
+  2021 n=284 model 0.6127 fav 0.6232 diff -1.06 disagree 17 hit 0.412
+  2022 n=282 model 0.6312 fav 0.6631 diff -3.19 disagree 31 hit 0.355
+  2023 n=285 model 0.6667 fav 0.6737 diff -0.70 disagree 26 hit 0.462
+  2024 n=285 model 0.6947 fav 0.7053 diff -1.05 disagree 37 hit 0.459
+  2025 n=284 model 0.6585 fav 0.6585 diff +0.00 disagree 24 hit 0.500
+
+=== 1b alternative pick rules on hold-out (deployed facA) ===
+  model only                                   0.6528  (927/1420)
+  favorite only                                0.6648  (944/1420)
+  disagree only if model p beyond 0.52         0.6613  (939/1420)
+  disagree only if model p beyond 0.55         0.6606  (938/1420)
+  disagree only if model p beyond 0.58         0.6662  (946/1420)
+  disagree only if model p beyond 0.60         0.6669  (947/1420)
+  disagree only if model p beyond 0.65         0.6662  (946/1420)
+  blend 0.20 model + market prob               0.6690  (950/1420)
+  blend 0.35 model + market prob               0.6711  (953/1420)
+  blend 0.50 model + market prob               0.6669  (947/1420)
+
+=== 2a MAE vs closing line (2021-25) ===
+  deployed facA                  MAE 9.899 line 9.762 diff +0.137 se 0.053 t +2.57
+  deployed facB                  MAE 9.902 line 9.762 diff +0.140 se 0.051 t +2.74
+  deployed LIVE w (in-sample)    MAE 9.884 line 9.762 diff +0.121 se 0.056 t +2.15
+  frozen base                    MAE 10.079 line 9.762 diff +0.317 se 0.068 t +4.69
+   2021: model 10.794 line 10.667
+   2022: model 8.986 line 8.783
+   2023: model 10.114 line 9.984
+   2024: model 9.775 line 9.704
+   2025: model 9.825 line 9.670
+
+=== 2b Brier/logloss vs de-vigged closing ML (2021-25) ===
+  deployed facA              n=1420 Brier model 0.2162 market 0.2115 diff +0.0047 (t +2.69) | logloss model 0.6216 market 0.6103
+  frozen base raw            n=1420 Brier model 0.2224 market 0.2115 diff +0.0109 (t +5.20) | logloss model 0.6353 market 0.6103
+  deployed facA, no recal    n=1420 Brier model 0.2167 market 0.2115 diff +0.0052 (t +3.20) | logloss model 0.6227 market 0.6103
+
+=== 2c calibration (2021-25, deployed facA) ===
+  home-side logistic: intercept -0.048 slope 0.855 (se 0.067) n=1420
+  picked-side logistic: intercept -0.025 slope 0.863 (se 0.107)
+                 n   said    won  gap_pts  se_pts
+b                                                
+(0.499, 0.55]  231  0.525  0.498   -2.737   3.286
+(0.55, 0.6]    213  0.576  0.587    1.068   3.386
+(0.6, 0.65]    210  0.626  0.624   -0.177   3.340
+(0.65, 0.7]    184  0.675  0.587   -8.789   3.453
+(0.7, 0.75]    161  0.725  0.745    2.079   3.521
+(0.75, 0.8]    164  0.773  0.744   -2.935   3.270
+(0.8, 0.85]    136  0.824  0.728   -9.596   3.266
+(0.85, 0.9]     82  0.873  0.866   -0.706   3.678
+(0.9, 0.95]     36  0.923  0.917   -0.614   4.448
+(0.95, 1.0]      3  0.961  1.000    3.861  11.124
+  market home-side logistic slope 1.059 (se 0.079)

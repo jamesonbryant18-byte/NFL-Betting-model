@@ -1,0 +1,16 @@
+filled publication-line sign from market_favorite flag for 1 carried game(s): ['ATL @ GB']
+graded games 107 ties 1
+market_favorite flag agrees with archived pub line on 107 of 107
+SU vs favorite at publication: n=106 (pk excl 0, ties 1) model 64 (0.604) fav 67 (0.632) diff -2.8 pts (se 2.5) | disagreements 7 won 0.286 | model expected 67.7 +/- 9.5
+ week      game pick  home_wp  pub_line  result
+    1 BUF @ HOU  HOU 0.501222      -1.5    -5.0
+    2 CAR @ ATL  ATL 0.507271      -2.5   -31.0
+    4 JAX @ CIN  JAX 0.475476       2.5    -5.0
+    4  ATL @ NO  ATL 0.476303       2.5   -21.0
+    5 CLE @ NYJ  CLE 0.451968       2.5     5.0
+    6  NO @ NYG  NYG 0.574496      -1.5    -7.0
+    6 CHI @ ATL  ATL 0.535287      -1.5    -8.0
+SU vs favorite at close (FanDuel): n=106 (pk excl 0, ties 1) model 64 (0.604) fav 67 (0.632) diff -2.8 pts (se 2.8) | disagreements 9 won 0.333 | model expected 67.7 +/- 9.5
+ week      game pick  home_wp  close_line  result
+    1 BUF @ HOU  HOU 0.501222        -1.5    -5.0
+    2 CAR @ ATL  ATL 0.507271        -2.5   -31.0

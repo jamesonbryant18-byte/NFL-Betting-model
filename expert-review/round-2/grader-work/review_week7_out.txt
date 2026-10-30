@@ -1,0 +1,95 @@
+  closing lines: 14 games recorded (14 fanduel) -> picks/2026/week07_closing.csv
+==============================================================================
+  REVIEW — 2026 WEEK 7                                                        
+==============================================================================
+  14 games graded
+
+  STRAIGHT UP
+  correct picks                     9.0   expected   8.9 (95% band   5.4 to  12.4)   z=+0.04  NOISE
+
+  CALIBRATION BY TIER  (does the stated confidence mean anything?)
+  tier             n    said   actual              band
+  strong           3  76.7%    66.7%      0.9-3.0 of 3
+  solid            5  63.7%    60.0%      1.1-5.0 of 5
+  lean             4  59.2%    75.0%      0.4-4.0 of 4
+  slight           2  53.7%    50.0%      0.0-2.0 of 2
+
+  LEANS  (where the model disagreed with a price)
+    DEN -4.5        WIN
+    PHI +4.5        loss
+    CIN +2.5        WIN
+    PIT -174        WIN
+    CLE -126        WIN
+    MIA +205        WIN
+    DET -172        WIN
+    record 6-1 (86% of decided)
+    a coin flip on 7 picks lands anywhere from 0 to 6 wins
+
+  VS THE FAVORITE  (would taking every favorite have done as well?)
+    week 7   model 9-5,  favorite at publication 9-5,  at the close 10-4
+    season   model 64-42,  favorite at publication 67-39,  at the close 67-39
+    season: model -3 picks vs the favorite (anything inside +/-5 is noise)
+    expected wins: 67.7 by the model's own odds, 66.7 by FanDuel's closing odds (104 games); actual 64
+    picks against the favorite this season: 2-5
+
+  THE MODEL'S BETS: GOOD OR LUCKY?  (its published card, graded at FanDuel's close)
+    week 7   6-1, +4.91 units (+70.1% a bet), won 86% vs break-even 53%
+             expected wins: 3.9 by the model, 3.8 +/- 1.3 by the closing market; value at the price taken +3.2% a bet (+/- 7.6%)
+    season   25-19-1, +7.20 units (+16.0% a bet), won 57% vs break-even 51%
+             expected wins: 24.3 by the model, 21.8 +/- 3.2 by the closing market; value at the price taken -2.8% a bet (+/- 1.5%)
+    2 close(s) not from FanDuel (flagged; FanDuel's was not recorded)
+    season verdict: the prices it took were WORSE than the close: the record is running ahead of the bets
+    bet               price  result   model   close   value
+    DEN -4.5           -110       W     54%     51%   -2.9%
+    PHI +4.5           -110       L     60%     51%   -2.5%
+    CIN +2.5           -100       W     52%     62%  +23.2%
+    PIT -174           -174       W     65%     60%   -5.6%
+    CLE -126           -126       W     59%     54%   -2.7%
+    MIA +205           +205       W     36%     36%  +10.2%
+    DET -172           -172       W     64%     65%   +2.2%
+
+  CLOSING LINE VALUE  (the model's bets vs the closing number; + = beat it;
+                       moneylines in de-vigged win %)
+    measured from the first published number
+    DEN -4.5         took   -4.5   close   -4.5   CLV   +0.0
+    PHI +4.5         took   +4.5   close   +4.5   CLV   +0.0
+    CIN +2.5         took   +2.5   close   -3.0   CLV   +5.5
+    PIT -174         took   -174   close   -166   CLV  -1.0%
+    CLE -126         took   -126   close   -130   CLV  +0.6%
+    MIA +205         took   +205   close   +166   CLV  +4.7%
+    DET -172         took   -172   close   -205   CLV  +4.2%
+    season, spreads: 23 bets, avg CLV +0.33 pts, beat the close 9, matched 12, worse 2
+    season, moneylines: 26 bets, avg CLV +0.1%, beat the close 14, matched 3, worse 9
+    CLV near zero = the model is not beating the market; consistently
+    positive over 40-50 bets is the first real evidence of an edge.
+
+  YOUR BETS  (from the Bet Tracker)
+  bet tracker: NFL_Model_2026_Week08.xlsx (saved 2026-10-29 11:49) — 28 row(s), read only
+    bet                 stake  result      P&L   close    CLV  model
+    PIT                    $5       W    +2.99    -166  -0.1%  same side
+    CIN                    $5       W    +2.51    -3.0   +5.5  same side
+    MIA                    $5       W    +9.10    +166  +2.1%  same side
+    CLE                    $5       W    +3.68    -130  -1.1%  same side
+    DEN                    $5       W    +4.67    -4.5   +0.0  same side
+    DET                    $5       W    +2.51    -205  +0.7%  same side
+    PHI                    $5       L    -5.00    +4.5   +0.0  same side
+    season to date: 20-8-0, P&L $+46.13 (+32.9% ROI), spread CLV +1.21 pts avg on 14, beat the close 7; moneyline CLV +0.1% avg on 14, beat the close 8
+
+  PROCESS CHECK  (these are worth fixing regardless of the scoreboard)
+    WRONG INPUT — TB: assumed Jalon Daniels, actually started Baker Mayfield
+    WRONG INPUT — NYG: assumed Jameis Winston, actually started J.J. McCarthy
+
+==============================================================================
+  WHAT TO DO
+==============================================================================
+  Fix the input errors above. Those are defects in the pipeline,
+  not in the ratings, and they are worth fixing immediately.
+
+  Reminder on sample size: at a true 53% ATS rate it takes roughly
+  1,100 bets for the win rate to separate from 50% at 95% confidence.
+  At ~9 leans a week that is over six seasons. Weekly win/loss records
+  will never settle whether this model works. CLV will, in about six
+  weeks: the CLOSING LINE VALUE section above, recorded every Wednesday.
+==============================================================================
+
+  week 7 locked — its picks can no longer be rewritten.

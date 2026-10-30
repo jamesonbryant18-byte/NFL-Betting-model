@@ -1,0 +1,12 @@
+  FACTOR REFIT -- fit on 2013-2020 (2138 games), scored on 2021-2025 (1424 games, never seen)
+
+                             set                                               weights  alpha  slope_b     su  su_fav   mae  mae_vs_none_t  brier  cal_slope  card_win  card_roi  card_se
+                      no factors                                                     -    NaN    1.510 65.423  66.479 9.944            NaN  0.217      0.930    53.893    -3.535    3.490
+                        injuries                                      inj_total +0.523  100.0    1.470 66.056  66.479 9.873         -2.507  0.216      0.933    56.250     1.512    3.562
+                 injuries + rest                 inj_total +0.480, rt_rest_diff +0.004  300.0    1.477 65.986  66.479 9.876         -2.597  0.216      0.934    55.643     0.718    3.588
+injuries + rest + EPA/play (old) inj_total +0.466, rt_rest_diff +0.005, eff_epa +0.814  300.0    1.450 65.986  66.479 9.881         -2.411  0.216      0.931    53.774    -2.411    3.614
+
+  su_fav = the closing favorite on the same games; mae_vs_none_t < 0 = lower error than no factors; cal_slope 1.00 = win % honest on 2021-25
+
+  live weights, 'injuries + rest' re-fit on 2013-2025 (penalty 300):
+  FACTORS = dict(inj_total=0.637, rt_rest_diff=0.048)

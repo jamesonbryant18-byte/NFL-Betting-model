@@ -1,0 +1,12 @@
+deployed (facA)
+   result ~ line + model:       const +0.414 (se 0.349, t +1.19), line +0.774 (se 0.158, t +4.89), model +0.295 (se 0.156, t +1.89)
+   result ~ line + (model-line): const +0.414 (se 0.349, t +1.19), line +1.069 (se 0.056, t +19.17), model-line +0.295 (se 0.156, t +1.89)
+deployed LIVE weights (in-sample)
+   result ~ line + model:       const +0.396 (se 0.349, t +1.14), line +0.710 (se 0.152, t +4.68), model +0.360 (se 0.148, t +2.43)
+   result ~ line + (model-line): const +0.396 (se 0.349, t +1.14), line +1.070 (se 0.056, t +19.26), model-line +0.360 (se 0.148, t +2.43)
+frozen base
+   result ~ line + model:       const +0.475 (se 0.353, t +1.34), line +1.058 (se 0.122, t +8.71), model -0.005 (se 0.141, t -0.03)
+   result ~ line + (model-line): const +0.475 (se 0.353, t +1.34), line +1.053 (se 0.064, t +16.36), model-line -0.005 (se 0.141, t -0.03)
+base+trend
+   result ~ line + model:       const +0.455 (se 0.353, t +1.29), line +1.011 (se 0.154, t +6.57), model +0.052 (se 0.176, t +0.30)
+   result ~ line + (model-line): const +0.455 (se 0.353, t +1.29), line +1.064 (se 0.064, t +16.65), model-line +0.052 (se 0.176, t +0.30)

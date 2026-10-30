@@ -1,0 +1,34 @@
+games 107 ties 1 pickem at close 0 close sources {'fanduel (action network)': 104, 'draftkings (action network)': 2, 'draftkings (nflverse)': 1}
+SU vs favorite at publication: n=106 model 64-42 (0.604) fav 67 (0.632) diff -3 games, per game -2.8 pts SE 2.5; disagreements 7, model won 2
+   disagreement games:  week away home   res      hwp pick
+       1  BUF  HOU  -5.0 0.501222  HOU
+       2  CAR  ATL -31.0 0.507271  ATL
+       4  JAX  CIN  -5.0 0.475476  JAX
+       4  ATL   NO -21.0 0.476303  ATL
+       5  CLE  NYJ   5.0 0.451968  CLE
+       6   NO  NYG  -7.0 0.574496  NYG
+       6  CHI  ATL  -8.0 0.535287  ATL
+SU vs favorite at close: n=106 model 64-42 (0.604) fav 67 (0.632) diff -3 games, per game -2.8 pts SE 2.8; disagreements 9, model won 3
+   disagreement games:  week away home   res      hwp pick
+       1  BUF  HOU  -5.0 0.501222  HOU
+       2  CAR  ATL -31.0 0.507271  ATL
+       4  JAX  CIN  -5.0 0.475476  JAX
+       4  ATL   NO -21.0 0.476303  ATL
+       5  CLE  NYJ   5.0 0.451968  CLE
+       6   NO  NYG  -7.0 0.574496  NYG
+       6  DAL   GB  10.0 0.558526   GB
+       6  CHI  ATL  -8.0 0.535287  ATL
+       7  CIN  BAL -22.0 0.532073  BAL
+expected SU wins (model odds) 67.7 +/- 4.8; actual 64
+MAE model 9.594 FD close 9.439 diff +0.155 SE 0.166 t +0.94 (n=107); nflverse close MAE 9.407
+Brier model 0.2352 FD close 0.2343 diff +0.0009 t +0.15 n=104; logloss 0.6650 vs 0.6649
+              n   said    won      lo      hi  wins
+b                                                  
+[0.5, 0.55)  21  0.525  0.476   6.535  15.505  10.0
+[0.55, 0.6)  25  0.577  0.520   9.582  19.265  13.0
+[0.6, 0.65)  14  0.622  0.643   5.157  12.268   9.0
+[0.65, 0.7)  23  0.670  0.652  10.978  19.821  15.0
+[0.7, 0.75)   5  0.734  0.800   1.730   5.605   4.0
+[0.75, 0.8)  10  0.775  0.700   5.161  10.338   7.0
+[0.8, 0.85)   5  0.824  0.800   2.447   5.788   4.0
+[0.85, 0.9)   3  0.862  0.667   1.417   3.757   2.0

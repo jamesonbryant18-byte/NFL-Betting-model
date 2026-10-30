@@ -1,0 +1,79 @@
+bets on final cards: 45 {1: 9, 2: 4, 3: 5, 4: 6, 5: 7, 6: 7, 7: 7}
+max |value repo - mine|: 0.0
+
+record 25-19-1, units +7.20, ROI +0.160 (SE 0.169); win% 0.568 vs break-even 0.511
+expected wins: model 24.3 +/- 3.2; closing market 21.8 +/- 3.2; actual 25 (decided 44)
+value at the price taken: mean -0.0277 SD 0.052 SE 0.0078 t -3.56 n 45
+   without largest (CIN +2.5 wk7 +0.232): mean -0.0336 SE 0.0052 t -6.48 n 44
+   SPREAD: n 22 value -0.0210 (SE 0.0131, t -1.60); record 13-8-1 ROI +0.175
+   MONEYLINE: n 23 value -0.0341 (SE 0.0087, t -3.92); record 12-11-0 ROI +0.145
+   weeks 4-7: n 27 value -0.0226 (t -1.89); weeks 5-7: n 21 value -0.0210 (t -1.38)
+
+slices (n, record, ROI, mean value, mean model p, mean close p):
+   market=MONEYLINE: n 23 12-11-0 ROI +0.145 value -0.034 p_model 0.530 p_close 0.481
+   market=SPREAD: n 22 13-8-1 ROI +0.175 value -0.021 p_model 0.577 p_close 0.513
+   fav=False: n 29 15-13-1 ROI +0.206 value -0.019 p_model 0.509 p_close 0.452
+   fav=True: n 16 10-6-0 ROI +0.076 value -0.043 p_model 0.633 p_close 0.578
+   odds_bucket=<=-200: n 3 1-2-0 ROI -0.531 value -0.051 p_model 0.767 p_close 0.715
+   odds_bucket=-199..-130: n 5 4-1-0 ROI +0.289 value -0.032 p_model 0.656 p_close 0.604
+   odds_bucket=-129..-101: n 25 14-10-1 ROI +0.100 value -0.036 p_model 0.578 p_close 0.510
+   odds_bucket=-100..+150: n 5 3-2-0 ROI +0.252 value +0.028 p_model 0.475 p_close 0.469
+   odds_bucket=>+150: n 7 3-4-0 ROI +0.513 value -0.023 p_model 0.352 p_close 0.298
+
+CLV from first-published card (repo card_clv): n 49
+   SPREAD: n 23 mean +0.3261 SD 1.6069 t +0.97
+      as prob via key-number table: mean +0.0148 t +1.63
+   MONEYLINE: n 26 mean +0.0010 SD 0.0198 t +0.27
+CLV from the final card (mine):
+   SPREAD: n 22 mean +0.3864 SD 1.2241 t +1.48
+   MONEYLINE: n 23 mean +0.0014 SD 0.0179 t +0.38
+    week   bet_side     market  taken  close  clv_pts  clv_prob      card_source
+0      1   NYG +3.0     SPREAD    3.0    3.0      0.0  0.000000       final card
+1      1   TEN -122  MONEYLINE -122.0 -118.0      NaN -0.006263       final card
+2      1   IND +145  MONEYLINE  145.0  136.0      NaN  0.015866       final card
+3      1   CLE +360  MONEYLINE  360.0  350.0      NaN  0.004954       final card
+4      1   ARI +390  MONEYLINE  390.0  380.0      NaN  0.004837       final card
+5      1    SF +164  MONEYLINE  164.0  166.0      NaN -0.001744       final card
+6      1   CAR +136  MONEYLINE  136.0  136.0      NaN  0.000000       final card
+7      1    NO +250  MONEYLINE  250.0  275.0      NaN -0.017688       final card
+8      1    TB +170  MONEYLINE  170.0  160.0      NaN  0.014627       final card
+9      2   ATL +2.5     SPREAD    2.5    2.5      0.0  0.000000       final card
+10     2   JAX +2.5     SPREAD    2.5    2.5      0.0  0.000000       final card
+11     2   CLE +8.5     SPREAD    8.5    8.5      0.0  0.000000       final card
+12     2   DET +185  MONEYLINE  185.0  198.0      NaN -0.014138       final card
+13     3   CHI +4.5     SPREAD    4.5    3.5      1.0  0.024259       final card
+14     3  MIA +10.5     SPREAD   10.5    9.5      1.0  0.033329       final card
+15     3   NYG -138  MONEYLINE -138.0 -142.0      NaN  0.005182       final card
+16     3   IND +108  MONEYLINE  108.0  106.0      NaN  0.004173       final card
+17     3   BAL -178  MONEYLINE -178.0 -176.0      NaN -0.002870       final card
+18     4   JAX +2.5     SPREAD    2.5    2.5      0.0  0.000000       final card
+19     4   ATL +2.5     SPREAD    2.5    1.5      1.0  0.022933       final card
+20     4   CHI -3.5     SPREAD   -3.5   -3.5      0.0  0.000000       final card
+21     4    TB +3.0     SPREAD    3.0    2.5      0.5  0.037653       final card
+22     4   BUF -350  MONEYLINE -350.0 -350.0      NaN  0.000000       final card
+23     4   NYG +118  MONEYLINE  118.0  114.0      NaN  0.006869       final card
+24     5   TEN +7.5     SPREAD    7.5    6.5      1.0  0.046842  first published
+25     5    TB +8.5     SPREAD    8.5    9.5     -1.0 -0.025757  first published
+26     5   BAL +3.5     SPREAD    3.5    3.5      0.0  0.000000  first published
+27     5   NYG +3.5     SPREAD    3.5    3.5      0.0  0.000000  first published
+28     5   MIN -1.5     SPREAD   -1.5   -2.5      1.0  0.021862  first published
+29     5   CIN -310  MONEYLINE -310.0 -340.0      NaN  0.017688  first published
+30     5   SEA -162  MONEYLINE -162.0 -164.0      NaN  0.003158  first published
+31     5   CHI -120  MONEYLINE -120.0 -120.0      NaN  0.000000  first published
+32     6   PHI -1.5     SPREAD   -1.5    3.0     -4.5 -0.098378  first published
+33     6   JAX -2.5     SPREAD   -2.5   -2.5      0.0  0.000000  first published
+34     6   NYG -104  MONEYLINE -104.0 -106.0      NaN  0.004457  first published
+35     6   DEN +3.0     SPREAD    3.0    2.5      0.5  0.037653  first published
+36     6   IND -340  MONEYLINE -340.0 -290.0      NaN -0.029889  first published
+37     6   BAL -225  MONEYLINE -225.0 -174.0      NaN -0.056273  first published
+38     6    GB -110  MONEYLINE -110.0 -104.0      NaN -0.013362  first published
+39     6   NYG +1.5     SPREAD    1.5    1.5      0.0  0.000000  first published
+40     6   ATL +3.0     SPREAD    3.0    1.5      1.5  0.112958  first published
+41     6   BUF -245  MONEYLINE -245.0 -245.0      NaN  0.003583  first published
+42     7   DEN -4.5     SPREAD   -4.5   -4.5      0.0  0.000000  first published
+43     7   PHI +4.5     SPREAD    4.5    4.5      0.0  0.000000  first published
+44     7   CIN +2.5     SPREAD    2.5   -3.0      5.5  0.126133  first published
+45     7   PIT -174  MONEYLINE -174.0 -166.0      NaN -0.010070  first published
+46     7   CLE -126  MONEYLINE -126.0 -130.0      NaN  0.005782  first published
+47     7   MIA +205  MONEYLINE  205.0  166.0      NaN  0.046746  first published
+48     7   DET -172  MONEYLINE -172.0 -205.0      NaN  0.041629  first published

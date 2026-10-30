@@ -1,0 +1,39 @@
+graded games 107 ties 1
+market_favorite flag agrees with archived pub line on 106 of 106
+SU vs favorite at publication: n=106 (pk excl 0, ties 1) model 64 (0.604) fav 68 (0.642) diff -3.8 pts (se 2.7) | disagreements 8 won 0.250 | model expected 67.7 +/- 9.5
+ week      game pick  home_wp  pub_line  result
+    1 BUF @ HOU  HOU 0.501222      -1.5    -5.0
+    2 CAR @ ATL  ATL 0.507271      -2.5   -31.0
+    3  ATL @ GB   GB 0.656887       NaN   -21.0
+    4 JAX @ CIN  JAX 0.475476       2.5    -5.0
+    4  ATL @ NO  ATL 0.476303       2.5   -21.0
+    5 CLE @ NYJ  CLE 0.451968       2.5     5.0
+    6  NO @ NYG  NYG 0.574496      -1.5    -7.0
+    6 CHI @ ATL  ATL 0.535287      -1.5    -8.0
+SU vs favorite at close (FanDuel): n=106 (pk excl 0, ties 1) model 64 (0.604) fav 67 (0.632) diff -2.8 pts (se 2.8) | disagreements 9 won 0.333 | model expected 67.7 +/- 9.5
+ week      game pick  home_wp  close_line  result
+    1 BUF @ HOU  HOU 0.501222        -1.5    -5.0
+    2 CAR @ ATL  ATL 0.507271        -2.5   -31.0
+    4 JAX @ CIN  JAX 0.475476         2.5    -5.0
+    4  ATL @ NO  ATL 0.476303         1.5   -21.0
+    5 CLE @ NYJ  CLE 0.451968         2.5     5.0
+    6  NO @ NYG  NYG 0.574496        -1.5    -7.0
+    6  DAL @ GB   GB 0.558526        -1.5    10.0
+    6 CHI @ ATL  ATL 0.535287        -1.5    -8.0
+    7 CIN @ BAL  BAL 0.532073        -3.0   -22.0
+
+raw SU 64 of 106
+MAE live: model 9.594  FanDuel close 9.439  line at publication 9.325  model-close +0.155 (t +0.94) n=107
+Brier live: model 0.2352 market(devig FD close) 0.2343 diff +0.0009 (t +0.15); logloss 0.6650 vs 0.6649; n=104
+
+live calibration (picked side, 5-pt buckets):
+                n   said    won  band_lo  band_hi
+b                                                
+(0.499, 0.55]  21  0.525  0.476    0.311    0.738
+(0.55, 0.6]    25  0.577  0.520    0.383    0.771
+(0.6, 0.65]    14  0.622  0.643    0.368    0.876
+(0.65, 0.7]    23  0.670  0.652    0.477    0.862
+(0.7, 0.75]     5  0.734  0.800    0.346    1.000
+(0.75, 0.8]    10  0.775  0.700    0.516    1.000
+(0.8, 0.85]     5  0.824  0.800    0.489    1.000
+(0.85, 0.9]     3  0.862  0.667    0.472    1.000

@@ -1,0 +1,15 @@
+rerun vs cached base: max abs diff 0.0
+               variant     SU    MAE  Brier  comp_dSU_pts    t_SU  comp_dMAE   t_MAE  comp_dBrier  t_Brier
+         FULL deployed 0.6528 9.8993 0.2162        0.0000     NaN     0.0000     NaN       0.0000      NaN
+  - market prior blend 0.6592 9.9614 0.2177       -0.6338 -1.1923    -0.0621 -2.4876      -0.0015  -1.7877
+        - joint QB fit 0.6521 9.9322 0.2169        0.0704  0.1348    -0.0330 -1.1107      -0.0007  -0.7740
+          - home field 0.6563 9.9202 0.2152       -0.3521 -0.4582    -0.0209 -0.5435       0.0010   0.8277
+     - injuries factor 0.6563 9.9687 0.2178       -0.3521 -0.5933    -0.0694 -2.4871      -0.0016  -1.8817
+     - EPA/play factor 0.6570 9.8832 0.2156       -0.4225 -1.5007     0.0161  1.8562       0.0006   2.5077
+         - rest factor 0.6514 9.8994 0.2162        0.1408  1.0000    -0.0001 -0.0260       0.0000   0.1135
+- trend pull (3pt/1.5) 0.6479 9.9959 0.2192        0.4930  1.1509    -0.0966 -5.1118      -0.0030  -5.0823
+       - EPA self-tune 0.6613 9.9006 0.2162       -0.8451 -2.0603    -0.0013 -0.1068       0.0000   0.0954
+  - win% recalibration 0.6528 9.8993 0.2167        0.0000     NaN     0.0000     NaN      -0.0005  -0.3256
+
+comp_d* = metric(full) - metric(without component); MAE/Brier: negative = component helps; SU: positive = helps.
+A component HURTS if comp_dMAE t >= +2, comp_dBrier t >= +2, or comp_dSU < -0.5 pts.

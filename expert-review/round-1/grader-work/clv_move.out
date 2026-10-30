@@ -1,0 +1,45 @@
+MODEL CARD, CLV from the published number (wk1-4 published = final card, backfilled):
+   SPREAD     n=23 mean +1.48% sd 4.36% t +1.63   (points: mean +0.33)
+   MONEYLINE  n=26 mean +0.10% sd 1.98% t +0.27
+   ALL        n=49 mean +0.75% sd 3.35% t +1.56
+   without largest move (CIN +2.5 wk7 +12.6%): n=48 mean +0.50% t +1.20
+   without QB-news moves (PHI -1.5, CIN +2.5): n=47 mean +0.72% t +1.99
+MODEL CARD, CLV from the final number (wk1-4 published = final card, backfilled):
+   SPREAD     n=22 mean +1.16% sd 2.98% t +1.83   (points: mean +0.39)
+   MONEYLINE  n=23 mean +0.14% sd 1.79% t +0.38
+   ALL        n=45 mean +0.64% sd 2.47% t +1.74
+   without largest move (CIN +2.5 wk7 +12.6%): n=44 mean +0.37% t +1.46
+   without QB-news moves (PHI +3.5, CIN +2.5): n=43 mean +0.29% t +1.18
+
+HIS TRACKER: 28 bets, 20-8, P&L $+46.13 on $140 (+32.9%); mean break-even of his prices 0.563
+   SPREAD     n=14 CLV mean +3.84% (t +2.91)  points +1.21
+   MONEYLINE  n=14 CLV mean -2.13% (t -4.58)  (moneyline: fair close minus implied prob of his price)
+ week   matchup    market     side  line  odds result  clv_pts  clv_prob    be
+    3   LV @ NO MONEYLINE  AWAY LV   NaN   156      W      NaN    -0.014 0.391
+    3 BAL @ DAL    SPREAD AWAY BAL  -3.5   104      L      0.0     0.000 0.490
+    3  TEN @ NY MONEYLINE HOME NYG   NaN  -127      W      NaN     0.004 0.559
+    3  LA @ DEN MONEYLINE  AWAY LA   NaN  -122      L      NaN    -0.050 0.550
+    4 NYJ @ CHI MONEYLINE HOME CHI   NaN  -191      W      NaN    -0.038 0.656
+    4 DET @ CAR MONEYLINE HOME CAR   NaN   174      W      NaN    -0.034 0.365
+    4 JAC @ CIN    SPREAD AWAY JAX   2.5  -107      W      0.0     0.000 0.517
+    4   GB @ TB    SPREAD  HOME TB   3.5  -148      W      1.0     0.075 0.597
+    4  NE @ BUF MONEYLINE HOME BUF   NaN  -305      L      NaN    -0.006 0.753
+    5  TB @ DAL    SPREAD  AWAY TB   8.5  -107      W     -1.0    -0.026 0.517
+    5 CIN @ MIA MONEYLINE AWAY CIN   NaN  -322      W      NaN    -0.020 0.763
+    5 NYG @ WAS    SPREAD AWAY NYG   3.5  -121      W      0.0     0.000 0.548
+    5  MIN @ NO    SPREAD AWAY MIN   1.5  -121      W      4.0     0.087 0.548
+    5 HOU @ TEN    SPREAD HOME TEN   7.5  -142      L      1.0     0.047 0.587
+    5  SF @ SEA MONEYLINE HOME SEA   NaN  -156      L      NaN    -0.013 0.609
+    5 BAL @ ATL    SPREAD AWAY BAL   3.5  -113      W      0.0     0.000 0.531
+    6 SEA @ DEN    SPREAD HOME DEN   3.5  -121      W      1.0     0.075 0.548
+    6 HOU @ JAX    SPREAD HOME JAX   2.5  -116      L      5.0     0.115 0.537
+    6 CAR @ PHI    SPREAD HOME PHI   3.5  -126      L      0.5     0.038 0.558
+    6  BUF @ LV MONEYLINE AWAY BUF   NaN  -228      W      NaN    -0.011 0.695
+    6  DAL @ GB MONEYLINE  HOME GB   NaN  -116      W      NaN    -0.046 0.537
+    7  PIT @ NO MONEYLINE AWAY PIT   NaN  -167      W      NaN    -0.026 0.625
+    7 CLE @ TEN MONEYLINE AWAY CLE   NaN  -136      W      NaN    -0.034 0.576
+    7 CIN @ BAL    SPREAD AWAY CIN   2.5  -199      W      5.5     0.126 0.666
+    7 MIA @ NYJ MONEYLINE AWAY MIA   NaN   182      W      NaN     0.007 0.355
+    7  GB @ DET MONEYLINE HOME DET   NaN  -199      W      NaN    -0.019 0.666
+    7 DEN @ ARI    SPREAD AWAY DEN  -4.5  -107      W      0.0     0.000 0.517
+    7 DAL @ PHI    SPREAD HOME PHI   4.5  -108      L      0.0     0.000 0.519

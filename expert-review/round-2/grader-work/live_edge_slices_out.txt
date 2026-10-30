@@ -1,0 +1,7 @@
+live card Weeks 1-7 by edge bucket
+  spread 1.5-2.5         n  9  3-6-0  ROI -0.350  value@close +0.000
+  spread 2.5-3.0         n  7  5-1-1  ROI +0.494  value@close -0.035
+  spread 3.0-99          n  6  5-1-0  ROI +0.590  value@close -0.036
+  ML 3-5%                n 11  7-4-0  ROI +0.247  value@close -0.029
+  ML 5-8%                n 10  4-6-0  ROI +0.090  value@close -0.042
+  ML 8-100%              n  2  1-1-0  ROI -0.138  value@close -0.023

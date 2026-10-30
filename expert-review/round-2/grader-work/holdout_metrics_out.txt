@@ -1,0 +1,49 @@
+hold-out games 1424 ties 4 pickems (line 0) 0 missing ML pair 0
+
+1a (ties+pickems excluded, n=1420): model 0.6599 fav 0.6648 diff -0.49 pts SE 0.74 t -0.66
+   2021: n=284 model 0.616 fav 0.623 diff -0.70 (SE 1.50)
+   2022: n=282 model 0.649 fav 0.663 diff -1.42 (SE 1.88)
+   2023: n=285 model 0.660 fav 0.674 diff -1.40 (SE 1.65)
+   2024: n=285 model 0.712 fav 0.705 diff +0.70 (SE 1.79)
+   2025: n=284 model 0.662 fav 0.658 diff +0.35 (SE 1.45)
+   repo scorecard (pickems by ML): n=1420 model 0.6599 fav 0.6648 diff -0.49 SE 0.74; disagree 52/111
+
+1b disagreements (pickems excl): n=111 model right 52 = 0.468
+   model conf 0.50-0.52: n=36 right 0.444
+   model conf 0.52-0.55: n=46 right 0.500
+   model conf 0.55-1.00: n=29 right 0.448
+   rules on n=1420 (needs ML pair):
+     model only                       0.6599  (937)
+     favorite only                    0.6648  (944)
+     disagree only if model p>=0.52   0.6627  (941)
+     disagree only if model p>=0.55   0.6627  (941)
+     disagree only if model p>=0.58   0.6655  (945)
+     disagree only if model p>=0.6    0.6648  (944)
+     blend w_model=0.25               0.6669  (947)
+     blend w_model=0.5                0.6648  (944)
+     blend w_model=0.75               0.6634  (942)
+
+2a MAE model 9.8761 line 9.7623 diff +0.1138 SE 0.0482 t +2.36 (n=1424)
+2b Brier model 0.2156 market 0.2115 diff +0.0041 (SE 0.0015, t +2.75) n=1420; logloss 0.6198 vs 0.6103
+2c slope (home p) 0.934
+   with intercept: a=-0.064 b=0.957
+                 n   said    won  gap_pts
+b                                        
+[0.5, 0.55)    242  0.526  0.525   -0.126
+[0.55, 0.6)    248  0.575  0.605    2.976
+[0.6, 0.65)    215  0.627  0.614   -1.262
+[0.65, 0.7)    197  0.674  0.675    0.132
+[0.7, 0.75)    181  0.725  0.707   -1.761
+[0.75, 0.8)    150  0.774  0.753   -2.089
+[0.8, 0.85)    104  0.822  0.760   -6.251
+[0.85, 0.9)     62  0.869  0.887    1.852
+[0.9, 0.95)     20  0.922  0.950    2.778
+[0.95, 1.001)    1  0.953  1.000    4.678
+
+3b result ~ line + proj: line 0.751 (se 0.172), proj +0.340 (se 0.182, t +1.86)
+   result ~ line + (proj-line): line 1.090 (se 0.059), proj-line +0.340 (se 0.182, t +1.86)
+   2021: proj-line coef +0.230 (t +0.54)
+   2022: proj-line coef -0.163 (t -0.42)
+   2023: proj-line coef +0.569 (t +1.32)
+   2024: proj-line coef +0.576 (t +1.42)
+   2025: proj-line coef +0.265 (t +0.63)

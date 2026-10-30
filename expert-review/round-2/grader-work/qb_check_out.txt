@@ -1,0 +1,5 @@
+['away_qb_id', 'home_qb_id', 'away_qb_name', 'home_qb_name']
+   week team       game         assumed       source          actual  carried pick   bet
+0     1  ATL  ATL @ PIT  Tua Tagovailoa  depth chart     Cooper Rush    False  PIT  None
+1     7   TB   TB @ CAR   Jalon Daniels     override  Baker Mayfield    False  CAR  None
+2     7  NYG  NYG @ HOU  Jameis Winston  depth chart   J.J. McCarthy    False  HOU  None

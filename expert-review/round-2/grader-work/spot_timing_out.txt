@@ -1,0 +1,20 @@
+
+2021_06_LV_DEN (2021-10-17): ratings fit on 3019 games, latest 2021-wk5; prior uses lines from weeks 1-6 of 2021 (94 games); rest home 7 away 7 -> diff 0; inj_total -1.37
+   DEN counted out (imp>0.3): Josey Jewell (LB, roster RES, imp 0.93, played=no); DaeSean Hamilton (WR, roster RES, imp 0.49, played=no); Bradley Chubb (LB, roster RES, imp 0.68, played=no); Essang Bassey (DB, roster RES, imp 0.34, played=no); Michael Ojemudia (DB, roster RES, imp 0.78, played=no); Jerry Jeudy (WR, roster RES, imp 0.74, played=no); K.J. Hamler (WR, roster RES, imp 0.49, played=no)
+   LV counted out (imp>0.3): Johnathan Hankins (DT, Doubtful, imp 0.61, played=no); Denzelle Good (OL, roster RES, imp 0.88, played=no); Nicholas Morrow (LB, roster RES, imp 0.65, played=no); Trayvon Mullen (DB, roster RES, imp 0.87, played=no); Damon Arnette (DB, roster RES, imp 0.31, played=no)
+
+2022_12_CIN_TEN (2022-11-27): ratings fit on 3388 games, latest 2022-wk11; prior uses lines from weeks 1-12 of 2022 (180 games); rest home 10 away 7 -> diff 3; inj_total -2.42
+   TEN counted out (imp>0.3): Denico Autry (DE, Out, imp 0.65, played=no); Taylor Lewan (OL, roster RES, imp 0.70, played=no); Zach Cunningham (LB, roster RES, imp 0.57, played=no); Harold Landry (LB, roster RES, imp 0.89, played=no); Lonnie Johnson (DB, roster RES, imp 0.48, played=no); Chris Jackson (DB, roster RES, imp 0.33, played=no)
+   CIN counted out (imp>0.3): Joe Mixon (RB, Out, imp 0.63, played=no); Chidobe Awuzie (DB, roster RES, imp 0.69, played=no); Drew Sample (TE, roster RES, imp 0.41, played=no)
+
+2023_09_SEA_BAL (2023-11-05): ratings fit on 3630 games, latest 2023-wk8; prior uses lines from weeks 1-9 of 2023 (136 games); rest home 7 away 7 -> diff 0; inj_total +0.80
+   BAL counted out (imp>0.3): Morgan Moses (T, Doubtful, imp 0.93, played=no); Tyus Bowser (LB, roster RES, imp 0.34, played=no)
+   SEA counted out (imp>0.3): Uchenna Nwosu (LB, roster RES, imp 0.78, played=no); Abraham Lucas (OL, roster RES, imp 0.91, played=no); Coby Bryant (DB, roster RES, imp 0.66, played=no)
+
+2024_14_LAC_KC (2024-12-08): ratings fit on 3988 games, latest 2024-wk13; prior uses lines from weeks 1-14 of 2024 (208 games); rest home 9 away 7 -> diff 2; inj_total +0.77
+   KC counted out (imp>0.3): Marquise Brown (WR, roster RES, imp 0.70, played=no); Jaylen Watson (DB, roster RES, imp 0.40, played=no); Skyy Moore (WR, roster RES, imp 0.43, played=no); Rashee Rice (WR, roster RES, imp 0.55, played=no)
+   LAC counted out (imp>0.3): Denzel Perryman (LB, Doubtful, imp 0.51, played=no); Eli Apple (DB, roster RES, imp 0.47, played=no); Alohi Gilman (DB, roster RES, imp 0.81, played=no); Asante Samuel Jr. (DB, roster RES, imp 0.97, played=no)
+
+2025_10_DET_WAS (2025-11-09): ratings fit on 4213 games, latest 2025-wk9; prior uses lines from weeks 1-10 of 2025 (149 games); rest home 7 away 7 -> diff 0; inj_total -0.41
+   WAS counted out (imp>0.3): Terry McLaurin (WR, Out, imp 0.80, played=no); Jayden Daniels (QB, Out, imp 0.91, played=no); Noah Brown (WR, roster RES, imp 0.41, played=no); Austin Ekeler (RB, roster RES, imp 0.37, played=no); Marshon Lattimore (DB, roster RES, imp 0.46, played=no); Deatrich Wise (DL, roster RES, imp 0.36, played=no); Dorance Armstrong (DL, roster RES, imp 0.58, played=no); Will Harris (DB, roster RES, imp 0.73, played=no); Luke McCaffrey (WR, roster RES, imp 0.37, played=no)
+   DET counted out (imp>0.3): Malcolm Rodriguez (LB, Out, imp 0.31, played=no); Kerby Joseph (S, Out, imp 0.99, played=no); Joshua Paschal (DE, Out, imp 0.50, played=no); D.J. Reed (DB, roster RES, imp 0.78, played=no); Levi Onwuzurike (DL, roster RES, imp 0.56, played=no); Malcolm Rodriguez (LB, roster RES, imp 0.31, played=no); Joshua Paschal (DL, roster RES, imp 0.50, played=no)

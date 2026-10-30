@@ -1,0 +1,44 @@
+================================================================================================
+  FACTOR LAB — fit on 2013-2020 (2138 games), scored on 2021-2025 (1424 games, never seen)
+================================================================================================
+  current model on 2021-25: straight-up 64.4%, margin error 10.079 pts (closing line 9.762), ATS 50.1% on 762, ML ROI -7.4% on 702
+
+  family          SU%   Δ SU   error   Δ err     t  yrs   ATS% ATS ROI  ML ROI | vs LINE r     t  verdict
+  -------------------------------------------------------------------------------------------------------
+  efficiency    63.9%  -0.5  10.093  -0.014  -1.0  2/5  49.5%   -4.8%   -6.7%      -0.006  -0.2  no help
+  matchup       64.7%  +0.3  10.080  -0.001  -0.2  1/5  49.7%   -4.4%   -6.5%      -0.009  -0.3  no help
+  weather       64.3%  -0.1  10.092  -0.012  -1.2  2/5  50.1%   -3.7%   -5.5%      +0.023   0.9  no help
+  rest_travel   64.3%  -0.1  10.080  -0.000  -0.1  2/5  49.7%   -4.4%   -6.2%      +0.037   1.4  no help
+  injuries      64.8%  +0.4  10.017  +0.063   2.2  3/5  52.5%   +1.0%   -0.7%      +0.063   2.4  CANDIDATE
+  situation     64.6%  +0.1  10.097  -0.018  -1.2  1/5  49.7%   -4.3%   -6.6%      -0.005  -0.2  no help
+  schedule_spots  64.7%  +0.3  10.081  -0.002  -0.1  2/5  49.8%   -4.2%   -3.7%      +0.014   0.5  no help
+  coach_change  64.6%  +0.1  10.082  -0.003  -0.9  3/5  50.3%   -3.4%   -7.4%      -0.005  -0.2  no help
+  recent_form   64.4%  -0.1  10.077  +0.002   0.4  3/5  49.7%   -4.4%   -7.5%      +0.008   0.3  mixed
+  venue         64.4%  -0.1  10.080  -0.001  -0.1  3/5  50.5%   -3.0%   -5.6%      +0.011   0.4  no help
+  referee       64.5%  +0.1  10.079  +0.000   0.5  3/5  50.3%   -3.4%   -7.6%      +0.012   0.4  CANDIDATE
+  unit_clusters  64.1%  -0.4  10.072  +0.008   0.4  3/5  50.7%   -2.6%   -7.9%      +0.002   0.1  mixed
+  ALL           65.4%  +1.0  10.082  -0.003  -0.1  2/5  50.6%   -2.7%   -2.2%      +0.045   1.7  no help
+  +inj schedule_spots  65.7%  +0.9  10.038  -0.021  -1.4  1/5  51.0%   -2.0%   -4.2%      +0.057   2.2  no help
+  +inj coach_change  64.9%  +0.1  10.020  -0.004  -0.7  0/5  51.9%   -0.2%   -0.5%      +0.060   2.3  no help
+  +inj recent_form  65.1%  +0.3  10.016  +0.000   0.1  2/5  51.3%   -1.3%   -1.0%      +0.064   2.4  mixed
+  +inj venue    64.9%  +0.1  10.020  -0.003  -0.3  3/5  51.9%   -0.3%   -4.1%      +0.061   2.3  no help
+  +inj referee  64.7%  -0.1  10.017  +0.000   0.9  3/5  52.5%   +1.0%   -0.9%      +0.064   2.4  mixed
+  +inj unit_clusters  64.5%  -0.3  10.024  -0.008  -1.0  0/5  52.0%   -0.0%   -1.7%      +0.050   1.9  no help
+
+  Δ SU / Δ err: change vs the current model on 2021-25 (Δ err > 0 = smaller misses).
+  t: paired t on per-game error. yrs: hold-out seasons improved.
+  vs LINE: factors fit to predict where the closing line missed; r and t on 2021-25.
+  |t| < 2 on that column means the line already prices it.
+
+  efficiency   penalty 3000  per-season gain +0.015 -0.053 -0.027 +0.008 -0.012   top: eff_sack +3.16, eff_sr +2.19, eff_expl -1.08, eff_rz_td -0.42
+  matchup      penalty 3000  per-season gain -0.002 -0.001 -0.001 -0.000 +0.001   top: mu_expl +286.87, mu_rush_vs_pro -112.51, mu_style -15.98, mu_rush -14.06
+  weather      penalty 3000  per-season gain +0.005 -0.006 -0.028 +0.004 -0.037   top: wx_precip_x_pass +4.40, wx_dome_team_cold -0.35, wx_bad_x_home +0.35, wx_precip_x_m +0.16
+  rest_travel  penalty 3000  per-season gain -0.001 -0.010 +0.012 -0.006 +0.003   top: rt_away_bye -0.41, rt_home_bye -0.32, rt_west_early +0.15, rt_east_late +0.14
+  injuries     penalty 1000  per-season gain -0.000 -0.023 +0.138 +0.156 +0.042   top: inj_rb +1.51, inj_lb +0.91, inj_dl +0.70, inj_ol +0.34
+  situation    penalty 3000  per-season gain -0.024 -0.041 -0.007 +0.025 -0.043   top: sit_locked -1.30, sit_div_x_home -0.41, sit_div -0.37, sit_prime_x_home +0.26
+  schedule_spots penalty 3000  per-season gain -0.046 +0.021 -0.005 +0.026 -0.003   top: sp_prev_ot -0.76, sp_prev_blowout_win +0.62, sp_road3 +0.54, sp_prev_mon_road -0.41
+  coach_change penalty 3000  per-season gain +0.001 -0.009 -0.005 +0.000 +0.000   top: sp_interim -0.62, sp_interim_first3 +0.19
+  recent_form  penalty 3000  per-season gain -0.004 +0.007 +0.007 +0.002 -0.000   top: sp_form3 +0.02
+  venue        penalty 1000  per-season gain +0.027 +0.022 +0.020 -0.053 -0.018   top: loc_surface_away +0.76, loc_altitude +0.27, loc_team_hfa +0.09
+  referee      penalty 3000  per-season gain -0.001 +0.001 +0.001 +0.000 -0.000   top: ref_home +0.01
+  unit_clusters penalty 300   per-season gain -0.044 -0.019 +0.024 +0.026 +0.050   top: uc_dl2 +1.48, uc_wr2 +1.17, uc_ol2 +0.63, uc_db2 +0.40

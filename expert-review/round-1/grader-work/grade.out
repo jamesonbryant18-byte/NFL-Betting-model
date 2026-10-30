@@ -1,0 +1,31 @@
+
+==============================================================================
+  MODEL SCORECARD — 2026, weeks 1-7, 107 games graded
+==============================================================================
+
+  PREDICTION ACCURACY  (this is the product)
+    straight up            64-43  (59.8%)
+    average error          9.59 pts
+    closing line error     9.41 pts   <-- benchmark
+    difference             +0.19 pts   <-- market is sharper
+    directional bias       +1.34 pts (favors home too much)
+
+  CALIBRATION  (does a stated confidence mean anything?)
+    tier            n     said   actual
+    coin flip      22    52.4%    45.5%
+    slight         25    57.7%    52.0%
+    lean           14    62.2%    64.3%
+    solid          23    67.0%    65.2%
+    strong         23    78.8%    73.9%
+
+  VALUE PICKS            25-19-1  (57%)
+    these are mostly underdog prices; a low hit rate is their
+    expected shape, not by itself evidence of anything
+
+  BIGGEST MISSES
+    wk7 CAR  projected  +3.2, actual -30.0  (line said  +3.0)
+    wk2 ATL  projected  +0.2, actual -31.0  (line said  -2.5)
+    wk3 JAX  projected  +1.0, actual +29.0  (line said  +3.0)
+    wk3 GB   projected  +6.2, actual -21.0  (line said  +4.5)
+    wk5 NE   projected  +1.5, actual +28.0  (line said  +3.5)
+==============================================================================

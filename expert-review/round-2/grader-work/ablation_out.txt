@@ -1,0 +1,13 @@
+  ABLATION -- deployed model on 2021-2025 (1424 games), everything fit on 2013-2020
+                   variant     SU   MAE  Brier  card_ROI    dSU   tSU   dMAE   tMAE  dBrier  tBrier
+        FULL (as deployed) 65.986 9.876  0.216     0.718    NaN   NaN    NaN    NaN     NaN     NaN
+- trend pull (3+ pts, 1.5) 65.211 9.947  0.218     0.068  0.775 1.917 -0.071 -4.358  -0.002  -4.590
+         - injuries factor 65.352 9.944  0.217    -3.514  0.634 1.214 -0.068 -2.592  -0.002  -2.205
+             - rest factor 65.986 9.876  0.216     0.708  0.000   NaN -0.000 -0.405   0.000   0.025
+             - all factors 65.423 9.944  0.217    -3.301  0.563 1.069 -0.068 -2.597  -0.002  -2.205
+   + EPA/play factor (off) 65.986 9.881  0.216    -1.444 -0.000   NaN  0.005  1.223   0.000   1.967
+  + weekly self-tune (off) 66.056 9.875  0.216    -0.871  0.070 0.186 -0.001 -0.082   0.000   0.109
+     - win-% recalibration 65.986 9.876  0.217    -0.685  0.000   NaN  0.000    NaN  -0.002  -1.400
+
+  d* = what the piece itself does (variant 'FULL - x': full minus without; '+ x': with minus full).
+  SU: + helps.  MAE / Brier: - helps.  card_ROI is the variant's own card (SE about 3.6%).

@@ -1,0 +1,46 @@
+variant facB games 1424
+
+=== 6a DEPLOYED CARD (top 7 by chance, min 4 with filler), 2021-25 at closing prices ===
+  card, all                          n= 666  W-L-P 374-284-8  win%  56.8 (break-even 57.0)  ROI  -0.29%  SE 3.42  95% CI [-7.0, +6.4]  model-expected win% 62.6
+  card, spread                       n= 394  W-L-P 207-179-8  win%  53.6 (break-even 52.0)  ROI  +2.94%  SE 4.79  95% CI [-6.4, +12.3]  model-expected win% 59.2
+  card, moneyline                    n= 272  W-L-P 167-105-0  win%  61.4 (break-even 64.1)  ROI  -4.96%  SE 4.71  95% CI [-14.2, +4.3]  model-expected win% 67.5
+  card, filler only                  n=  15  W-L-P 9-6-0  win%  60.0 (break-even 51.8)  ROI +15.48%  SE 25.21  95% CI [-33.9, +64.9]  model-expected win% 55.0
+  card, 2021                         n= 132  W-L-P 67-65-0  win%  50.8 (break-even 55.4)  ROI  -8.02%  SE 8.03  95% CI [-23.8, +7.7]  model-expected win% 61.5
+  card, 2022                         n= 135  W-L-P 75-58-2  win%  56.4 (break-even 56.3)  ROI  +0.05%  SE 7.69  95% CI [-15.0, +15.1]  model-expected win% 62.7
+  card, 2023                         n= 135  W-L-P 80-50-5  win%  61.5 (break-even 57.4)  ROI  +7.53%  SE 7.37  95% CI [-6.9, +22.0]  model-expected win% 62.4
+  card, 2024                         n= 134  W-L-P 83-51-0  win%  61.9 (break-even 59.3)  ROI  +4.77%  SE 7.32  95% CI [-9.6, +19.1]  model-expected win% 64.8
+  card, 2025                         n= 130  W-L-P 69-60-1  win%  53.5 (break-even 56.7)  ROI  -6.14%  SE 7.89  95% CI [-21.6, +9.3]  model-expected win% 61.6
+  card, regular season               n= 613  W-L-P 347-258-8  win%  57.4 (break-even 57.1)  ROI  +0.30%  SE 3.55  95% CI [-6.7, +7.3]  model-expected win% 62.9
+  card, playoffs                     n=  53  W-L-P 27-26-0  win%  50.9 (break-even 55.9)  ROI  -7.16%  SE 12.85  95% CI [-32.4, +18.0]  model-expected win% 59.9
+  bets per week:  {1: 5, 2: 6, 3: 2, 4: 8, 5: 2, 6: 8, 7: 79}
+
+=== all qualifying bets (no card cap) ===
+  all qualifying                     n= 852  W-L-P 450-391-11  win%  53.5 (break-even 55.3)  ROI  -3.63%  SE 3.13  95% CI [-9.8, +2.5]  model-expected win% 60.5
+  all qualifying, spread             n= 536  W-L-P 268-257-11  win%  51.0 (break-even 51.9)  ROI  -1.62%  SE 4.12  95% CI [-9.7, +6.5]  model-expected win% 58.2
+  all qualifying, moneyline          n= 316  W-L-P 182-134-0  win%  57.6 (break-even 61.0)  ROI  -7.05%  SE 4.72  95% CI [-16.3, +2.2]  model-expected win% 64.4
+
+=== 6b edge buckets (all qualifying bets, at closing prices) ===
+  spread edge [1.5, 2.0)             n= 153  W-L-P 62-89-2  win%  41.1 (break-even 51.8)  ROI -20.02%  SE 7.70  95% CI [-35.1, -4.9]  model-expected win% 56.1
+  spread edge [2.0, 2.5)             n= 138  W-L-P 74-58-6  win%  56.1 (break-even 51.9)  ROI  +7.63%  SE 7.99  95% CI [-8.0, +23.3]  model-expected win% 56.9
+  spread edge [2.5, 3.0)             n=  94  W-L-P 50-44-0  win%  53.2 (break-even 51.8)  ROI  +2.33%  SE 9.96  95% CI [-17.2, +21.9]  model-expected win% 57.5
+  spread edge [3.0, 4.0)             n=  89  W-L-P 47-40-2  win%  54.0 (break-even 52.0)  ROI  +3.72%  SE 10.10  95% CI [-16.1, +23.5]  model-expected win% 59.1
+  spread edge [4.0, 99.0)            n=  62  W-L-P 35-26-1  win%  57.4 (break-even 52.3)  ROI  +9.58%  SE 12.02  95% CI [-14.0, +33.2]  model-expected win% 66.1
+  moneyline edge [3, 5)              n= 134  W-L-P 69-65-0  win%  51.5 (break-even 56.2)  ROI -11.36%  SE 7.93  95% CI [-26.9, +4.2]  model-expected win% 58.0
+  moneyline edge [5, 8)              n= 143  W-L-P 85-58-0  win%  59.4 (break-even 64.4)  ROI  -7.49%  SE 6.62  95% CI [-20.5, +5.5]  model-expected win% 68.4
+  moneyline edge [8, 12)             n=  39  W-L-P 28-11-0  win%  71.8 (break-even 65.2)  ROI  +9.35%  SE 11.38  95% CI [-13.0, +31.6]  model-expected win% 71.5
+
+=== ATS of the model side on EVERY hold-out game, by |model - line| (closing juice) ===
+  ATS |edge| [0.0, 0.5)              n= 266  W-L-P 138-121-7  win%  53.3 (break-even 52.0)  ROI  +2.25%  SE 5.81  95% CI [-9.1, +13.6]  model-expected win% 50.6
+  ATS |edge| [0.5, 1.0)              n= 264  W-L-P 131-124-9  win%  51.4 (break-even 51.9)  ROI  -0.75%  SE 5.85  95% CI [-12.2, +10.7]  model-expected win% 52.4
+  ATS |edge| [1.0, 1.5)              n= 256  W-L-P 119-133-4  win%  47.2 (break-even 52.0)  ROI  -9.18%  SE 5.96  95% CI [-20.9, +2.5]  model-expected win% 53.5
+  ATS |edge| [1.5, 2.0)              n= 210  W-L-P 96-110-4  win%  46.6 (break-even 52.0)  ROI  -9.93%  SE 6.60  95% CI [-22.9, +3.0]  model-expected win% 54.8
+  ATS |edge| [2.0, 3.0)              n= 273  W-L-P 144-123-6  win%  53.9 (break-even 52.1)  ROI  +3.51%  SE 5.74  95% CI [-7.8, +14.8]  model-expected win% 56.4
+  ATS |edge| [3.0, 99.0)             n= 155  W-L-P 83-69-3  win%  54.6 (break-even 52.1)  ROI  +4.62%  SE 7.62  95% CI [-10.3, +19.6]  model-expected win% 61.7
+  correlation of |edge| with ATS units: 0.0266  n 1424
+
+=== ML side on every game with the model > market (de-vigged), by edge ===
+  ML edge [0, 3)                     n= 515  W-L-P 273-241-1  win%  53.1 (break-even 52.8)  ROI  -1.13%  SE 4.90  95% CI [-10.7, +8.5]  model-expected win% 52.4
+  ML edge [3, 5)                     n= 297  W-L-P 149-146-2  win%  50.5 (break-even 54.7)  ROI  -6.96%  SE 6.52  95% CI [-19.7, +5.8]  model-expected win% 56.5
+  ML edge [5, 8)                     n= 342  W-L-P 185-157-0  win%  54.1 (break-even 56.0)  ROI  -2.85%  SE 5.54  95% CI [-13.7, +8.0]  model-expected win% 60.3
+  ML edge [8, 12)                    n= 193  W-L-P 98-94-1  win%  51.0 (break-even 54.6)  ROI  -7.30%  SE 7.02  95% CI [-21.1, +6.5]  model-expected win% 62.2
+  ML edge [12, 99)                   n=  77  W-L-P 36-41-0  win%  46.8 (break-even 45.5)  ROI  -6.54%  SE 12.42  95% CI [-30.9, +17.8]  model-expected win% 60.8

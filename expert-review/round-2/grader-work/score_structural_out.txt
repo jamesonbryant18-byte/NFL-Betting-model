@@ -1,0 +1,10 @@
+full variant vs cache max |diff|: 3.552713678800501e-15 missing 0
+                                  variant      SU    MAE  Brier     ROI  n_bets  slope                                            w  piece_dSU  piece_tSU  piece_dMAE  piece_tMAE  piece_dBrier  piece_tBrier
+                                     FULL 65.9859 9.8761 0.2156  0.7181     649 1.4766   {'inj_total': 0.48, 'rt_rest_diff': 0.004}        NaN        NaN         NaN         NaN           NaN           NaN
+            no market prior [refit slope] 66.2676 9.9546 0.2175 -0.5265     669 1.4603  {'inj_total': 0.493, 'rt_rest_diff': 0.005}    -0.2817    -0.4999     -0.0785     -3.0950       -0.0019       -2.3831
+             no market prior [slope held] 66.2676 9.9546 0.2175 -0.2210     669 1.4766  {'inj_total': 0.493, 'rt_rest_diff': 0.005}    -0.2817    -0.4999     -0.0785     -3.0950       -0.0019       -2.4274
+no joint QB fit (team-only) [refit slope] 66.1268 9.9054 0.2159 -1.4396     678 1.5944   {'inj_total': 0.526, 'rt_rest_diff': 0.01}    -0.1408    -0.2672     -0.0294     -1.0050       -0.0003       -0.3959
+ no joint QB fit (team-only) [slope held] 66.1268 9.9054 0.2158 -1.0918     672 1.4766   {'inj_total': 0.526, 'rt_rest_diff': 0.01}    -0.1408    -0.2672     -0.0294     -1.0050       -0.0002       -0.2893
+              no home field [refit slope] 66.0563 9.9085 0.2149  2.9743     674 1.5983 {'inj_total': 0.355, 'rt_rest_diff': -0.006}    -0.0704    -0.0940     -0.0324     -0.8262        0.0007        0.5357
+               no home field [slope held] 66.0563 9.9085 0.2148  3.9730     675 1.4766 {'inj_total': 0.355, 'rt_rest_diff': -0.006}    -0.0704    -0.0940     -0.0324     -0.8262        0.0007        0.5890
+piece_* = full minus variant (what the piece itself does): SU + helps; MAE/Brier - helps
