@@ -1,0 +1,52 @@
+week,game,bet,market,line,odds,home_spread_odds,away_spread_odds,stake,p_model,edge,favorite,filler,still_bet_at,out,units,pnl_at_5,close,close_odds,close_source,p_close,value_at_close
+1,DAL @ NYG,NYG +3.0,SPREAD,3.0,-115.0,,,,0.5816,2.697,False,False,,W,0.8696,4.35,3.0,-105.0,fanduel (action network),0.4892,-0.0792
+1,NYJ @ TEN,TEN -122,MONEYLINE,,-122.0,,,,0.5708,0.045,True,False,,L,-1.0,-5.0,-118.0,-118.0,fanduel (action network),0.5198,-0.0541
+1,BAL @ IND,IND +145,MONEYLINE,,145.0,,,,0.441,0.05,False,False,,L,-1.0,-5.0,136.0,136.0,fanduel (action network),0.4066,-0.0038
+1,CLE @ JAX,CLE +360,MONEYLINE,,360.0,,,,0.3092,0.101,False,False,,L,-1.0,-5.0,350.0,350.0,fanduel (action network),0.2136,-0.0175
+1,ARI @ LAC,ARI +390,MONEYLINE,,390.0,,,,0.2539,0.058,False,False,,W,3.9,19.5,380.0,380.0,fanduel (action network),0.2005,-0.0173
+1,SF @ LA,SF +164,MONEYLINE,,164.0,,,,0.4206,0.058,False,False,,W,1.64,8.2,166.0,166.0,fanduel (action network),0.3614,-0.046
+1,CHI @ CAR,CAR +136,MONEYLINE,,136.0,,,,0.4369,0.03,False,False,,L,-1.0,-5.0,136.0,136.0,fanduel (action network),0.4066,-0.0404
+1,NO @ DET,NO +250,MONEYLINE,,250.0,,,,0.325,0.051,False,False,,L,-1.0,-5.0,275.0,275.0,fanduel (action network),0.2566,-0.102
+1,TB @ CIN,TB +170,MONEYLINE,,170.0,,,,0.4071,0.052,False,False,,L,-1.0,-5.0,160.0,160.0,fanduel (action network),0.3699,-0.0013
+2,CAR @ ATL,ATL +2.5,SPREAD,2.5,-108.0,,,,0.5519,2.677,False,False,,L,-1.0,-5.0,2.5,-105.0,fanduel (action network),0.4892,-0.0579
+2,JAX @ DEN,JAX +2.5,SPREAD,2.5,-102.0,,,,0.5404,2.37,False,False,,L,-1.0,-5.0,2.5,-105.0,draftkings (action network),0.4892,-0.0313
+2,CLE @ TB,CLE +8.5,SPREAD,8.5,-112.0,,,,0.6022,1.821,False,False,,W,0.8929,4.46,8.5,-118.0,fanduel (action network),0.515,-0.0252
+2,DET @ BUF,DET +185,MONEYLINE,,185.0,,,,0.3902,0.054,False,False,,L,-1.0,-5.0,198.0,198.0,fanduel (action network),0.3222,-0.0817
+3,PHI @ CHI,CHI +4.5,SPREAD,4.5,-105.0,,,,0.6036,2.77,False,False,,W,0.9524,4.76,3.5,-112.0,fanduel (action network),0.5322,0.039
+3,KC @ MIA,MIA +10.5,SPREAD,10.5,-108.0,,,,0.5868,1.576,False,False,,L,-1.0,-5.0,9.5,-102.0,fanduel (action network),0.5097,-0.0184
+3,TEN @ NYG,NYG -138,MONEYLINE,,-138.0,,,,0.6518,0.093,True,False,,W,0.7246,3.62,-142.0,-142.0,fanduel (action network),0.5635,-0.0282
+3,HOU @ IND,IND +108,MONEYLINE,,108.0,,,,0.4976,0.035,False,False,,W,1.08,5.4,106.0,106.0,fanduel (action network),0.4672,-0.0282
+3,BAL @ DAL,BAL -178,MONEYLINE,,-178.0,,,,0.6694,0.054,True,False,,W,0.5618,2.81,-176.0,-176.0,fanduel (action network),0.6126,-0.0432
+4,JAX @ CIN,JAX +2.5,SPREAD,2.5,-108.0,,,,0.5629,3.254,False,False,,W,0.9259,4.63,2.5,-106.0,fanduel (action network),0.4913,-0.0537
+4,ATL @ NO,ATL +2.5,SPREAD,2.5,-115.0,,,,0.5624,3.232,False,False,,W,0.8696,4.35,1.5,-114.0,fanduel (action network),0.5315,-0.0063
+4,NYJ @ CHI,CHI -3.5,SPREAD,-3.5,-110.0,,,,0.5448,2.899,True,False,,W,0.9091,4.55,-3.5,-110.0,fanduel (action network),0.5,-0.0455
+4,GB @ TB,TB +3.0,SPREAD,3.0,-112.0,,,,0.5776,2.552,False,False,,P,0.0,0.0,2.5,-105.0,fanduel (action network),0.5278,-0.001
+4,NE @ BUF,BUF -350,MONEYLINE,,-350.0,,,,0.7959,0.049,True,False,,L,-1.0,-5.0,-350.0,-350.0,fanduel (action network),0.7472,-0.0393
+4,ARI @ NYG,NYG +118,MONEYLINE,,118.0,,,,0.473,0.031,False,False,,W,1.18,5.9,114.0,114.0,draftkings (nflverse),0.4486,-0.0221
+5,TB @ DAL,TB +8.5,SPREAD,8.5,-108.0,,,,0.6426,3.431,False,False,,W,0.9259,4.63,9.5,-110.0,fanduel (action network),0.4899,-0.0565
+5,NYG @ WAS,NYG +3.5,SPREAD,3.5,-110.0,,,,0.6247,3.792,False,False,,W,0.9091,4.55,3.5,-115.0,fanduel (action network),0.5108,-0.0248
+5,MIN @ NO,MIN -2.5,SPREAD,-2.5,-110.0,,,,0.5857,2.77,True,False,,W,0.9091,4.55,-2.5,-108.0,fanduel (action network),0.4957,-0.0537
+5,BAL @ ATL,BAL +3.5,SPREAD,3.5,-122.0,,,,0.594,2.55,False,False,,W,0.8197,4.1,3.5,-122.0,fanduel (action network),0.5236,-0.0472
+5,HOU @ TEN,TEN +6.5,SPREAD,6.5,-108.0,,,,0.5839,1.759,False,False,,L,-1.0,-5.0,6.5,-110.0,fanduel (action network),0.5,-0.037
+5,SF @ SEA,SEA -172,MONEYLINE,,-172.0,,,,0.6642,0.057,True,False,,L,-1.0,-5.0,-164.0,-164.0,fanduel (action network),0.5965,-0.0567
+5,CHI @ GB,CHI -120,MONEYLINE,,-120.0,,,,0.5815,0.057,True,False,,L,-1.0,-5.0,-120.0,-120.0,fanduel (action network),0.5242,-0.0389
+6,SEA @ DEN,DEN +2.5,SPREAD,2.5,-104.0,,,,0.5334,1.953,False,False,,W,0.9615,4.81,2.5,-105.0,fanduel (action network),0.4892,-0.0405
+6,NO @ NYG,NYG +1.5,SPREAD,1.5,-122.0,,,,0.5732,3.34,False,False,,L,-1.0,-5.0,1.5,-122.0,fanduel (action network),0.5236,-0.0472
+6,CAR @ PHI,PHI +3.5,SPREAD,3.5,-122.0,,,,0.594,2.486,False,False,,L,-1.0,-5.0,3.0,-112.0,fanduel (action network),0.5406,-0.0163
+6,HOU @ JAX,JAX -2.5,SPREAD,-2.5,-110.0,,,,0.5724,2.041,True,False,,L,-1.0,-5.0,-2.5,-112.0,fanduel (action network),0.5043,-0.0372
+6,TEN @ IND,IND -340,MONEYLINE,,-340.0,,,,0.7914,0.048,True,False,,L,-1.0,-5.0,-290.0,-290.0,fanduel (action network),0.7136,-0.0766
+6,BUF @ LV,BUF -245,MONEYLINE,,-245.0,,,,0.7141,0.034,True,False,,W,0.4082,2.04,-245.0,-245.0,fanduel (action network),0.6841,-0.0366
+6,DAL @ GB,GB -118,MONEYLINE,,-118.0,,,,0.5585,0.039,True,False,,W,0.8475,4.24,-104.0,-104.0,fanduel (action network),0.4911,-0.0927
+7,DEN @ ARI,DEN -4.5,SPREAD,-4.5,-110.0,,,,0.5449,3.159,True,False,,W,0.9091,4.55,-4.5,-114.0,fanduel (action network),0.5087,-0.0289
+7,DAL @ PHI,PHI +4.5,SPREAD,4.5,-110.0,,,,0.5957,2.453,False,False,,L,-1.0,-5.0,4.5,-115.0,fanduel (action network),0.5108,-0.0248
+7,CIN @ BAL,CIN +2.5,SPREAD,2.5,-100.0,,,,0.5246,1.752,False,False,,W,1.0,5.0,-3.0,-105.0,fanduel (action network),0.616,0.2321
+7,PIT @ NO,PIT -174,MONEYLINE,,-174.0,,,,0.6517,0.042,True,False,,W,0.5747,2.87,-166.0,-166.0,fanduel (action network),0.5996,-0.0557
+7,CLE @ TEN,CLE -126,MONEYLINE,,-126.0,,,,0.5873,0.05,True,False,,W,0.7937,3.97,-130.0,-130.0,fanduel (action network),0.5427,-0.0265
+7,MIA @ NYJ,MIA +205,MONEYLINE,,205.0,,,,0.3591,0.045,False,False,,W,2.05,10.25,166.0,166.0,fanduel (action network),0.3614,0.1021
+7,GB @ DET,DET -172,MONEYLINE,,-172.0,,,,0.6416,0.037,True,False,,W,0.5814,2.91,-205.0,-205.0,fanduel (action network),0.6464,0.0222
+8,PHI @ WAS,PHI +5.5,SPREAD,5.5,-110.0,,,,0.619,3.791,False,False,,,,,,,,,
+8,MIN @ DET,MIN +3.5,SPREAD,3.5,-118.0,,,,0.6111,3.239,False,False,,,,,,,,,
+8,CHI @ SEA,SEA -3.0,SPREAD,-3.0,-114.0,,,,0.562,2.431,True,False,,,,,,,,,
+8,LV @ NYJ,LV +1.5,SPREAD,1.5,-110.0,,,,0.5415,2.297,False,False,,,,,,,,,
+8,NE @ MIA,MIA +7.0,SPREAD,7.0,-115.0,,,,0.5979,1.628,False,False,,,,,,,,,
+8,BAL @ BUF,BUF -168,MONEYLINE,,-168.0,,,,0.6469,0.044,True,False,,,,,,,,,

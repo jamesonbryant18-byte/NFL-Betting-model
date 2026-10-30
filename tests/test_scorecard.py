@@ -77,3 +77,34 @@ def test_bet_slices_cover_every_bet_once_per_group():
     assert (sp.won, sp.lost, sp.push) == (1, 1, 0)
     assert set(sl[sl.group == "edge"].slice) == {"spread edge 1.5-2.5", "spread edge 3.5+",
                                                  "ML edge 3-5%", "ML edge 8%+"}
+
+
+def test_ledger_lists_every_bet_and_leaves_unplayed_ones_blank(tmp_path, monkeypatch):
+    """The graded ledger (expert review round 2): settled and pending bets, $5 P&L."""
+    import pandas as pd
+    from nflmodel import archive, scorecard
+    from nflmodel.market import MarginModel
+    leans = pd.DataFrame([
+        dict(game_id="g1", home_team="KC", away_team="DEN", spread_line=3.0,
+             projected_margin=6.0, home_win_prob=0.7, home_ml=-170, away_ml=145,
+             ml_edge_home=0.02, ml_edge_away=-0.02, spread_edge_pts=3.0,
+             bet_market="SPREAD", bet_side="KC -3.0", bet_odds=-110, confidence="High",
+             stake=5.0, home_spread_odds=-110, away_spread_odds=-110, still_bet_at="KC -4.5"),
+        dict(game_id="g2", home_team="NYG", away_team="WAS", spread_line=-1.0,
+             projected_margin=1.0, home_win_prob=0.55, home_ml=105, away_ml=-125,
+             ml_edge_home=0.06, ml_edge_away=-0.06, spread_edge_pts=2.0,
+             bet_market="MONEYLINE", bet_side="NYG +105", bet_odds=105, confidence="High"),
+    ])
+    games = pd.DataFrame([
+        dict(season=2026, week=9, home_team="KC", away_team="DEN", result=7.0),
+        dict(season=2026, week=9, home_team="NYG", away_team="WAS", result=None),
+    ])
+    monkeypatch.setattr(archive, "load_archived", lambda s, w: (None, leans))
+    monkeypatch.setattr(scorecard, "load_closing", lambda *a, **k: None)
+    led = scorecard.bet_ledger(2026, [9], games, MarginModel(sigma=13.2))
+    assert list(led.columns) == scorecard.LEDGER_COLS
+    kc, nyg = led.iloc[0], led.iloc[1]
+    assert (kc.out, kc.pnl_at_5, kc.stake, kc.still_bet_at) == ("W", 4.55, 5.0, "KC -4.5")
+    assert kc.line == -3.0 and kc.home_spread_odds == -110
+    assert nyg.out == "" and pd.isna(nyg.pnl_at_5) and pd.isna(nyg.stake)
+    assert abs(nyg.p_model - 0.55) < 1e-9

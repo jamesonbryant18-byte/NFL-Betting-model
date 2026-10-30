@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 
 from . import archive as _archive
-from .closing import close_for, load_closing, ticket
+from .closing import close_for, load_closing, side_close, ticket
 from .market import devig
 
 
@@ -178,13 +178,15 @@ def value_at_price(mm, market: str, bet_home: bool, tick, odds: float, crow) -> 
     return pw * _payout(odds) - pl, pw / max(1e-9, pw + pl)
 
 
-def model_bets(season: int, weeks, games: pd.DataFrame, mm, archive_dir=None) -> pd.DataFrame:
+def model_bets(season: int, weeks, games: pd.DataFrame, mm, archive_dir=None,
+               pending: bool = False) -> pd.DataFrame:
     """
     Every bet the model published (weekNN_leans.csv, the Bet Log's source),
     settled, with the model's chance, the closing market's chance and the value
-    at the price taken.
+    at the price taken. `pending` also lists bets on games not yet played
+    (out '', units NaN), for the ledger.
     """
-    played = games[(games.season == season) & games.result.notna()]
+    in_season = games[games.season == season]
     rows = []
     for week in weeks:
         _, leans = _archive.load_archived(season, week)
@@ -195,17 +197,21 @@ def model_bets(season: int, weeks, games: pd.DataFrame, mm, archive_dir=None) ->
             side = str(l.get("bet_side") or "")
             if not side or side == "nan":
                 continue
-            g = played[(played.week == week) & (played.home_team == l.home_team)
-                       & (played.away_team == l.away_team)]
-            if g.empty:
+            g = in_season[(in_season.week == week) & (in_season.home_team == l.home_team)
+                          & (in_season.away_team == l.away_team)]
+            if g.empty or (pd.isna(g.result.iloc[0]) and not pending):
                 continue
             market = str(l.bet_market).upper()
             bet_home = side.split()[0] == l.home_team
             odds = float(l.bet_odds)
             tick = ticket(side) if market == "SPREAD" else None
-            margin = float(g.result.iloc[0]) * (1 if bet_home else -1)
-            beat = margin + (tick if market == "SPREAD" else 0.0)
-            units = _payout(odds) if beat > 0 else (0.0 if beat == 0 else -1.0)
+            if pd.isna(g.result.iloc[0]):
+                units, out = float("nan"), ""
+            else:
+                margin = float(g.result.iloc[0]) * (1 if bet_home else -1)
+                beat = margin + (tick if market == "SPREAD" else 0.0)
+                units = _payout(odds) if beat > 0 else (0.0 if beat == 0 else -1.0)
+                out = "W" if units > 0 else ("P" if units == 0 else "L")
             if market == "MONEYLINE":
                 p_model = float(l.home_win_prob) if bet_home else 1 - float(l.home_win_prob)
             else:
@@ -226,15 +232,57 @@ def model_bets(season: int, weeks, games: pd.DataFrame, mm, archive_dir=None) ->
                 favorite = (hm < am) if bet_home else (am < hm)
             else:
                 favorite = odds < -100
+            team = side.split()[0]
+            close_odds = None
+            if crow is not None:
+                close_odds = (_num(crow.get("close_home_spread_odds" if bet_home
+                                            else "close_away_spread_odds"))
+                              if market == "SPREAD" else side_close(crow, market, team))
             rows.append(dict(
-                week=week, bet=side, market=market, odds=odds, line=tick, edge=edge,
+                week=week, game=f"{l.away_team} @ {l.home_team}", bet=side, market=market,
+                odds=odds, line=tick, edge=edge,
                 favorite=bool(favorite),
                 filler=str(l.get("confidence", "")) == "Filler",
-                out="W" if units > 0 else ("P" if units == 0 else "L"), units=units,
+                out=out, units=units,
                 p_model=p_model, p_close=p_close, value_at_close=ev,
                 break_even=_break_even(odds), close_source=src,
-                not_fanduel=bool(src) and "fanduel" not in src.lower()))
+                not_fanduel=bool(src) and "fanduel" not in src.lower(),
+                stake=_num(l.get("stake")),
+                home_spread_odds=_num(l.get("home_spread_odds")),
+                away_spread_odds=_num(l.get("away_spread_odds")),
+                close=side_close(crow, market, team), close_odds=close_odds,
+                still_bet_at="" if pd.isna(l.get("still_bet_at")) else str(l.get("still_bet_at"))))
     return pd.DataFrame(rows)
+
+
+LEDGER_COLS = ["week", "game", "bet", "market", "line", "odds", "home_spread_odds",
+               "away_spread_odds", "stake", "p_model", "edge", "favorite", "filler",
+               "still_bet_at", "out", "units", "pnl_at_5", "close", "close_odds", "close_source",
+               "p_close", "value_at_close"]
+
+
+def bet_ledger(season: int, weeks, games: pd.DataFrame, mm, archive_dir=None) -> pd.DataFrame:
+    """
+    The graded ledger: one row per bet the model published (expert review
+    round 2). Derived from the archive, which it never changes, and rebuilt
+    whole each time. p_model is the bet's own chance (the cover chance for a
+    spread, pushes left out); line is the ticket's number; home/away spread
+    prices, stake and still_bet_at are archived from 2026 Week 8 on (the
+    model's stake was a flat $5 from Week 4, half-Kelly before, and was not
+    archived); units is the result per $1 and pnl_at_5 the dollars at his
+    locked $5; close, close_odds and value_at_close are from the
+    recorded close (FanDuel unless close_source says otherwise). A bet whose
+    game is not played yet has a blank result.
+    """
+    b = model_bets(season, weeks, games, mm, archive_dir, pending=True)
+    if b.empty:
+        return pd.DataFrame(columns=LEDGER_COLS)
+    b["units"] = b.units.astype(float).round(4)
+    b["pnl_at_5"] = (b.units * 5).round(2)
+    for c in ("p_model", "p_close", "value_at_close"):
+        b[c] = b[c].astype(float).round(4)
+    b["edge"] = b.edge.astype(float).round(3)
+    return b[LEDGER_COLS]
 
 
 def _price_bucket(market: str, odds: float, line) -> str:
@@ -312,3 +360,20 @@ def summarize_bets(b: pd.DataFrame) -> dict:
         n_close=int(len(pc)), decided=int(len(dec)),
         value=val, value_se=val_se, n_value=int(b.value_at_close.notna().sum()),
         not_fanduel=int(b.not_fanduel.sum()))
+
+
+def write_ledger(season: int, games: pd.DataFrame, mm=None, path=None):
+    """
+    Rebuild data/model_bet_ledger_<season>.csv from every archived week.
+    Returns (path, ledger). review_week.py calls this every week.
+    """
+    from .config import REPO_ROOT
+    if mm is None:
+        from .trends import margin_model_for_history
+        mm = margin_model_for_history()
+    d = _archive.ARCHIVE_DIR / str(season)
+    weeks = sorted(int(p.name[4:6]) for p in d.glob("week??_leans.csv"))
+    led = bet_ledger(season, weeks, games, mm)
+    path = path or REPO_ROOT / "data" / f"model_bet_ledger_{season}.csv"
+    led.to_csv(path, index=False)
+    return path, led

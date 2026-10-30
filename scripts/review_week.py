@@ -438,6 +438,15 @@ def main():
     clv_review(args.season, week)
     tracker_review(games, args.season, week, leans)
 
+    # The model's graded bet ledger, rebuilt from the archive after the
+    # closes are recorded (expert review round 2). Commit it with the week.
+    try:
+        from nflmodel.scorecard import write_ledger
+        path, led = write_ledger(args.season, games)
+        print(f'\n  bet ledger: {len(led)} model bets, data/{path.name} (commit it)')
+    except Exception as e:
+        print(f'  WARNING: bet ledger not written ({e})')
+
     # Process errors are real defects whether or not the picks won.
     print()
     print('  PROCESS CHECK  (these are worth fixing regardless of the scoreboard)')
