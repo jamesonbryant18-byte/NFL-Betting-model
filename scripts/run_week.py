@@ -317,7 +317,7 @@ def main():
         except Exception as e:                                   # noqa: BLE001
             print(f'WARNING: game factors skipped ({e})')
 
-    trend_notes, trend_state = {}, {}
+    trend_notes, trend_state, f_trend = {}, {}, None
     try:
         from nflmodel import trends as _trends
         trend_state = _trends.load_active()
@@ -336,6 +336,7 @@ def main():
             games, args.season, starters, forecast)
         shifts, notes = _trends.game_shifts(f, trend_state)
         model.game_adjust = dict(zip(f.game_id, shifts))
+        f_trend = f
         trend_notes = dict(zip(f.game_id, notes))
         model.calibration = trend_state.get('calibration')
         cap = trend_state.get('ml_max_underdog')
@@ -357,6 +358,23 @@ def main():
     if published is not None and len(published) and 'game_id' in published.columns:
         card_used = int((~published.game_id.isin(slate_games.game_id)).sum())
     slate = model.project_slate(slate_games, card_used=card_used)
+
+    # How far each bet's number can move before it stops qualifying: his
+    # game-day check (expert review round 2). The trend pull is re-decided at
+    # every number, as a run at that number would decide it.
+    def _trend_at(gid, line):
+        if f_trend is None:
+            return model.game_adjust.get(gid, 0.0)
+        row = f_trend[f_trend.game_id == gid].assign(spread_line=line)
+        return float(_trends.game_shifts(row, trend_state)[0][0]) if len(row) else 0.0
+
+    slate['still_bet_at'] = ''
+    for i, r in slate[slate.recommendation.str.match(r'^(LEAN|BET) ')].iterrows():
+        g = slate_games[slate_games.game_id == r.game_id]
+        if len(g):
+            slate.at[i, 'still_bet_at'] = model.still_qualifies(
+                g.iloc[0].to_dict(), r.bet_side, r.bet_market,
+                trend_at=lambda line, gid=r.game_id: _trend_at(gid, line))
 
     # Display and explanation columns, joined on game_id so the slate's
     # edge-sorted order is untouched. None of this feeds the projection: the
@@ -454,6 +472,9 @@ def main():
         for _, g in group.iterrows():
             stake = f'${g.stake:.0f}' if g.stake else '$0'
             print(f"    {g.bet_side:<14} {g.bet_market.lower():<10} {stake:>5}   {g.bet_why}")
+            if g.get('still_bet_at'):
+                print(f"    {'':<14} {'':<10} {'':>5}   still a bet at {g.still_bet_at} or better "
+                      f"(a worse number than that, skip it)")
     print()
 
     # ── where to actually place them ──

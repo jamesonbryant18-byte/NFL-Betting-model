@@ -815,7 +815,7 @@ def _sheet_model_data(wb, slate):
 # out), not the game win %: a 76% favorite laying 4.5 covers about 55%
 # (expert review 2026-10-29).
 BETS_HEADERS = ["Game", "Kickoff", "Bet", "Market", "Odds", "Stake", "Model Picks", "Bet Wins %",
-                "Why"]
+                "Still a Bet At", "Why"]
 
 
 def _sheet_bets(wb, slate, season, week, model_meta):
@@ -827,7 +827,8 @@ def _sheet_bets(wb, slate, season, week, model_meta):
     from .model import WITH_PICK, AGAINST_PICK
     ws = wb.create_sheet("This Week's Bets")
     ws.tab_color = GREEN
-    set_widths(ws, {"A": 13, "B": 13, "C": 15, "D": 11, "E": 8, "F": 8, "G": 12, "H": 11, "I": 90})
+    set_widths(ws, {"A": 13, "B": 13, "C": 15, "D": 11, "E": 8, "F": 8, "G": 12, "H": 11, "I": 14,
+                    "J": 90})
     lastc = get_column_letter(len(BETS_HEADERS))
     apply_header(ws, "A1", f"THIS WEEK'S BETS — {season} WEEK {week}", merge_to=f"{lastc}1", size=16)
     ws.row_dimensions[1].height = 30
@@ -867,11 +868,11 @@ def _sheet_bets(wb, slate, season, week, model_meta):
             vals = [f"{away} @ {home}", _kickoff(d.get("weekday"), d.get("gametime")),
                     _text(d.get("bet_side")), _text(d.get("bet_market")).title(),
                     _num(d.get("bet_odds")), _num(d.get("stake")), pick, chance,
-                    _text(d.get("bet_why"))]
+                    _text(d.get("still_bet_at")) or "—", _text(d.get("bet_why"))]
             for j, v in enumerate(vals, start=1):
                 c = ws.cell(row=r, column=j, value=_clean(v))
                 c.border = thin_border()
-                c.alignment = left() if j == 9 else center()
+                c.alignment = left() if j == 10 else center()
                 c.font = Font(bold=(j == 3), size=11, color=color if j == 3 else "000000")
             ws.cell(row=r, column=5).number_format = "+0;-0"
             ws.cell(row=r, column=6).number_format = '"$"#,##0'
@@ -882,7 +883,9 @@ def _sheet_bets(wb, slate, season, week, model_meta):
     n_bets = len(active)
     staked = float(active["stake"].sum()) if n_bets and "stake" in active.columns else 0.0
     ws.cell(row=row, column=1, value=f"{n_bets} bet(s), ${staked:,.0f} total. Re-run Sunday morning "
-                                     "with --refresh before placing anything: starters and lines move."
+                                     "with --refresh before placing anything: starters and lines move. "
+                                     "Still a Bet At: the worst number or price at which the bet still "
+                                     "qualifies; if FanDuel's is worse, skip it."
             ).font = Font(bold=True, color=NAVY, size=11)
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=len(BETS_HEADERS))
     ws.freeze_panes = "A4"

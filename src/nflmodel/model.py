@@ -401,6 +401,61 @@ class NFLModel:
             **rec,
         )
 
+    # -- how far a bet's number can move ------------------------------------
+
+    def still_qualifies(self, game, bet_side: str, market: str, trend_at=None,
+                        max_steps: int = 24) -> str:
+        """
+        The worst number (spread) or price (moneyline) at which this bet still
+        qualifies under the live rules, everything else held fixed: his
+        game-day check (expert review round 2). Steps the line half a point, or
+        the price 5 cents, against the bet and re-runs project(). `trend_at`
+        (line -> points) re-decides the trend fixes at each number, as a run at
+        that number would (the far-from-the-line pull switches at 3 pts). ''
+        if the bet does not qualify at its own number. Qualifying is not
+        making the card: the top 7 by chance to win still applies.
+        """
+        g = dict(game if isinstance(game, dict) else game.to_dict())
+        gid = g.get("game_id", "")
+        team = str(bet_side).split()[0]
+        home = team == g["home_team"]
+        had = gid in self.game_adjust
+        saved = self.game_adjust.get(gid)
+
+        def holds(gg) -> bool:
+            p = self.project(gg)
+            return bool(p.bet_side) and p.bet_market == market and p.bet_side.split()[0] == team
+
+        try:
+            if market == "SPREAD":
+                line0, last = float(g["spread_line"]), None
+                for k in range(max_steps + 1):
+                    line = line0 + 0.5 * k if home else line0 - 0.5 * k   # worse for the bettor
+                    if trend_at is not None:
+                        self.game_adjust[gid] = float(trend_at(line))
+                    if not holds({**g, "spread_line": line}):
+                        break
+                    last = line
+                return "" if last is None else format_spread(team, last if home else -last)
+            h, a = float(g["home_moneyline"]), float(g["away_moneyline"])
+            book = american_to_prob(h) + american_to_prob(a)      # the overround stays the same
+            price0, last = (h if home else a), None
+            for k in range(2 * max_steps + 1):
+                price = price0 - 5 * k                             # worse for the bettor
+                if price0 > 0 and price < 100:
+                    break
+                other = prob_to_american(min(0.99, max(0.01, book - american_to_prob(price))))
+                hm, am = (price, other) if home else (other, price)
+                if not holds({**g, "home_moneyline": hm, "away_moneyline": am}):
+                    break
+                last = price
+            return "" if last is None else f"{team} {last:+.0f}"
+        finally:
+            if had:
+                self.game_adjust[gid] = saved
+            else:
+                self.game_adjust.pop(gid, None)
+
     # -- bet selection -----------------------------------------------------
 
     def _recommend(self, projected, line, spread_edge, p_home, p_push, p_away,

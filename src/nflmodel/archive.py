@@ -47,6 +47,12 @@ LEAN_COLS = [
     "best_away_ml", "best_away_ml_book",
     "selftune_adj", "trend_adj", "trend_notes", "wx_label",
     "factor_adj", "factor_inj", "factor_epa", "factor_rest", "factor_notes",
+    # What grading each bet needs, kept from 2026 Week 8 on (expert review
+    # round 2): the bet's own chance, both sides' spread prices (the de-vigged
+    # spread market at publication), the stake, the cover/push split and how
+    # far the number could move before the bet stopped qualifying.
+    "bet_chance", "stake", "home_spread_odds", "away_spread_odds",
+    "home_cover_prob", "push_prob", "away_cover_prob", "still_bet_at",
 ]
 
 
