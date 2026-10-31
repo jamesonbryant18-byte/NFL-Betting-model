@@ -9,6 +9,9 @@ them. (The review skill's default folder name is `.expert-review`; this project 
 
 | File | What it is |
 |---|---|
+| `REFERENCE.md` | **Start here.** Everything researched, graded and tested, in one document: the research findings and sources, the rubric and both rounds' scores by criterion, every test by topic, live 2026 results week by week, your decisions and the open questions. |
+| `test_database.csv` | Every test ever run on the model, one row each (date, area, what, how, result, verdict, where the details are). Opens in Excel; filter `verdict`. Add a row whenever something new is tested. |
+| `half-point-rule/` | The replay behind the no-whole-number-spreads rule (2026-10-31). |
 | `rubric.md` | The locked 100-point rubric (v2, approved 2026-10-29). Reuse it as is so scores stay comparable. v1 is in `round-1/rubric-v1.md`. |
 | `expert-brief.md` | The research, condensed for a grader: the domain standards, what good numbers look like, the pitfalls to hunt for in this project, and the sources. A grader reads this instead of researching. |
 | `grader-prompt.md` | The exact prompt given to the fresh grader each round, with the blanks to fill in. |

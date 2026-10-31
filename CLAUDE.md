@@ -552,6 +552,14 @@ The depth chart snapshot is still Wed 10/28: do the Sunday roster run.
 Tracker 2,284 cells exact, K6/M5 named, 3 charts redrawn; Weeks 1-7
 checksums unchanged.
 
+**2026-10-31 (Sat, afternoon): the reference and the half-point rule.** Jameson
+asked for everything researched, graded and tested written down as a reference
+and a database: `expert-review/REFERENCE.md` (one document) and
+`expert-review/test_database.csv` (every test, one row each; 68 rows). **Check
+both before testing any idea, and add a row for every new test.** Also asked:
+no spread bets at a whole number ("I can't do that");
+`THRESHOLDS.spread_half_points_only`, see section 7.
+
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
 "redo" a past week's `output/NFL_Model_*_WeekNN.xlsx`. Reading it read-only
