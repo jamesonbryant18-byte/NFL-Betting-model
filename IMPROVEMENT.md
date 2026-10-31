@@ -119,13 +119,59 @@ direction that felt worst on Sunday.
 
 ## Log of tested candidates
 
+### EXPERT REVIEW, round 2 — honest hold-out, every piece measured (2026-10-29 to 10-31)
+
+A second fresh grader, same locked rubric (v2). Jameson approved all ten
+fixes ("ship only what holds" for the design tests). What changed:
+
+- **Last hold-out leak closed.** The win-% margin table (`trends.
+  margin_model_for_history`) was built from every season 2010-2025, so the
+  2021-25 replay saw its own scores. The replay is now walk-forward on the win
+  % side too: each season's slope and key-number table from earlier seasons
+  only (`replay.win_plan`), as live does it. Numbers above are the new ones.
+  Not changed: the trend checker's own 2013-2020 fits still read the
+  all-season table (its gate is about margins; noted, not fixed).
+- **Where 2021-25 was used to make choices**, so it is not a clean test: the
+  trend gate prunes on 2021+, EPA/play was dropped and the self-tune switched
+  off after looking at it, the card's ranking and the factor set were chosen
+  with it in view. 2026 live is the only test nothing was tuned on. Said on
+  the workbook's Reference sheet.
+- **Every piece measured** (table above): market prior, joint QB fit and home
+  field added to `scripts/ablation.py`.
+- **TESTED, NOT SHIPPED (fix 8, `scripts/design_checks.py`), fit 2013-20,
+  checked 2021-25:**
+  - *QB counted twice.* The market prior is backed out of spreads with no QB
+    term, so it holds each team's usual QB, and the model adds the QB on top.
+    Taking each game's QB values out of the lines first: error 9.855 vs 9.876
+    (t −1.4; 2013-20 t −0.2), but straight up 65.49% vs 66.06% (t −2.0) and
+    worse in 2013-20 too. Rejected: straight-up accuracy is his first goal.
+  - *The trend pull's 3-pt cliff vs a smooth pull.* Same 1.5-pt cap, pull
+    rising from 0 at no gap to 1.5 at 3 (the start chosen on 2013-20): error
+    9.833 vs 9.876 (t −2.4), Brier t −2.1, lower in all five hold-out seasons,
+    but straight up 66.27% vs 66.06% (t 0.4; 5 seasons better, 6 worse of 13),
+    563 bets vs 653 and card −1.8% vs −0.3% (noise either way). Run through the
+    trend checker it also switched on "favorites in week 15+", rejected the
+    week before; the whole model then replayed at 66.13%, 9.834, card −3.9%.
+    Rejected: it helps neither winners nor bets, and it is fragile. Uncapped,
+    every smooth pull fit on 2013-20 runs to "move all the way to the line"
+    (the line beats the model: known). The cliff stays; its oddity (a 2.9-pt
+    disagreement keeps its whole edge, 3.1 keeps 1.6) is now visible per bet.
+- **Process:** a graded ledger of every model bet
+  (`data/model_bet_ledger_2026.csv`, rebuilt by the weekly review); each bet's
+  "still a bet at" number (the worst line or price it survives, trend pull
+  re-decided at each number); a run never writes over a workbook Excel has
+  open (saved beside it), prints the card's changes since the last build, and
+  flags a `--qb` override the depth chart contradicts for a healthy QB.
+- **Fixed:** `grade.py`'s season scorecard (rematches graded with the earlier
+  meeting, ties as losses); stale text (stakes, charts, home field, backtest).
+
 ### EXPERT REVIEW, round 1 — the deployed model, measured one way (2026-10-29)
 
 Jameson asked for a grade on seven live weeks: "whats working and what hasnt
 and why, lets do more of whats working and fix what isnt." His goals, in
 order: pick more winners straight up, then edge bets that are "great and not
 lucky". A fresh grader scored round 1 against a locked rubric
-(`.expert-review/`, not committed; scores are kept there, not here). The main finding: nothing measured the
+(`expert-review/`; scores are kept there, not here). The main finding: nothing measured the
 model *as it runs*. Each lab rebuilt its own version; the hold-out replay used
 a different market prior than the live run (projections 0.34 pt apart;
 `fit_market_ratings` now uses the week being predicted on both); and the win-%
@@ -134,20 +180,24 @@ slope was fit without the game factors it is applied on top of.
 `src/nflmodel/replay.py` is now the one canonical replay: everything fit on
 2013-2020, scored on 2021-2025. Quote its numbers, never a lab's own rebuild.
 
-**The deployed model on 2021-2025** (`scripts/replay_deployed.py`):
+**The deployed model on 2021-2025** (`scripts/replay_deployed.py`; win %
+walk-forward since round 2, 2026-10-29: each season's slope and margin table
+from earlier seasons only):
 
 | | model | the market |
 |---|---|---|
-| straight up | 65.99% | taking the favorite 66.48% (paired t −0.7) |
-| picks against the favorite | 52 of 111 right | |
+| straight up | 66.06% (938 of 1,420) | taking the favorite 66.48% (paired t −0.6) |
+| picks against the favorite | 52 of 110 right | |
 | margin error | 9.876 | closing line 9.762 |
-| Brier (win %) | 0.2156 | de-vigged close 0.2115 |
-| calibration slope | 0.934 (1 = honest) | |
-| weekly card, live rules, closing prices | 649 bets, won 55.6% vs break-even 56.0%, ROI +0.7% (SE 3.6%); the model said 61.5% | |
+| Brier (win %) | 0.2158 | de-vigged close 0.2115 |
+| calibration slope | 0.962 (1 = honest); picks called 80-85% won 73.8% on 107 (2.3 SE short) | |
+| weekly card, live rules, closing prices | 653 bets, won 54.2% vs break-even 55.1%, ROI −0.3% (SE 3.6%); the model said 60.4% | |
 
 It does not pick more winners than taking the favorite, its margins are a
 little worse than the line, and its card is break-even within noise. Its own
-odds overstate its bets by about 6 points of win rate.
+odds overstate its bets by about 6 points of win rate. (Round 1 quoted 65.99%,
+Brier 0.2156, card +0.7% on 649: the margin table then included the scored
+seasons' own results.)
 
 **Live 2026 Weeks 1-7, graded from the archive** (`review_week.py`, new VS THE
 FAVORITE and GOOD OR LUCKY? sections): model 64-42 straight up, taking every
@@ -166,15 +216,24 @@ luck.
 | rest factor | zero | kept (0.048 pt a day) |
 | EPA/play factor | Brier worse, t +2.0 | **dropped** |
 | weekly self-tune (EPA) | neutral once the EPA factor is out | **off** |
+| market prior blend (round 2) | error down, t −3.1; Brier t −2.4 | kept |
+| joint QB fit (round 2) | error down 0.03, t −1.0 | kept |
+| home field (round 2) | error down 0.03, t −0.8; Brier neutral | kept |
+
+The last three re-run the ratings walk-forward without the piece
+(`scripts/build_structural_bases.py`, seconds) and send it through the same
+stack. No piece hurts at |t| ≥ 2.
 
 Factor weights, fit on 2013-2020 and scored on 2021-2025
 (`scripts/refit_factors.py`):
 
 | factors | SU | error | card ROI |
 |---|---|---|---|
-| none | 65.4% | 9.944 | −3.5% |
-| injuries + rest (live from Week 8) | 66.0% | 9.876 | +0.7% |
+| none | 65.0% | 9.944 | −3.2% |
+| injuries + rest (live from Week 8) | 66.1% | 9.876 | −0.3% |
 | + EPA/play (live Weeks 4-7) | 66.0% | 9.881 | −2.4% |
+
+(Round-2 replay, win % walk-forward. Injuries alone: 66.0%, 9.873, +0.1%.)
 
 Shipped (re-fit on 2013-2025): injuries 0.637 pt per starter-equivalent out,
 rest 0.048 pt per day.
@@ -201,7 +260,7 @@ wins. Professionals measure edge from a blend of model and market
 (w × model + (1 − w) × market), so the blend was tested: w chosen on 2013-2020,
 checked on 2021-2025, live card rules otherwise.
 
-| w (model weight) | 2021-25 card ROI |
+| w (model weight) | 2021-25 card ROI (round-1 replay) |
 |---|---|
 | 1.00 (live) | +0.72% |
 | 0.75 | −2.88% |

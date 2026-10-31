@@ -36,6 +36,10 @@ The review prints four things:
 
 The model is graded on its own card (the archive and the Bet Log), never on
 his tracker; his bets have their own section (expert review, 2026-10-29).
+Since round 2 the "good or lucky?" section also splits the season by market,
+favorite/underdog, price and edge size, and the review rebuilds
+`data/model_bet_ledger_<season>.csv` (one graded row per model bet; commit it
+with the week). `scripts/bet_ledger.py` rebuilds it any time.
 
 Reading it takes a minute. Then it locks the week, so those picks can never be
 rewritten.
@@ -101,8 +105,12 @@ report, so run the week again late in the week before betting.
 
 One canonical replay of the model as it runs (`src/nflmodel/replay.py`):
 everything fit on 2013-2020, scored on 2021-2025. Quote these numbers, never a
-lab's own rebuild. 2026-10-29: SU 65.99% vs the favorite's 66.48% (t -0.7),
-calibration slope 0.93, card ROI +0.7% (SE 3.6%).
+lab's own rebuild. Round 2 (2026-10-31, win % walk-forward): SU 66.06% vs
+the favorite's 66.48% (t -0.6), calibration slope 0.96, card ROI -0.3% (SE
+3.6%) on 653 bets. `scripts/build_structural_bases.py` (once, seconds) lets
+the ablation measure the market prior, QB fit and home field too;
+`scripts/design_checks.py` re-runs the two round-2 design tests (QB counted
+twice, smooth trend pull: neither shipped).
 
 ### Step 0b — find the reasons the model keeps missing (and fix those)
 
@@ -185,8 +193,19 @@ He asks for it Sunday morning, before betting the early games:
    carried forward as published and their bets still use card slots. The first-published numbers stay in
    `weekNN_first_leans.csv` for CLV.
 4. Tell him what changed vs Wednesday: any new or dropped bet, any QB change.
-   A bet he already placed stays placed; his tracker is the record of what he
-   bet.
+   The run prints it (`CARD vs the last build`). A bet he already placed stays
+   placed; his tracker is the record of what he bet.
+5. Each bet prints "still a bet at X": the worst number or price at which it
+   still qualifies. If FanDuel's is worse when he places it, he skips it.
+6. A `WARNING: --qb ... may be STALE` means the depth chart names a starter
+   who is not on the injury report: check the news, drop the override if he
+   plays (2026 Week 7: TB Mayfield).
+7. If Excel has the week's workbook open, the run saves the new one BESIDE
+   it (`NFL_Model_2026_WeekNN (new Sun HHMM).xlsx`) and says so; the archive
+   is updated either way. He closes the old one and opens the new one. If the
+   open one had unsaved changes, he saves it, closes it, and the run is
+   repeated so his tracker rows carry. Never run the game-day card in a
+   scratch copy instead: the archive is the record (2026 Weeks 5 and 7).
 
 Never rebuild or re-save a past week's workbook (he edits them by hand).
 Waiting until Sunday morning means betting into a number the market has

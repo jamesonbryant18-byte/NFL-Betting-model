@@ -15,7 +15,7 @@ them. (The review skill's default folder name is `.expert-review`; this project 
 | `research/deep-research-report.md` | The deep-research run behind the brief: 7 verified claims, 18 leads, 21 sources with links. Raw output: `research/deep-research-raw.json`. |
 | `research/sources/` | Text and data pulled from the key sources (Benter, Boulier, Moskowitz, nfelo, Prediction Tracker, football-data closing odds, a CLV explainer). Kept on this Mac only, not in git; the links are in the report and the brief. |
 | `round-1/` | Grade 40/100 (rubric v1), the fix list, what was changed, and the grader's scripts and outputs (`grader-work/`). |
-| `round-2/` | Grade 55/100 (rubric v2), the fix list, what was changed, and the grader's scripts and outputs. |
+| `round-2/` | Grade 55/100 (rubric v2), the fix list, what was changed (`changes.md`), the outputs behind the fixes (`fix-outputs/`: ablation, design tests, the not-shipped smooth-pull runs), and the grader's scripts and outputs. |
 | `report-card.md` | The score trajectory and what is still costing points. |
 
 ## Grading again without redoing the research

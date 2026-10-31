@@ -13,8 +13,8 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-29 (Thu, expert review round 1 shipped; Week 8 built
-before TNF).**
+**Last updated 2026-10-31 (Sat, expert review round 2 shipped; Week 8 re-run
+Saturday).**
 Everything on `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -464,9 +464,10 @@ grade on seven live weeks ("whats working and what hasnt and why, lets do more
 of whats working and fix what isnt"). Goals, in order: straight-up accuracy,
 then edge bets that are "great and not lucky". Locked, bug-checked only:
 FanDuel, spreads + moneylines, $5 a bet, 4-7 bets a week. A fresh grader scored
-round 1 against a locked rubric (`.expert-review/`, untracked: rubric v2,
-brief, grades; scores stay there, out of the repo docs, so each fresh grader
-starts unanchored).
+round 1 against a locked rubric (now `expert-review/`, committed: rubric v2,
+brief, research, grades; scores stay there, out of the repo docs, and a
+grader gets a copy of the repo without that folder, so it starts unanchored;
+`expert-review/README.md` says how to re-grade without redoing the research).
 He approved every fix except "pick the favorite in close games" ("basic and
 boring") and game-day QB guardrails (his own check). Branch
 `expert-review/round-1`, merged to main:
@@ -510,6 +511,47 @@ in its CLV columns now that closes are filled: MIN @ NO line 1.5 (is MIN
 -1.5), HOU @ JAX 2.5 for JAX (is -2.5); his alt-line rows (CIN +2.5 at -199,
 TB +3.5 at -148) are measured against the main-line close.
 
+**2026-10-31 (Sat): expert review round 2 shipped, Week 8 re-run.** A second
+fresh grader (same rubric v2) found: the replay's win-% margin table still
+held 2021-25's own scores; `grade.py` graded rematches with the earlier
+meeting and ties as losses; two game-day cards never reached the record
+(Week 5 overwritten by his open Excel, Week 7 run only in a scratch copy).
+He approved all ten fixes ("ship only what holds" for the design tests).
+Branch `expert-review/round-2`, merged:
+- Replay win % walk-forward (`replay.win_plan`): each season's slope and
+  margin table from earlier seasons only. 2021-25: SU 66.06% vs favorite
+  66.48% (t -0.6), MAE 9.876 vs 9.762, Brier 0.2158 vs 0.2115, calibration
+  slope 0.962 (picks called 80-85% won 73.8% on 107, -2.3 SE), card 653 bets
+  ROI -0.3% (SE 3.6%). Quote these. The Reference sheet now lists the choices
+  made after looking at 2021-25; 2026 live is the only untouched test.
+- `grade.py` scorecard: own week, ties as ties, vs the favorite with a band.
+- Review: the model's bets by market, side, price, edge; graded ledger
+  `data/model_bet_ledger_2026.csv` (rebuilt by the review; commit it).
+- "Still a bet at": every bet prints and archives the worst number or price
+  at which it still qualifies (`NFLModel.still_qualifies`, trend pull
+  re-decided at each number); This Week's Bets has the column.
+- `run_week.py` never writes over a workbook Excel has open
+  (`workbook_guard.py`: asks Excel only if it is running; saves beside it as
+  `... (new Sun HHMM).xlsx`; the archive updates either way), prints `CARD vs
+  the last build`, and flags a `--qb` override as STALE when the depth chart
+  names a QB who is not on the injury report.
+- Ablation now has the market prior (helps: error t -3.1), joint QB fit and
+  home field (small, not significant); nothing hurts.
+- Tested, NOT shipped (`scripts/design_checks.py`): QB values taken out of the
+  market prior (SU 65.49% vs 66.06%, t -2.0) and a smooth trend pull at the
+  same cap (error t -2.4 but SU flat, fewer bets, card -1.8% vs -0.3%, and
+  the trend gate then switched on a fix it had rejected). The cliff stays.
+
+Week 8 re-run Sat 10/31 (`--refresh`, NO overrides; TNF CAR @ GB carried, no
+bet). Card, $5 each, with "still a bet at": MIN +3.5 -122 (+3), PHI +5.5
+-105 (+4; rests on McKee at replacement level -3.30), LV +1.5 -115 (+1),
+SEA -3 -115 (-3), MIA +7 -115 (+7), BUF -174 (-194; assumes Lamar, who is
+off the injury report), TEN +12.5 -110 (new; +12.5). Straight up: LV over
+NYJ is the one pick against the favorite; KC @ DEN flipped to KC (52.5%).
+The depth chart snapshot is still Wed 10/28: do the Sunday roster run.
+Tracker 2,284 cells exact, K6/M5 named, 3 charts redrawn; Weeks 1-7
+checksums unchanged.
+
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
 "redo" a past week's `output/NFL_Model_*_WeekNN.xlsx`. Reading it read-only
@@ -542,10 +584,12 @@ Hold-out (2021-25, seasons the tuner never saw), n = 1,424:
 | ATS @ 1.5pt edge | 50.1%, −4.3% ROI | break-even is 52.38% |
 | Moneyline @ 3% edge | 38.8%, −9.5% ROI | |
 
-**2026-10-29, the model as it runs** (`scripts/replay_deployed.py`, one
-canonical replay, fit 2013-20): straight up 65.99% vs taking the favorite
-66.48% (t −0.7), MAE 9.876 vs 9.762, Brier 0.2156 vs 0.2115, weekly card 649
-bets at closing prices ROI +0.7% (SE 3.6%). Still no edge; quote these.
+**2026-10-31, the model as it runs** (`scripts/replay_deployed.py`, one
+canonical replay, fit 2013-20, win % walk-forward): straight up 66.06% vs
+taking the favorite 66.48% (t −0.6), MAE 9.876 vs 9.762, Brier 0.2158 vs
+0.2115, weekly card 653 bets at closing prices ROI −0.3% (SE 3.6%). Still no
+edge; quote these. (Round 1's 65.99% / +0.7% let the margin table see the
+scored seasons.)
 
 The decisive test: regress actual result on **both** the closing line and the
 model's projection. The model's incremental coefficient on hold-out is
@@ -622,6 +666,8 @@ reaches the same answer.
 | Weather × team style (pass-heavy offense in rain/wind) | 2016-20 slope +13 (opposite sign), 2021-25 −1.9 (t −0.3) | rejected 2026-09-25 |
 | "Skip value bets in bad weather" | 53.6% (2016-20) vs 42.3% (2021-25) | does not replicate |
 | Inexperienced QB (<8 career starts) as a fix | −1.0 / −0.9 once starts are counted correctly | watch list only |
+| QB values taken out of the market prior's lines | 2021-25 SU 65.49% vs 66.06% (t −2.0), error t −1.4; 2013-20 SU worse too | rejected 2026-10-31 |
+| Smooth trend pull (same 1.5 cap) instead of the 3-pt cliff | error t −2.4, SU +0.2 (t 0.4), 563 bets vs 653, card −1.8% vs −0.3%; gate then adds a fix it had rejected | rejected 2026-10-31 |
 
 Situational factors ship at **zero** in `config.Adjustments`. They are not
 missing — they were tested and rejected. Across ~15 hypotheses none reached
@@ -745,7 +791,10 @@ tracker's merge-across-runs from `betlog.py`.
 .venv/bin/python -W ignore scripts/run_week.py --starters       # print all 32 starters + source
 .venv/bin/python -W ignore scripts/run_week.py --no-depth-chart # ignore depth charts
 .venv/bin/python -W ignore scripts/run_week.py --archive-anyway # archive a week that already kicked off
-.venv/bin/python -W ignore -m pytest tests/ -q                 # 236 tests
+.venv/bin/python -W ignore -m pytest tests/ -q                 # 249 tests
+.venv/bin/python -W ignore scripts/bet_ledger.py               # the model's bets, graded, one row each
+.venv/bin/python -W ignore scripts/build_structural_bases.py   # ratings without prior/QB/HFA (for ablation.py)
+.venv/bin/python -W ignore scripts/design_checks.py            # QB counted twice? smooth trend pull? (no, no)
 .venv/bin/python -W ignore scripts/replay_deployed.py          # the model as it runs, on 2021-25
 .venv/bin/python -W ignore scripts/ablation.py                 # what each piece is worth
 .venv/bin/python -W ignore scripts/refit_factors.py            # re-weight the game factors
@@ -877,8 +926,11 @@ and has not taken it up.
   runs (`MY_BOOK`). The shopping code is kept for `MY_BOOK = None`.
 - "Model far from the line" is a discrete fix (applies at |model − line| ≥ 3,
   1.5-pt pull), so a 2.9-pt disagreement is untouched while 3.0 becomes 1.5.
-  Tested in that form; a continuous version would converge on the line
-  itself (the known no-edge result) and remove nearly every bet.
+  Smooth versions were tested 2026-10-31 (`scripts/design_checks.py`):
+  uncapped they converge on the line itself; at the same 1.5 cap the error
+  drops (t -2.4) but straight up is flat, the card shrinks and replays worse,
+  and the trend gate flips a second fix on. Not shipped. Each bet's "still a
+  bet at" number shows where the cliff bites.
 - Forecast wind is Open-Meteo 10 m open-field wind; historical wind is the
   gamebook's stadium reading. Same 15 mph threshold for both; forecast may
   run a little high. Retractable roofs never count as "outdoors" for flags.

@@ -41,13 +41,16 @@ model's projection — gives the model an incremental coefficient of **−0.018
 (t = −0.1)** out of sample. Zero. Every piece of information in the model is
 already in the line.
 
-**Update 2026-10-29: the model as it runs today** (market prior, the one trend
+**Update 2026-10-31: the model as it runs today** (market prior, the one trend
 fix, injuries + rest factors, win-% correction), replayed by
-`scripts/replay_deployed.py` with everything fit on 2013-20: MAE **9.88** vs the
-line's 9.76, straight up 66.0% vs 66.5% for taking the favorite, the weekly card
-at closing prices +0.7% ROI (SE 3.6%), incremental coefficient **+0.34 (t 1.86)**:
-a hint of information beyond the line, not proven. The table above is the
-original validation and is kept as history.
+`scripts/replay_deployed.py` with everything fit on 2013-20 and the win %
+walk-forward (each season from earlier seasons only): MAE **9.88** vs the
+line's 9.76, straight up 66.1% vs 66.5% for taking the favorite, the weekly card
+at closing prices −0.3% ROI (SE 3.6%) on 653 bets, incremental coefficient
+**+0.34 (t 1.86)**: a hint of information beyond the line, not proven. Some
+design choices were made after looking at 2021-25, so it flatters the model a
+little; 2026 live is the only untouched test. The table above is the original
+validation and is kept as history.
 
 Turning this into a bet-placing system takes one line (`ADVISORY_MODE = False`
 in `src/nflmodel/config.py`). Nothing in the code stops you. But you would be
