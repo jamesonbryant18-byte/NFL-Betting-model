@@ -1,9 +1,9 @@
 {
   "season": 2026,
   "week": 8,
-  "generated_utc": "2026-10-29T15:49:43+00:00",
+  "generated_utc": "2026-10-31T16:00:40+00:00",
   "n_games": 14,
-  "n_leans": 6,
+  "n_leans": 7,
   "starters": {
     "ARI": "Jacoby Brissett",
     "ATL": "Michael Penix Jr.",
@@ -74,38 +74,29 @@
   },
   "locked": false,
   "weather": {
-    "2026_08_CAR_GB": {
-      "label": "47\u00b0F, wind 6 mph (gusts 18)",
-      "temp_f": 47.400000000000006,
-      "wind_mph": 6.0,
-      "precip_prob": 0.0,
-      "windy": false,
-      "precip": false,
-      "cold": false
-    },
     "2026_08_BAL_BUF": {
-      "label": "60\u00b0F, wind 4 mph",
-      "temp_f": 60.099999999999994,
-      "wind_mph": 4.0,
-      "precip_prob": 0.0,
+      "label": "66\u00b0F, wind 9 mph",
+      "temp_f": 65.8,
+      "wind_mph": 8.7,
+      "precip_prob": 4.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_08_TEN_CIN": {
-      "label": "65\u00b0F, wind 3 mph, 34% rain",
-      "temp_f": 64.95,
-      "wind_mph": 3.3,
-      "precip_prob": 34.0,
+      "label": "72\u00b0F, wind 7 mph",
+      "temp_f": 71.525,
+      "wind_mph": 7.2,
+      "precip_prob": 6.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_08_ARI_DAL": {
-      "label": "78\u00b0F, wind 6 mph (retractable roof)",
-      "temp_f": 77.875,
-      "wind_mph": 5.7,
-      "precip_prob": 1.0,
+      "label": "76\u00b0F, wind 5 mph (retractable roof)",
+      "temp_f": 75.825,
+      "wind_mph": 4.7,
+      "precip_prob": 3.0,
       "windy": false,
       "precip": false,
       "cold": false
@@ -120,38 +111,38 @@
       "cold": false
     },
     "2026_08_IND_JAX": {
-      "label": "79\u00b0F, wind 14 mph, 30% rain",
-      "temp_f": 79.325,
-      "wind_mph": 13.9,
-      "precip_prob": 30.0,
+      "label": "77\u00b0F, wind 11 mph (gusts 22), 27% rain",
+      "temp_f": 76.575,
+      "wind_mph": 11.2,
+      "precip_prob": 27.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_08_LV_NYJ": {
-      "label": "59\u00b0F, wind 5 mph",
-      "temp_f": 59.3,
-      "wind_mph": 5.1,
-      "precip_prob": 0.0,
+      "label": "61\u00b0F, wind 5 mph",
+      "temp_f": 61.0,
+      "wind_mph": 5.4,
+      "precip_prob": 1.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_08_CLE_PIT": {
-      "label": "62\u00b0F, wind 6 mph",
-      "temp_f": 62.199999999999996,
-      "wind_mph": 6.0,
-      "precip_prob": 2.0,
+      "label": "67\u00b0F, wind 4 mph",
+      "temp_f": 67.25,
+      "wind_mph": 4.1,
+      "precip_prob": 10.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_08_ATL_TB": {
-      "label": "83\u00b0F, wind 15 mph, 63% rain",
-      "temp_f": 82.775,
-      "wind_mph": 15.4,
-      "precip_prob": 63.0,
-      "windy": true,
+      "label": "76\u00b0F, wind 12 mph (gusts 28), 49% rain",
+      "temp_f": 75.65,
+      "wind_mph": 12.3,
+      "precip_prob": 49.0,
+      "windy": false,
       "precip": false,
       "cold": false
     },
@@ -165,37 +156,37 @@
       "cold": false
     },
     "2026_08_KC_DEN": {
-      "label": "61\u00b0F, wind 9 mph",
-      "temp_f": 61.125,
-      "wind_mph": 8.9,
-      "precip_prob": 7.0,
+      "label": "66\u00b0F, wind 10 mph",
+      "temp_f": 65.775,
+      "wind_mph": 9.5,
+      "precip_prob": 2.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_08_NE_MIA": {
-      "label": "80\u00b0F, wind 15 mph, 82% rain",
-      "temp_f": 80.225,
-      "wind_mph": 15.1,
-      "precip_prob": 82.0,
-      "windy": true,
+      "label": "73\u00b0F, wind 12 mph (gusts 30), 38% rain",
+      "temp_f": 73.225,
+      "wind_mph": 11.9,
+      "precip_prob": 38.0,
+      "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_08_PHI_WAS": {
-      "label": "52\u00b0F, wind 4 mph",
-      "temp_f": 52.05,
-      "wind_mph": 4.4,
-      "precip_prob": 0.0,
+      "label": "51\u00b0F, wind 5 mph",
+      "temp_f": 51.175,
+      "wind_mph": 5.0,
+      "precip_prob": 2.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_08_CHI_SEA": {
-      "label": "47\u00b0F, wind 4 mph",
-      "temp_f": 47.050000000000004,
-      "wind_mph": 4.0,
-      "precip_prob": 9.0,
+      "label": "50\u00b0F, wind 2 mph",
+      "temp_f": 50.5,
+      "wind_mph": 2.2,
+      "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
@@ -213,5 +204,18 @@
     "inj_total": 0.637,
     "rt_rest_diff": 0.048
   },
-  "selftune_alpha": 0.0
+  "selftune_alpha": 0.0,
+  "carried": {
+    "CAR @ GB": {
+      "generated_utc": "2026-10-29T15:49:43+00:00",
+      "trend_fixes": {
+        "generated_utc": "2026-10-29T15:28:08+00:00",
+        "margin": [
+          "model_far_from_market"
+        ],
+        "calibration": true,
+        "ml_max_underdog": 250
+      }
+    }
+  }
 }
