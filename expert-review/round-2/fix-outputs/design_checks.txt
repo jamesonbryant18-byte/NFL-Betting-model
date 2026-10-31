@@ -1,0 +1,18 @@
+
+  (a) QB values taken out of the lines behind the market prior  (vs the model as it runs; t < 0 on MAE/Brier = the change is better)
+ period     SU  SU_now    tSU    MAE  MAE_now   tMAE  tBrier  bets  bets_now    ROI  ROI_now
+2021-25 65.493  66.056 -2.002  9.855    9.876 -1.448  -1.720   664       653 -0.474   -0.297
+2013-20 65.775  66.009 -0.745 10.041   10.044 -0.241   0.323  1028      1022  4.780    2.651
+
+  (b) smooth pull, 2013-20 error by where the pull starts (cliff: 10.0897)
+      from 0.0 pts: 10.0418
+      from 0.5 pts: 10.0461
+      from 1.0 pts: 10.0518
+      from 1.5 pts: 10.0582
+      from 2.0 pts: 10.0659
+      from 2.5 pts: 10.0783
+
+  (b) smooth pull from 0.0 to 3 pts, max 1.5 (chosen on 2013-20)  (vs the model as it runs; t < 0 on MAE/Brier = the change is better)
+ period     SU  SU_now   tSU    MAE  MAE_now   tMAE  tBrier  bets  bets_now    ROI  ROI_now
+2021-25 66.268  66.056 0.404  9.833    9.876 -2.372  -2.081   563       653 -1.810   -0.297
+2013-20 66.009  66.009 0.000 10.012   10.044 -2.140  -2.105   929      1022  4.037    2.651

@@ -1,0 +1,16 @@
+  ABLATION -- deployed model on 2021-2025 (1424 games), everything fit on 2013-2020
+                   variant     SU   MAE  Brier  card_ROI    dSU    tSU   dMAE   tMAE  dBrier  tBrier
+        FULL (as deployed) 66.056 9.876  0.216    -0.297    NaN    NaN    NaN    NaN     NaN     NaN
+- trend pull (3+ pts, 1.5) 65.211 9.947  0.218    -2.494  0.845  2.124 -0.071 -4.358  -0.002  -4.632
+         - injuries factor 65.000 9.944  0.218    -3.483  1.056  1.862 -0.068 -2.592  -0.002  -2.303
+             - rest factor 65.986 9.876  0.216    -0.463  0.070  1.000 -0.000 -0.405  -0.000  -0.010
+             - all factors 65.000 9.944  0.218    -3.439  1.056  1.862 -0.068 -2.597  -0.002  -2.303
+   + EPA/play factor (off) 65.986 9.881  0.216    -2.471 -0.070 -1.000  0.005  1.223   0.000   1.584
+  + weekly self-tune (off) 65.845 9.875  0.216    -1.624 -0.211 -0.539 -0.001 -0.082  -0.000  -0.053
+      - market prior blend 66.127 9.955  0.218    -2.076 -0.070 -0.124 -0.078 -3.095  -0.002  -2.385
+- joint QB fit (team only) 65.986 9.905  0.216    -1.475  0.070  0.143 -0.029 -1.005  -0.000  -0.513
+              - home field 65.915 9.908  0.215     2.250  0.141  0.196 -0.032 -0.826   0.001   0.822
+     - win-% recalibration 66.056 9.876  0.217    -0.763  0.000    NaN  0.000    NaN  -0.002  -1.483
+
+  d* = what the piece itself does (variant 'FULL - x': full minus without; '+ x': with minus full).
+  SU: + helps.  MAE / Brier: - helps.  card_ROI is the variant's own card (SE about 3.6%).

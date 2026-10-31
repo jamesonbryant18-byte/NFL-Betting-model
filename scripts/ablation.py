@@ -14,9 +14,12 @@ gain elsewhere. The win-% side is held at the full model's walk-forward plan
 (per-season slope and margin table, replay.win_plan) for every variant
 (re-fitting it per variant would credit the recalibration with the change).
 
-Not covered here (each needs a full walk-forward re-run of the ratings):
-the market prior blend, the joint QB fit, home field.
+The structural pieces (market prior blend, joint QB fit, home field) need
+the ratings re-run walk-forward without them: scripts/build_structural_bases.py
+writes those projections (seconds), and each variant then goes through the
+same deployed stack (trend fix, factor weights re-fit on 2013-2020).
 
+    .venv/bin/python -W ignore scripts/build_structural_bases.py   # once
     .venv/bin/python -W ignore scripts/ablation.py
 """
 import sys
@@ -27,6 +30,7 @@ import numpy as np
 import pandas as pd
 
 from nflmodel import replay
+from nflmodel.config import CACHE_DIR
 
 d = replay.deployed()
 plan = d.attrs["win_plan"]
@@ -54,6 +58,18 @@ variants = {
     "+ EPA/play factor (off)": d.base + d.trend + epa3,
     "+ weekly self-tune (off)": d.proj + st,
 }
+
+# Structural pieces: the ratings re-run without each one (expert review round 2).
+sb_path = CACHE_DIR / "structural_bases_2013_2025.parquet"
+if sb_path.exists():
+    sb = d[["game_id"]].merge(pd.read_parquet(sb_path), on="game_id", how="left")
+    assert sb.full.notna().all() and np.allclose(sb.full, d.base), \
+        "structural_bases is stale: re-run scripts/build_structural_bases.py"
+    for name, base in (("- market prior blend", sb.noprior), ("- joint QB fit (team only)", sb.noqb),
+                       ("- home field", sb.full - sb.hfa)):
+        variants[name] = replay.deployed(d=replay.load().assign(base=base.to_numpy())).proj
+else:
+    print(f"  (structural pieces skipped: run scripts/build_structural_bases.py to build {sb_path.name})")
 H = d[hold].reset_index(drop=True)
 res = H.result.to_numpy(float)
 y = (res > 0).astype(float)

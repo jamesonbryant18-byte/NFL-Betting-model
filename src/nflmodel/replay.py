@@ -203,7 +203,7 @@ def apply_win_pct(d: pd.DataFrame, margins, plan: dict, recalibrate: bool = True
 
 
 def deployed(live: bool = False, factors: dict | None = None, state: dict | None = None,
-             d: pd.DataFrame | None = None) -> pd.DataFrame:
+             d: pd.DataFrame | None = None, trend=None) -> pd.DataFrame:
     """
     The deployed stack on every game 2013-2025.
 
@@ -212,10 +212,12 @@ def deployed(live: bool = False, factors: dict | None = None, state: dict | None
                 at its 2013-2020 size. 2021-2025 is a clean test.
     live=True:  config.FACTORS and trends.json as shipped.
     factors:    override the factor weights ({} = no factors).
+    trend:      override the trend fix points per game (a candidate rule).
     """
     state = state if state is not None else json.loads(TRENDS_FILE.read_text())
     d = load() if d is None else d.copy()
-    d["trend"] = trend_shift(d, state, "all" if live else "disc")
+    d["trend"] = (trend_shift(d, state, "all" if live else "disc") if trend is None
+                  else np.asarray(trend, dtype=float))
     if factors is None:
         keys = [k for k, v in FACTORS.items() if v]
         if live or not keys:

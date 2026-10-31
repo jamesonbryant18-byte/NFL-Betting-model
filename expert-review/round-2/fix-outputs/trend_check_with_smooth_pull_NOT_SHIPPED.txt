@@ -1,0 +1,109 @@
+  trend check: building graded history (2013 on)...
+
+==============================================================================
+  MISS REPORT — 3,670 graded games, 2013-2026 (108 from this season)
+==============================================================================
+  A reason is FIXED only if it shows up in 2013-2020 AND again in 2021+.
+  Effects are points vs the projection, for the team the reason is about.
+
+  reason                                                    13-20    21+   now  status
+  ----------------------------------------------------------------------------
+  Favorites in week 15+                                      +1.6   +1.8     0  FIXED +1.0
+  Side the model likes when it disagrees with the line (full pull at 3+ pts, a share below)   -2.6   -3.9   108  FIXED -1.5
+  Big favorites (7+ point line)                              +1.9   +2.0    24  covered
+  Mid favorites (3.5 to 6.5)                                 +1.2   +1.4    38  covered
+  Home underdogs                                             -1.6   -1.1    41  covered
+  Team starting a QB who has not started for it in its last 4 games   -2.8   -1.5    17  covered
+  Underdogs in divisional games                              -0.9   -1.0    33  watch
+  Team with 3+ more days of rest                             +0.0   +1.6    20  watch
+  Team starting a QB with fewer than 8 starts                -0.8   -1.1     9  watch
+  Team whose last score beat how it played by 10+            +0.7   -2.9     8  watch
+  Favorites in wind (15+ mph, outdoors)                      -0.1   +2.5     2  watch
+  Favorites in rain or snow                                  +3.0   +1.9     7  watch
+  Favorites in low-scoring games (total 40 or less)          +0.5   +1.8    13  watch
+  Favorites in night games                                   +1.2   +1.3    23  watch
+  Small favorites (3 or less)                                -0.3   +0.2    46  -
+  Favorites in weeks 1-4                                     -0.1   +0.3    64  -
+  Road teams on Thursday (short week + travel)               +0.1   +1.2     7  -
+  Team coming off a bye (opponent is not)                    +0.2   +1.6     6  -
+  West-coast team in an early Eastern kickoff                +1.2   +0.8     6  -
+  Road team crossing 2+ time zones                           +0.3   +0.0    19  -
+  Team coming off a 21+ point win                            +1.3   +0.3    14  -
+  Team coming off a 21+ point loss                           -0.7   +0.7    15  -
+  Team that won the turnover battle by 3+ last game          -0.0   +1.5    10  -
+  Home team in freezing weather (32F or less)                -0.3   +1.9     0  -
+  Offense far better passing than running, in wind/rain/snow   +2.2   +0.3     7  -
+  Favorites in high-scoring games (total 50+)                +0.8   -0.3    16  -
+  Favorites at neutral/international sites                   +1.9   -1.7     6  -
+  Home teams in general (home-field size)                    -0.3   +0.3   102  -
+  ----------------------------------------------------------------------------
+  together, fit on 2013-2020 and tested on 2021+: average miss 9.98 -> 9.85 pts (confirmed)
+
+  LONGSHOTS — how often underdogs actually won
+              price           games    won  market  model +margin +calib
+    2013-2020 +100 to +150      663  44.3%   43.9%  46.4%   45.0%  43.0%
+    2013-2020 +151 to +250      783  33.7%   33.7%  39.5%   38.4%  34.0%
+    2013-2020 +251 to +400      464  22.6%   24.1%  32.0%   30.6%  24.0%
+    2013-2020 +401 and up       165  11.5%   14.6%  22.9%   21.2%  13.7%
+    2021+     +100 to +150      553  42.1%   42.9%  45.5%   44.1%  41.7%
+    2021+     +151 to +250      496  33.1%   33.4%  38.8%   37.7%  33.0%
+    2021+     +251 to +400      284  24.3%   23.4%  31.3%   29.9%  23.2%
+    2021+     +401 and up       132  13.6%   14.5%  23.9%   21.8%  14.4%
+    dogs +151 and longer overrated by the model: 2013-2020 z=+5.3, 2021+ z=+3.7
+    win-% recalibration: confirmed (2021+ log loss 0.6290 raw, 0.6222 margin-fixed, 0.6191 recalibrated)
+
+  BETS THE MODEL MAKES (replayed on every game, 1 unit each)
+    before fixes 2013-2020   1672 bets, 83% on underdogs, 277 moneylines longer than +250, return -1.6%
+    before fixes 2021+       1163 bets, 84% on underdogs, 219 moneylines longer than +250, return -1.7%
+    after fixes  2013-2020   1065 bets, 47% on underdogs,   0 moneylines longer than +250, return +6.0%
+    after fixes  2021+        746 bets, 44% on underdogs,   0 moneylines longer than +250, return +0.9%
+    bet types losing more than the rest in both periods:
+      spread underdog: getting 7+            -5% / -2%  (watching)
+
+  THIS SEASON'S MISSES (picked the wrong winner)
+    wk1 ARI @ LAC   picked LAC  proj +10.3  actual   -12   turnovers: LAC lost the turnover battle by 2
+    wk1 SF @ LA     picked LA   proj  +3.0  actual   -20   model miss: LA was out-played (EPA -26)
+    wk1 NYJ @ TEN   picked TEN  proj  +2.7  actual   -13   model miss: TEN was out-played (EPA -16)
+    wk1 DAL @ NYG   picked DAL  proj  +0.3  actual    -8   model miss: DAL was out-played (EPA -13)
+    wk1 BUF @ HOU   picked HOU  proj  -0.0  actual    -5   turnovers: HOU lost the turnover battle by 2
+    wk2 NO @ BAL    picked BAL  proj  +7.5  actual    -7   model miss: BAL was out-played (EPA -3)
+    wk2 CLE @ TB    picked TB   proj  +6.7  actual    -4   model miss: TB was out-played (EPA -10)
+    wk2 LV @ LAC    picked LAC  proj  +5.8  actual   -12   turnovers: LAC lost the turnover battle by 2
+    wk2 MIN @ CHI   picked CHI  proj  +4.5  actual    -6   turnovers: CHI lost the turnover battle by 2
+    wk2 CIN @ HOU   picked HOU  proj  +2.5  actual   -14   model miss: HOU was out-played (EPA -13)
+    wk2 CAR @ ATL   picked ATL  proj  +0.2  actual   -31   turnovers: ATL lost the turnover battle by 5
+    wk3 ATL @ GB    picked GB   proj  +6.2  actual   -21   model miss: GB was out-played (EPA -21)
+    wk3 SEA @ WAS   picked SEA  proj  +7.2  actual    -2   bad luck: SEA out-played them (EPA +2) but lost
+    wk3 CIN @ PIT   picked CIN  proj  +2.0  actual    -3   bad luck: CIN out-played them (EPA +4) but lost
+    wk3 LA @ DEN    picked LA   proj  +1.9  actual    -4   bad luck: LA out-played them (EPA +2) but lost
+    wk3 LV @ NO     picked NO   proj  +2.7  actual    -8   turnovers: NO lost the turnover battle by 4
+    wk3 PHI @ CHI   picked PHI  proj  +0.7  actual   -20   turnovers: PHI lost the turnover battle by 3
+    wk3 CAR @ CLE   picked CAR  proj  +1.2  actual    -3   model miss: CAR was out-played (EPA -8)
+    wk3 HOU @ IND   picked HOU  proj  +0.7  actual    -2   bad luck: HOU out-played them (EPA +3) but lost
+    wk4 PIT @ CLE   picked PIT  proj  +1.5  actual    -3   model miss: PIT was out-played (EPA -1)
+    wk4 NE @ BUF    picked BUF  proj  +5.1  actual    -3   model miss: BUF was out-played (EPA -8)
+    wk4 DET @ CAR   picked DET  proj  +2.6  actual    -6   model miss: DET was out-played (EPA -8)
+    wk4 DAL @ HOU   picked HOU  proj  +3.3  actual    -4   bad luck: HOU out-played them (EPA +1) but lost
+    wk4 ARI @ NYG   picked ARI  proj  -2.2  actual   -12   model miss: ARI was out-played (EPA -11)
+    wk5 TB @ DAL    picked DAL  proj  +6.0  actual    -8   turnovers: DAL lost the turnover battle by 2
+    wk5 SF @ SEA    picked SEA  proj  +2.9  actual    -3   turnovers: SEA lost the turnover battle by 2
+    wk5 CHI @ GB    picked CHI  proj  -1.9  actual   -24   turnovers: CHI lost the turnover battle by 5
+    wk5 BUF @ LA    picked LA   proj  +1.4  actual    -3   bad luck: LA out-played them (EPA +1) but lost
+    wk5 CLE @ NYJ   picked CLE  proj  -0.2  actual    -5   model miss: CLE was out-played (EPA -8)
+    wk5 BAL @ ATL   picked ATL  proj  -0.6  actual    -7   model miss: ATL was out-played (EPA -4)
+    wk5 NYG @ WAS   picked NYG  proj  -1.3  actual    -0   turnovers: NYG lost the turnover battle by 2
+    wk6 SEA @ DEN   picked SEA  proj  +1.6  actual    -3   bad luck: SEA out-played them (EPA +1) but lost
+    wk6 ARI @ LA    picked LA   proj +11.3  actual    -2   model miss: LA was out-played (EPA -7)
+    wk6 TEN @ IND   picked IND  proj  +8.2  actual    -6   turnovers: IND lost the turnover battle by 2
+    wk6 BAL @ CLE   picked BAL  proj  +4.6  actual    -3   bad luck: BAL out-played them (EPA +2) but lost
+    wk6 HOU @ JAX   picked JAX  proj  +2.9  actual    -3   model miss: JAX was out-played (EPA -2)
+    wk6 NO @ NYG    picked NYG  proj  +1.3  actual    -7   turnovers: NYG lost the turnover battle by 2
+    wk6 CHI @ ATL   picked ATL  proj  -0.1  actual    -8   model miss: ATL was out-played (EPA -16)
+    wk7 NYG @ HOU   picked HOU  proj  +7.3  actual    -6   model miss: HOU was out-played (EPA -19)
+    wk7 MIA @ NYJ   picked NYJ  proj  +3.6  actual    -3   model miss: NYJ was out-played (EPA -3)
+    wk7 TB @ CAR    picked CAR  proj  +5.3  actual   -30   turnovers: CAR lost the turnover battle by 3
+    wk7 SF @ ATL    picked SF   proj  +3.0  actual    -9   turnovers: SF lost the turnover battle by 4
+    wk7 CIN @ BAL   picked BAL  proj  +1.8  actual   -22   model miss: BAL was out-played (EPA -23)
+
+  NEW FIX: Favorites in week 15+
+==============================================================================

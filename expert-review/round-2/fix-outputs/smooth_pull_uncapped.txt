@@ -1,0 +1,18 @@
+best on 2013-20 ramp ('ramp', 0.0, np.float64(3.0)) 10.0152
+best on 2013-20 soft ('soft', 1.0, np.float64(3.0)) 10.0328
+best on 2013-20 shrink ('shrink', np.float64(0.8), None) 10.0135
+best on 2013-20 cliff ('cliff', 3.0, np.float64(3.0)) 10.0775
+deployed cliff 1.5 on 2013-20 10.0897
+ period                           rule      SU     MAE  Brier  bets  card_ROI  card_win     dSU     tSU    dMAE    tMAE  dBrier  tBrier
+2021-25   cliff 3+ pts, 1.5 (deployed) 66.0563  9.8761 0.2158   653   -0.2970       NaN     NaN     NaN     NaN     NaN     NaN     NaN
+2021-25    ramp (0.0, np.float64(3.0)) 66.5493  9.7765 0.2128   436   -0.7175       NaN  0.4930  0.7034 -0.0996 -2.6277 -0.0030 -2.5585
+2021-25    soft (1.0, np.float64(3.0)) 66.1972  9.8068 0.2137   562   -2.4008       NaN  0.1408  0.2672 -0.0692 -3.9010 -0.0021 -3.8143
+2021-25 shrink (np.float64(0.8), None) 66.7606  9.7514 0.2120   409   -0.2288       NaN  0.7042  0.9713 -0.1247 -3.4037 -0.0038 -3.3487
+2021-25   cliff (3.0, np.float64(3.0)) 65.7746  9.8268 0.2144   624   -1.6834       NaN -0.2817 -0.8527 -0.0492 -3.1163 -0.0014 -3.1378
+2013-20   cliff 3+ pts, 1.5 (deployed) 66.0094 10.0439 0.2116  1022    2.6511       NaN     NaN     NaN     NaN     NaN     NaN     NaN
+2013-20    ramp (0.0, np.float64(3.0)) 66.3380 10.0066 0.2106   694    1.8296       NaN  0.3286  0.5773 -0.0373 -1.1786 -0.0009 -0.9576
+2013-20    soft (1.0, np.float64(3.0)) 66.2441 10.0042 0.2103   926    4.4204       NaN  0.2347  0.5241 -0.0397 -2.7476 -0.0012 -2.6956
+2013-20 shrink (np.float64(0.8), None) 66.6197 10.0025 0.2102   679    6.7033       NaN  0.6103  1.0510 -0.0414 -1.3253 -0.0014 -1.4019
+2013-20   cliff (3.0, np.float64(3.0)) 66.4319 10.0396 0.2117  1007    4.3522       NaN  0.4225  1.3419 -0.0043 -0.3204  0.0001  0.2280
+d* = rule minus deployed cliff (MAE/Brier - = rule better; SU + = rule better)
+hold-out games with |gap| in [2,3): 267  >=3: 247

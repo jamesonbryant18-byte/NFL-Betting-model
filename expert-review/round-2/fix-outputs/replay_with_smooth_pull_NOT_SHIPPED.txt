@@ -1,0 +1,33 @@
+==============================================================================
+  DEPLOYED MODEL, REPLAYED ON 2021-2025 (1424 games) -- fit on 2013-2020 only
+==============================================================================
+  factors: inj_total +0.326, rt_rest_diff -0.023
+  win-% slope b by season: 2021 1.463, 2022 1.418, 2023 1.413, 2024 1.403, 2025 1.431  (fit on earlier seasons only)
+
+  STRAIGHT UP  (same games; ties left out)
+    model     66.13%  (939 of 1420)
+    favorite  66.48%  (944)   difference -0.35 pts (SE 0.53, t -0.66)
+    against the favorite: 26 of 57 right
+    expected wins: 947 by the model's odds, 934 by the closing market's
+
+  MARGIN AND WIN %
+    error  model 9.834  line 9.762  (t +1.9)
+    Brier  model 0.2148  market 0.2115   log loss 0.6177 vs 0.6103
+    calibration slope 0.957  (1.00 = honest; below 1 = overconfident)
+    picked side, 5-pt bands:
+    said  52.6%  57.4%  62.3%  67.3%  72.4%  77.5%  82.3%  87.4%  92.1%
+    won   52.1%  57.4%  60.8%  69.9%  70.8%  72.4%  82.4%  89.7%  100.0%
+    off    -0.5   +0.0   -1.5   +2.6   -1.6   -5.2   +0.1   +2.3   +7.9
+    SEs    -0.1   +0.0   -0.5   +0.8   -0.5   -1.5   +0.0   +0.5   +1.2
+    games   163    263    278    206    192    152     91     58     17
+
+  THE WEEKLY CARD  (live rules, closing numbers and prices)
+    all             560 bets  298-258-4  won 53.6% (break-even 56.0%, model said 60.3%)  ROI -3.88% (SE 3.89%)
+    spreads         248 bets  128-116-4  won 52.5% (break-even 52.1%, model said 58.7%)  ROI +0.58% (SE 6.05%)
+    moneylines      312 bets  170-142-0  won 54.5% (break-even 59.1%, model said 61.6%)  ROI -7.43% (SE 5.06%)
+    filler           25 bets  13-12-0  won 52.0% (break-even 55.3%, model said 58.3%)  ROI -4.05% (SE 18.87%)
+    2021            115 bets  55-60-0  won 47.8% (break-even 55.8%, model said 60.9%)  ROI -11.00% (SE 8.97%)
+    2022            116 bets  60-54-2  won 52.6% (break-even 54.9%, model said 59.9%)  ROI -5.36% (SE 8.51%)
+    2023            116 bets  63-52-1  won 54.8% (break-even 56.9%, model said 60.3%)  ROI -2.84% (SE 8.38%)
+    2024            111 bets  67-44-0  won 60.4% (break-even 57.6%, model said 61.4%)  ROI +3.78% (SE 8.26%)
+    2025            102 bets  53-48-1  won 52.5% (break-even 54.9%, model said 58.9%)  ROI -3.69% (SE 9.51%)
