@@ -213,6 +213,7 @@ def resolve_starters(
     overrides: dict[str, str] | None = None,
     use_depth_chart: bool = True,
     refresh: bool = False,
+    chart_out: dict | None = None,
 ) -> tuple[dict[str, str], dict[str, str], str | None, list[tuple[str, str, str]]]:
     """
     Best available starting quarterback per team, by name, for an upcoming week.
@@ -279,6 +280,8 @@ def resolve_starters(
                                     f'--qb {team}="{prior}" if that is wrong'))
             starters[team] = name
             source[team] = SOURCE_DEPTH_CHART
+            if chart_out is not None:          # what the chart said, before any --qb
+                chart_out[team] = name
 
     for team, name in (overrides or {}).items():
         starters[team] = name

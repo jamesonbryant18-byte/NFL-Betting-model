@@ -20,7 +20,7 @@ from nflmodel.ratings import qb_value
 from nflmodel.depth import resolve_starters, SOURCE_DEPTH_CHART
 from nflmodel.market import format_spread
 from nflmodel.report import straight_up_ranking, format_ranking
-from nflmodel.archive import archive_week, kicked_off, load_archived
+from nflmodel.archive import ARCHIVE_DIR, archive_week, kicked_off, load_archived
 from nflmodel.teamstats import team_stats_bundle
 
 _FACTOR_NAMES = dict(inj_total='injuries', eff_epa='efficiency', rt_rest_diff='rest')
@@ -138,12 +138,14 @@ def main():
             if isinstance(nm, str) and nm:
                 slate_names[g[f'{side}_team']] = nm
 
+    chart_names = {}
     starters, qb_source, qb_snapshot, qb_notes = resolve_starters(
         hist, games, args.season, week,
         slate_names=slate_names,
         overrides=overrides,
         use_depth_chart=not args.no_depth_chart,
         refresh=args.refresh,
+        chart_out=chart_names,
     )
 
     if qb_snapshot:
@@ -185,10 +187,12 @@ def main():
         n = str(n).lower().replace('.', '').replace("'", '')
         return ' '.join(w for w in n.split() if w not in ('jr', 'sr', 'ii', 'iii', 'iv'))
 
+    qb_injuries = None
     try:
         from nflmodel.espn import fetch_injuries
         inj = fetch_injuries(refresh=args.refresh)
         inj = inj[inj.position == 'QB']
+        qb_injuries = inj
         for _, r in inj[inj.status.isin(['Out', 'Doubtful', 'Questionable'])].iterrows():
             if _norm(starters.get(r.team, '')) == _norm(r.player):
                 print(f'WARNING: {r.team} starter {r.player} is {r.status} ({r.injury}). '
@@ -196,6 +200,12 @@ def main():
                 qb_uncertain[r.team] = f'{r.status} ({r.injury})'
     except Exception as e:
         print(f'WARNING: QB injury check skipped ({e})')
+
+    # An override the depth chart contradicts for a healthy quarterback is
+    # probably stale (2026 Week 7: TB="Jalon Daniels" after Mayfield was back).
+    from nflmodel.workbook_guard import stale_overrides
+    for line in stale_overrides(overrides, chart_names, qb_injuries, _norm):
+        print(line)
 
     if args.starters:
         print()
@@ -355,6 +365,11 @@ def main():
     # Sunday re-run) are carried forward by the archive and use card slots.
     card_used = 0
     _, published = load_archived(args.season, week)
+    try:                                   # when the archived card was built
+        prev_built = json.loads((ARCHIVE_DIR / str(args.season) / f'week{week:02d}_meta.json')
+                                .read_text()).get('generated_utc')
+    except (OSError, ValueError):
+        prev_built = None
     if published is not None and len(published) and 'game_id' in published.columns:
         card_used = int((~published.game_id.isin(slate_games.game_id)).sum())
     slate = model.project_slate(slate_games, card_used=card_used)
@@ -452,6 +467,16 @@ def main():
               f"({bets.stake.sum()/STAKING.bankroll:.1%} of bankroll, "
               f"cap {STAKING.max_weekly_exposure_pct:.0%})")
     print('=' * 78)
+
+    # What a re-run changed, so a game-day card can be checked at a glance.
+    if published is not None and prev_built:
+        from nflmodel.workbook_guard import card_changes
+        changes = card_changes(published, slate)
+        when = pd.to_datetime(prev_built, utc=True).tz_convert('America/New_York')
+        print(f"  CARD vs the last build ({when:%a %m/%d %H:%M} ET): "
+              + ('no change' if not changes else ''))
+        for line in changes:
+            print(f'    {line}')
 
     # ── the bets, split by whether they agree with the model's winner ──
     from nflmodel.model import WITH_PICK, AGAINST_PICK
@@ -643,13 +668,27 @@ def main():
         'deployed': fitted.get('deployed') if fitted else None,
         'residual_sd': fitted.get('residual_sd') if fitted else None,
     }
+    # Never write over a workbook Excel has open: his next save would put the
+    # old card back (2026 Week 5). Save beside it instead (expert review r2).
+    from nflmodel.workbook_guard import excel_state, side_path
+    xl = excel_state(path)
+    write_path = side_path(path) if xl['open'] else path
     build_workbook(slate, model.power_ratings(), args.season, week,
-                   backtest_summary=summary, path=str(path),
+                   backtest_summary=summary, path=str(write_path),
                    pts_table=points_to_prob_table(model.margin_model),
                    ranked=ranked, starters=starters, qb_source=qb_source,
                    team_stats=team_stats, games=games, model_meta=model_meta,
                    trends_state=_trends_state())
-    print(f'\n  workbook: {path}')
+    print(f'\n  workbook: {write_path}')
+    if xl['open']:
+        unsaved = xl['saved'] is False
+        print(f"  EXCEL HAS WEEK {week} OPEN{' WITH UNSAVED CHANGES' if unsaved else ''}"
+              f" ({xl['how']}): the new workbook was saved BESIDE it, not over it.")
+        print(f"  Close {path.name} in Excel and open {write_path.name}. The archive "
+              f"(the record of this card) is updated either way.")
+        if unsaved or xl['saved'] is None:
+            print(f"  Changes not yet saved in the open {path.name} are NOT in the new file: "
+                  f"save it (Cmd+S), close it, and re-run to carry them.")
 
     slate.to_csv(OUTPUT_DIR / f'slate_{args.season}_wk{week:02d}.csv', index=False)
     ranked.to_csv(OUTPUT_DIR / f'picks_{args.season}_wk{week:02d}.csv', index=False)
