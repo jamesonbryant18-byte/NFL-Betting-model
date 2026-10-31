@@ -22,7 +22,7 @@ from nflmodel.model import NFLModel
 def _recommend(m, edge_pts, p_cover, p_push=0.0, odds=-110.0):
     """A home-side spread candidate with the given edge and cover chance."""
     return m._recommend(
-        projected=-3.0 + edge_pts, line=-3.0, spread_edge=edge_pts,
+        projected=-3.5 + edge_pts, line=-3.5, spread_edge=edge_pts,
         p_home=p_cover, p_push=p_push, p_away=1 - p_cover - p_push,
         home_wp=0.5, h_ml=None, a_ml=None, ml_edge_h=np.nan, ml_edge_a=np.nan,
         home="NYG", away="TEN", home_spread_odds=odds, away_spread_odds=odds)

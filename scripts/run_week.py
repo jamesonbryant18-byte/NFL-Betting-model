@@ -502,6 +502,23 @@ def main():
                       f"(a worse number than that, skip it)")
     print()
 
+    # The half-point rule (config THRESHOLDS.spread_half_points_only): name the
+    # whole-number spreads it kept off, so the rule is visible every week.
+    from nflmodel.config import THRESHOLDS
+    if THRESHOLDS.spread_half_points_only:
+        whole = slate[(slate.spread_line % 1 == 0)
+                      & (slate.spread_edge_pts.abs() >= THRESHOLDS.spread_min_edge_pts)]
+        names = []
+        for _, g in whole.iterrows():
+            on_home = g.spread_edge_pts > 0
+            side = format_spread(g.home_team if on_home else g.away_team,
+                                 g.spread_line if on_home else -g.spread_line)
+            instead = f", {g.bet_side} instead" if g.bet_side else ""
+            names.append(f"{side} ({abs(g.spread_edge_pts):.1f} pts of edge{instead})")
+        if names:
+            print("  WHOLE-NUMBER SPREADS, NOT BET (your half-point rule): " + "; ".join(names))
+            print()
+
     # ── where to actually place them ──
     if odds_report.get('single_book'):
         print(f"  ALL LINES AND PRICES ABOVE ARE {odds_report['single_book'].upper()}'S.")

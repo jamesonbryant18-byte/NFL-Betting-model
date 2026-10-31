@@ -39,8 +39,9 @@ def test_spread_number_is_the_last_line_that_still_qualifies():
     assert at.startswith("CLE +")
     last = float(at.split("+")[1])
     assert last < 9.5                             # fewer points is worse for a dog bettor
+    assert last % 1 == 0.5                        # the half-point rule: never a whole number
     assert _bet(m, _game(spread_line=last)) == ("SPREAD", "CLE")
-    assert _bet(m, _game(spread_line=last - 0.5)) != ("SPREAD", "CLE")
+    assert _bet(m, _game(spread_line=last - 1.0)) != ("SPREAD", "CLE")   # the next half point
 
 
 def test_spread_scan_re_decides_the_trend_pull_and_restores_it():
@@ -54,8 +55,9 @@ def test_spread_scan_re_decides_the_trend_pull_and_restores_it():
     fixed = m.still_qualifies(_game(), "CLE +9.5", "SPREAD")
     moving = m.still_qualifies(_game(), "CLE +9.5", "SPREAD", trend_at=pull)
     assert m.game_adjust == {"x": 1.5}            # put back as it was
-    # at 9.0 the gap is 2.5, the pull switches off and the edge grows: the
-    # bet survives further than a scan that kept today's pull fixed
+    # at 8.5 (9.0 is a whole number, stepped over) the gap is 2.0, the pull
+    # switches off and the edge grows: the bet survives further than a scan
+    # that kept today's pull fixed
     assert float(moving.split("+")[1]) < float(fixed.split("+")[1])
 
 

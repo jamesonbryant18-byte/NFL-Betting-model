@@ -886,7 +886,8 @@ def _sheet_bets(wb, slate, season, week, model_meta):
     ws.cell(row=row, column=1, value=f"{n_bets} bet(s), ${staked:,.0f} total. Re-run Sunday morning "
                                      "with --refresh before placing anything: starters and lines move. "
                                      "Still a Bet At: the worst number or price at which the bet still "
-                                     "qualifies; if FanDuel's is worse, skip it."
+                                     "qualifies; if FanDuel's is worse, skip it. Spreads at a whole "
+                                     "number (3, 7, ...) are never bets (your rule)."
             ).font = Font(bold=True, color=NAVY, size=11)
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=len(BETS_HEADERS))
     ws.freeze_panes = "A4"
@@ -2419,6 +2420,9 @@ def _sheet_miss_report(wb, state):
                 else "Jameson's rule (set in config)"
             rows.append([f"Longshot moneylines: none longer than +{cap}", None, None, None,
                          None, None, None, f"ON — {source}"])
+            if THRESHOLDS.spread_half_points_only:
+                rows.append(["Spreads at a whole number (3, 7, ...): never a bet", None, None,
+                             None, None, None, None, "ON — Jameson's rule (set in config)"])
         last = _write_table(ws, row + 1, headers, rows or [["none"] + [None] * 7],
                             formats={3: fmt_pts, 4: fmt_pts, 6: fmt_pts, 7: fmt_pts},
                             aligns={1: "left", 8: "left"}, freeze=False, autofilter=False)

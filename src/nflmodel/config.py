@@ -115,6 +115,11 @@ class Thresholds:
     # trends.py re-tests every price bucket weekly (data/trends.json).
     ml_max_underdog: int = 250
 
+    # Jameson's rule (2026-10-31): no spread bets at a whole number (3, 7,
+    # ...); Jameson can't place them. A game on a whole number can still be a
+    # moneyline bet, and "still a bet at" reports half-point numbers only.
+    spread_half_points_only: bool = True
+
 
 THRESHOLDS = Thresholds()
 

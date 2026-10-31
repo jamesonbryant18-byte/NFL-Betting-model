@@ -197,6 +197,10 @@ He asks for it Sunday morning, before betting the early games:
    placed; his tracker is the record of what he bet.
 5. Each bet prints "still a bet at X": the worst number or price at which it
    still qualifies. If FanDuel's is worse when he places it, he skips it.
+   Spreads at a whole number (3, 7, ...) are never bets (Jameson's rule,
+   2026-10-31: they can't be placed), so X is always a half point, and the
+   run lists the whole-number spreads it kept off (`WHOLE-NUMBER SPREADS, NOT
+   BET`). If FanDuel moves a bet's line onto a whole number, skip it.
 6. A `WARNING: --qb ... may be STALE` means the depth chart names a starter
    who is not on the injury report: check the news, drop the override if he
    plays (2026 Week 7: TB Mayfield).

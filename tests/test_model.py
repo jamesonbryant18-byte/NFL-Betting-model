@@ -171,13 +171,13 @@ def test_recommendation_prints_favorite_as_laying_points():
     m.team_ratings = {"DET": 6.0, "NO": -2.0}
     m.hfa = 2.0
     rec = m._recommend(
-        projected=12.0, line=7.0, spread_edge=5.0,
-        p_home=0.62, p_push=0.03, p_away=0.35,
+        projected=12.5, line=7.5, spread_edge=5.0,
+        p_home=0.62, p_push=0.0, p_away=0.38,
         home_wp=0.80, h_ml=-305, a_ml=245,
         ml_edge_h=0.0, ml_edge_a=0.0, home="DET", away="NO",
     )
     # Model likes the home favorite -> the ticket must LAY the points.
-    assert "DET -7.0" in rec["recommendation"], rec["recommendation"]
+    assert "DET -7.5" in rec["recommendation"], rec["recommendation"]
 
 
 def test_market_ratings_respect_asof_cutoff():
@@ -556,7 +556,7 @@ def test_bet_is_tagged_against_the_straight_up_pick():
     assert p.bet_type == AGAINST_PICK
     assert "Model: TB by" in p.bet_why and "CLE wins or loses by 8 or less" in p.bet_why
 
-    game["spread_line"] = 1.0                     # now TB -1: the model's side is TB itself
+    game["spread_line"] = 1.5                     # now TB -1.5: the model's side is TB itself
     p = m.project(game)
     assert p.bet_side.startswith("TB"), p.bet_side
     assert p.bet_type == WITH_PICK

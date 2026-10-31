@@ -119,6 +119,28 @@ direction that felt worst on Sunday.
 
 ## Log of tested candidates
 
+### HIS RULE — no spread bets at a whole number (2026-10-31)
+
+Jameson: "dont do bets that are a whole number I can't do that." Shipped as
+`THRESHOLDS.spread_half_points_only` (Jameson's constraint, so it ships whatever the
+replay says; `scripts/half_point_rule.py` records the effect). A spread at 3,
+7, ... never qualifies, is never filler, and "still a bet at" steps over
+whole numbers. The game's moneyline is still considered. 55% of 2013-20 games
+and 44% of 2021-25 games closed on a whole number.
+
+| card, closing prices | 2013-20 | 2021-25 |
+|---|---|---|
+| no rule | 1,022 bets, ROI +2.65% (SE 2.9%) | 653 bets, ROI -0.30% (SE 3.6%) |
+| rule (shipped) | 979 bets, +5.57%; +27 units, t +1.4 | 628 bets, -2.76%; -15 units, t -1.2 |
+| rule, skip the whole game | 669 bets, +3.47%; t -0.1 | 464 bets, -2.54%; t -0.5 |
+
+Better in one period, worse in the other, neither significant: no measurable
+cost. Skipping the whole game is no better and makes a third fewer bets, so
+the moneyline stays. The card shifts toward moneylines (2021-25: 203 -> 360),
+and replayed moneylines run below spreads (-10.4% on 360 vs +7.5% on 268, both
+inside two SEs of zero). 2026 so far: 4 of 52 model bets were whole-number
+spreads (NYG +3, TB +3, SEA -3, MIA +7).
+
 ### EXPERT REVIEW, round 2 — honest hold-out, every piece measured (2026-10-29 to 10-31)
 
 A second fresh grader, same locked rubric (v2). Jameson approved all ten

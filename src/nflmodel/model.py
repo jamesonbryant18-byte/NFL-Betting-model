@@ -413,7 +413,8 @@ class NFLModel:
         (line -> points) re-decides the trend fixes at each number, as a run at
         that number would (the far-from-the-line pull switches at 3 pts). ''
         if the bet does not qualify at its own number. Qualifying is not
-        making the card: the top 7 by chance to win still applies.
+        making the card: the top 7 by chance to win still applies. Under the
+        half-point rule whole numbers are stepped over, never reported.
         """
         g = dict(game if isinstance(game, dict) else game.to_dict())
         gid = g.get("game_id", "")
@@ -431,6 +432,8 @@ class NFLModel:
                 line0, last = float(g["spread_line"]), None
                 for k in range(max_steps + 1):
                     line = line0 + 0.5 * k if home else line0 - 0.5 * k   # worse for the bettor
+                    if k and not self._bettable_line(line):
+                        continue                                  # a whole number: never a bet
                     if trend_at is not None:
                         self.game_adjust[gid] = float(trend_at(line))
                     if not holds({**g, "spread_line": line}):
@@ -472,7 +475,7 @@ class NFLModel:
         candidates = []
 
         # Spread candidate.
-        if line is not None and not np.isnan(spread_edge):
+        if line is not None and not np.isnan(spread_edge) and self._bettable_line(line):
             if abs(spread_edge) >= t.spread_min_edge_pts:
                 side_home = spread_edge > 0
                 win_p = p_home if side_home else p_away
@@ -555,6 +558,10 @@ class NFLModel:
             "confidence": conf,
         }
 
+    def _bettable_line(self, line) -> bool:
+        """False for a whole-number spread under Jameson's half-point rule."""
+        return not (self.thresholds.spread_half_points_only and float(line).is_integer())
+
     def _confidence(self, spread_edge: float) -> str:
         if spread_edge is None or np.isnan(spread_edge):
             return "—"
@@ -632,7 +639,8 @@ class NFLModel:
         margin = float(r["projected_margin"])
         found = []
         edge = r["spread_edge_pts"]
-        if line is not None and not pd.isna(line) and not pd.isna(edge) and edge != 0:
+        if (line is not None and not pd.isna(line) and not pd.isna(edge) and edge != 0
+                and self._bettable_line(line)):
             side_home = edge > 0
             p_win = r["home_cover_prob"] if side_home else r["away_cover_prob"]
             p_lose = 1.0 - p_win - r["push_prob"]

@@ -791,10 +791,11 @@ tracker's merge-across-runs from `betlog.py`.
 .venv/bin/python -W ignore scripts/run_week.py --starters       # print all 32 starters + source
 .venv/bin/python -W ignore scripts/run_week.py --no-depth-chart # ignore depth charts
 .venv/bin/python -W ignore scripts/run_week.py --archive-anyway # archive a week that already kicked off
-.venv/bin/python -W ignore -m pytest tests/ -q                 # 249 tests
+.venv/bin/python -W ignore -m pytest tests/ -q                 # 254 tests
 .venv/bin/python -W ignore scripts/bet_ledger.py               # the model's bets, graded, one row each
 .venv/bin/python -W ignore scripts/build_structural_bases.py   # ratings without prior/QB/HFA (for ablation.py)
 .venv/bin/python -W ignore scripts/design_checks.py            # QB counted twice? smooth trend pull? (no, no)
+.venv/bin/python -W ignore scripts/half_point_rule.py          # his no-whole-number rule, replayed
 .venv/bin/python -W ignore scripts/replay_deployed.py          # the model as it runs, on 2021-25
 .venv/bin/python -W ignore scripts/ablation.py                 # what each piece is worth
 .venv/bin/python -W ignore scripts/refit_factors.py            # re-weight the game factors
@@ -879,6 +880,12 @@ Fresh machine: `python3 -m venv .venv && .venv/bin/pip install -r requirements.t
   into Closing Line / Closing Odds cells he left BLANK, never one he typed,
   and lists them on their own line. Not a carry error.
 - **Weather**: shown and fed to the trend checker; no hand-set adjustment.
+- **No spread bets at a whole number** (2026-10-31: "I can't do that").
+  `THRESHOLDS.spread_half_points_only`: a spread at 3, 7, ... never
+  qualifies and is never filler; the game's moneyline is still considered;
+  "still a bet at" steps over whole numbers. Replayed it has no measurable
+  cost (2013-20 +2.9 pts ROI, 2021-25 -2.5, neither significant;
+  `scripts/half_point_rule.py`) but shifts the card toward moneylines.
 - **Bet Tracker cells and formulas: carried exactly, every week**
   (2026-10-13). K6 (his Kalshi price -> sportsbook odds converter), M5 (total
   staked) and any formula or cell he adds to the sheet reach each new week's
