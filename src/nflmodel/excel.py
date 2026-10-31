@@ -93,18 +93,19 @@ CHART_GRID = "E0E0E0"
 # README's numbers; they are here so the workbook cannot drift into
 # presenting picks as more confident than the validation supports.
 # The model as it runs from 2026 Week 8, replayed on 2021-25 with everything
-# fit on 2013-20 only (scripts/replay_deployed.py, expert review 2026-10-29).
+# fit on 2013-20 only and the win % walk-forward, each season from earlier
+# seasons only (scripts/replay_deployed.py, expert review rounds 1-2).
 HOLDOUT = {
     "seasons": "2021-25 hold-out, n = 1,424",
-    "su": "straight up 66.0% vs 66.5% for simply taking the closing favorite "
-          "(−0.5 pt, t −0.7: level within the noise)",
-    "card": "the weekly card at closing prices won 55.6% against a 56.0% break-even, "
-            "ROI +0.7% (SE 3.6%) on 649 bets; the model said 61.5%",
+    "su": "straight up 66.1% vs 66.5% for simply taking the closing favorite "
+          "(−0.4 pt, t −0.6: level within the noise)",
+    "card": "the weekly card at closing prices won 54.2% against a 55.1% break-even, "
+            "ROI −0.3% (SE 3.6%) on 653 bets; the model said 60.4%",
     "mae": "margin error 9.88 vs the closing line's 9.76",
     "coef": "incremental coefficient vs the line +0.34 (t = 1.9): a hint of information "
             "beyond the line, not proven",
-    "calibration": "win % calibration slope 0.93 (1.00 = honest): picks called 75% won 73%, "
-                   "84% won 81%",
+    "calibration": "win % calibration slope 0.96 (1.00 = honest): picks called 72% won 72% "
+                   "and 77% won 77%, but 82% won 74% (107 games, 2.3 standard errors short)",
     "breakeven": "break-even at −110 is 52.38%",
 }
 
@@ -2541,8 +2542,9 @@ def _sheet_reference(wb, backtest_summary, model_meta=None):
         entry("Half Kelly", f"This model stakes at {STAKING.kelly_fraction:.0%} of Kelly, capped at {STAKING.max_bet_pct:.1%} of bankroll and {STAKING.max_weekly_exposure_pct:.0%} per week — roughly three-quarters of the growth at half the volatility. In advisory mode every stake is $0.")
 
     section("WHAT THE BACKTEST FOUND")
-    entry("Method", "Walk-forward: to predict week W the model only ever sees games finished before week W, and is refit from scratch each week. The model as it runs (market prior, trend fix, game factors, win-% correction) is replayed by scripts/replay_deployed.py, with everything fit on 2013-20 and scored on 2021-25.")
+    entry("Method", "Walk-forward: to predict week W the model only ever sees games finished before week W, and is refit from scratch each week. The model as it runs (market prior, trend fix, game factors, win-% correction) is replayed by scripts/replay_deployed.py, with everything fit on 2013-20 and scored on 2021-25 (the win % walk-forward: each season fit on earlier seasons only, as live).")
     entry("The model as it runs", f"{cap(HOLDOUT['mae'])}; {HOLDOUT['su']}; {HOLDOUT['card']}.")
+    entry("How clean is 2021-25?", "Not fully. Weights and the win % are fit on earlier seasons only, but some design choices were made after looking at 2021-25: the trend fix (2021+ can only remove a reason, never add one), dropping EPA/play, switching the self-tune off, ranking the card by chance to win, and which game factors to keep. So 2021-25 flatters the model a little. The one test nothing was tuned on is 2026, live: judge it there.")
     if backtest_summary:
         entry("The bare ratings alone", f"{backtest_summary.get('model_mae', 0):.2f} points per game vs the closing line's {backtest_summary.get('market_mae', 0):.2f} on {backtest_summary.get('n_games', 0):,} games ({backtest_summary.get('seasons','')}), before the market prior and the fixes. Most of the improvement since is from leaning on the market.")
     entry("Verdict", "The model does not beat the closing line out of sample. No demonstrated edge: judge it by straight-up winners against the favorite and by value at the price taken, not by a hot week."),
@@ -2550,7 +2552,7 @@ def _sheet_reference(wb, backtest_summary, model_meta=None):
           + f"{FACTORS.get('rt_rest_diff', 0):.3f} pt per day of rest difference (measured about neutral).")
     entry("Injuries", "Non-QB injuries are a live game factor (2026 Week 4 on): "
           + f"{FACTORS.get('inj_total', 0):.2f} pt per full-time starter out, by prior-season snap share. "
-            "On 2021-25, with the weight fit on 2013-20, they lower margin error (t −2.6) and add straight-up winners; without them the card replay falls from +0.7% to −3.5%. "
+            "On 2021-25, with the weight fit on 2013-20, they lower margin error (t −2.6) and add straight-up winners; without them the card replay falls from −0.3% to −3.5%. "
             "Opponent-adjusted EPA/play ran Weeks 4-7 of 2026 and was dropped 2026-10-29 (it made the win % and the card worse); the weekly self-tune was switched off the same day (it added nothing).")
 
     section("HONEST LIMITS")
