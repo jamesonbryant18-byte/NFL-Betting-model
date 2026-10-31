@@ -584,7 +584,20 @@ card); "$ at $5" puts every week on the same $5 footing.
 - **Your own tracker** (Week 7 save): 20-8, +$46.13.
 - **Margin error:** the model averaged 9.59 against the closing line's 9.41.
 
-<!-- WEEK8 -->
+**Week 8 (in progress).** TNF CAR @ GB: the model picked GB, right (no bet). The card
+as of the Saturday 12:33 run, with the half-point rule, $5 each:
+
+| bet | FanDuel price | still a bet at |
+|---|---|---|
+| MIN +3.5 @ DET | −122 | +3.5 (no room) |
+| PHI +5.5 @ WAS | −105 | +4.5 |
+| LV +1.5 @ NYJ | −115 | +1.5 (no room) |
+| SEA moneyline vs CHI | −168 | −218 |
+| BUF moneyline vs BAL | −174 | −194 |
+| TEN +12.5 @ CIN | −110 | +12.5 (no room) |
+
+The half-point rule turned SEA −3 into the SEA moneyline and dropped MIA +7. PHI rests
+on McKee at replacement level (−3.30); BUF assumes Lamar plays.
 
 ---
 

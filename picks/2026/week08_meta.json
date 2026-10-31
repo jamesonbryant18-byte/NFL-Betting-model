@@ -1,9 +1,9 @@
 {
   "season": 2026,
   "week": 8,
-  "generated_utc": "2026-10-31T16:00:40+00:00",
+  "generated_utc": "2026-10-31T16:33:42+00:00",
   "n_games": 14,
-  "n_leans": 7,
+  "n_leans": 6,
   "starters": {
     "ARI": "Jacoby Brissett",
     "ATL": "Michael Penix Jr.",
@@ -111,10 +111,10 @@
       "cold": false
     },
     "2026_08_IND_JAX": {
-      "label": "77\u00b0F, wind 11 mph (gusts 22), 27% rain",
+      "label": "77\u00b0F, wind 11 mph (gusts 22)",
       "temp_f": 76.575,
       "wind_mph": 11.2,
-      "precip_prob": 27.0,
+      "precip_prob": 17.0,
       "windy": false,
       "precip": false,
       "cold": false
@@ -138,12 +138,12 @@
       "cold": false
     },
     "2026_08_ATL_TB": {
-      "label": "76\u00b0F, wind 12 mph (gusts 28), 49% rain",
+      "label": "76\u00b0F, wind 12 mph (gusts 28), 54% rain",
       "temp_f": 75.65,
       "wind_mph": 12.3,
-      "precip_prob": 49.0,
+      "precip_prob": 54.0,
       "windy": false,
-      "precip": false,
+      "precip": true,
       "cold": false
     },
     "2026_08_LAC_LA": {
@@ -165,12 +165,12 @@
       "cold": false
     },
     "2026_08_NE_MIA": {
-      "label": "73\u00b0F, wind 12 mph (gusts 30), 38% rain",
+      "label": "73\u00b0F, wind 12 mph (gusts 30), 50% rain",
       "temp_f": 73.225,
       "wind_mph": 11.9,
-      "precip_prob": 38.0,
+      "precip_prob": 50.0,
       "windy": false,
-      "precip": false,
+      "precip": true,
       "cold": false
     },
     "2026_08_PHI_WAS": {

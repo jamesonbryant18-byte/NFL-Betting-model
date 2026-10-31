@@ -13,8 +13,8 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-31 (Sat, expert review round 2 shipped; Week 8 re-run
-Saturday).**
+**Last updated 2026-10-31 (Sat, expert review round 2 shipped; reference +
+test database; half-point rule; Week 8 re-run 12:33).**
 Everything on `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -559,6 +559,14 @@ and a database: `expert-review/REFERENCE.md` (one document) and
 both before testing any idea, and add a row for every new test.** Also asked:
 no spread bets at a whole number ("I can't do that");
 `THRESHOLDS.spread_half_points_only`, see section 7.
+Week 8 re-run 12:33 with the rule (`--refresh`, NO overrides; TNF carried), $5
+each, with "still a bet at": MIN +3.5 -122 (+3.5), PHI +5.5 -105 (+4.5; McKee at
+replacement level -3.30), LV +1.5 -115 (+1.5), SEA -168 moneyline (was SEA -3;
+-218), BUF -174 (-194; assumes Lamar), TEN +12.5 -110 (+12.5). MIA +7 dropped
+(whole number; the game has no bet). Straight up unchanged: LV over NYJ the one
+pick against the favorite, KC over DEN 52.5%. Depth chart still Wed 10/28: do
+the Sunday roster run. Tracker 2,284 cells exact, K6/M5 named, 3 charts redrawn;
+Weeks 1-7 checksums unchanged.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
