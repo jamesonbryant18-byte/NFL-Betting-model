@@ -13,8 +13,8 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-11-02 (Mon: why the model kept betting PHI; a
-no-bets-on-backup-QBs rule replayed, not shipped).**
+**Last updated 2026-11-02 (Mon: Week 8 Sunday graded, NOT locked; MNF CHI @ SEA
+re-priced in scratch; why the model kept betting PHI, rule not shipped).**
 Everything on `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -585,6 +585,35 @@ Offered as Jameson's call, NOT shipped. Week 8 card from final scores, MNF
 pending: LV +1.5 W, BUF -174 W, TEN +12.5 W, MIN +3.5 L (by 4), PHI +5.5 L;
 SEA -168 Monday. The ledger was rebuilt from the archive: its Week 8 rows had
 still been the Saturday 12:00 build (SEA -3, MIA +7).
+
+**2026-11-02 (Mon 15:20 ET, before MNF CHI @ SEA): Week 8 Sunday graded, NOT
+locked** (review run with `lock_week` stubbed; lock Wednesday with
+`review_week.py --week 8`, which also records the closes). 11-2 SU through 13
+games (expected 8.5, noise). Favorite 10-3 at publication and at FanDuel's close;
+the one pick against it (LV over NYJ) was the difference. Misses: DAL 73.3% (ARI
+33-30), KC 52.5% (DEN 28-24). Error 10.08 vs close 10.46 on the 13. Season 75-44,
+one tie left out (63.0%), favorite 77-42; the "64-43 / 59.8%" written after Week
+7 counted the Week 5 tie as a miss, it was 64-42 (60.4%). Scores match ESPN on
+all 13. No input errors. Card 3-2, +0.35 units, +$1.77 (LV +1.5, BUF -174, TEN
++12.5 won; MIN +3.5 lost by 4, PHI +5.5 lost by 17); season 28-21-1. Provisional
+value at the FanDuel close (scratch only, closes not recorded): every bet negative,
+-6.2% a bet (+/- 3.2), season -3.1% (+/- 1.4), 24.4 wins expected by the close vs
+28 actual. CLV from first-published numbers: PHI, MIN, LV 0, TEN -1.0, BUF +1.1%.
+His tracker at the 14:59 save: Week 8 3-2 +$2.56, season 23-10 +$48.69, no SEA row.
+
+MNF re-priced in a scratch copy at 15:01 (`--refresh`, no overrides); archive and
+workbook NOT touched, so the card of record stays SEA -168 at 69.1%. Now: FanDuel
+SEA -186 / CHI +156, SEA -3.5 (-102) / CHI +3.5 (-120). Model SEA 66.0%, by 4.5
+(Saturday 69.1%, 5.4). Still SEA moneyline: edge 3.5% vs the 3% minimum, model EV
++1.5% of stake. No spread bet (1.0 pt edge, needs 1.5). The whole drop is the injury
+factor, +0.88 SEA -> -0.11 CHI: the Saturday 12:33 build predates the final report
+(SEA Cross 0.78, Shaheed 0.64, Nwosu 0.52, V. Jones 0.01; CHI Monangai 0.41 starter-eq
+x 0.637 = the 0.988 swing exactly). Williams and Darnold both start. `still a bet at`
+prints SEA -186, but `still_qualifies` steps 5 cents (-186 -> -191), so the real
+cutoff is about -190 (-190/+158 edge 3.16%, -192/+160 2.89%). Bradford (SEA G, Q,
+0.98 starter-eq on last year's snaps = 0.62 pt = ~2% win) out would kill the bet at
+-186 (only 0.16 pt of room). Trades are not in the ratings or the injury factor
+(Nelson to SEA, Simmons to CHI). Not locked; closes not written.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
