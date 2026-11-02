@@ -1,0 +1,41 @@
+PART 1: PHI as each week's fit saw it (points vs an average team)
+ week  PHI_team  Hurts  McKee  swap  with_Hurts  with_McKee  market_PHI  prior_weight
+    3      2.98   0.59  -2.24  2.83        3.57        0.74        3.65          0.67
+    6      0.35   0.25  -2.39  2.64        0.60       -2.04        0.12          0.54
+    7     -0.33   0.49  -2.86  3.34        0.16       -3.19       -0.54          0.51
+    8     -1.12   0.86  -3.30  4.16       -0.27       -4.42       -1.18          0.48
+    9     -1.77   1.20  -3.54  4.73       -0.57       -5.31       -1.73          0.46
+
+  model vs FanDuel in the McKee games (home margin):
+    Week 6 CAR @ PHI: model -1.0, line -3.5, final -11; bet PHI +3.5
+    Week 7 DAL @ PHI: model -2.0, line -4.5, final -17; bet PHI +4.5
+    Week 8 PHI @ WAS: model +2.4, line +5.5, final +17; bet PHI +5.5
+
+PART 2: the replayed card, closing prices, today's rules
+2013-20 (fit period)
+    today's rules                             979 bets  556-418-5  won 57.1% (model said 60.4%)  ROI +5.57% (SE 3.06%)
+      bets ON a team, V0 new + under 8 starts   46 bets  20-26-0  won 43.5% (model said 60.9%)  ROI -13.95% (SE 15.14%)
+      rule on: +16.0 units vs today's rules (t +1.67)
+      bets ON a team, V1 under 8 career starts  132 bets  68-63-1  won 51.9% (model said 59.4%)  ROI +1.01% (SE 8.78%)
+      rule on: +16.8 units vs today's rules (t +1.21)
+      bets ON a team, V2 stand-in for the regular starter  103 bets  52-50-1  won 51.0% (model said 60.0%)  ROI -1.47% (SE 9.83%)
+      rule on: +10.3 units vs today's rules (t +0.77)
+
+2021-25 (hold-out)
+    today's rules                             628 bets  330-298-0  won 52.5% (model said 59.7%)  ROI -2.76% (SE 3.82%)
+      bets ON a team, V0 new + under 8 starts   39 bets  16-23-0  won 41.0% (model said 59.1%)  ROI -21.15% (SE 15.43%)
+      rule on: +12.2 units vs today's rules (t +1.37)
+      bets ON a team, V1 under 8 career starts   80 bets  40-40-0  won 50.0% (model said 58.3%)  ROI -4.98% (SE 10.84%)
+      rule on: +1.7 units vs today's rules (t +0.15)
+      bets ON a team, V2 stand-in for the regular starter   70 bets  36-34-0  won 51.4% (model said 58.8%)  ROI -2.75% (SE 11.54%)
+      rule on: +2.7 units vs today's rules (t +0.25)
+
+2026 live card bets ON a flagged team (ledger; Week 8 is graded on Wednesday):
+ week      game      bet            qb  starts    V0   V1   V2 out  pnl_at_5
+    4 NYJ @ CHI CHI -3.5  Tyson Bagent     4.0  True True True   W      4.55
+    4   GB @ TB  TB +3.0 Jalon Daniels     0.0  True True True   P      0.00
+    5  TB @ DAL  TB +8.5 Jalon Daniels     1.0 False True True   W      4.63
+    5  CHI @ GB CHI -120  Tyson Bagent     5.0 False True True   L     -5.00
+    6 CAR @ PHI PHI +3.5  Tanner McKee     2.0  True True True   L     -5.00
+    7 DAL @ PHI PHI +4.5  Tanner McKee     3.0 False True True   L     -5.00
+    8 PHI @ WAS PHI +5.5  Tanner McKee     4.0 False True True NaN       NaN

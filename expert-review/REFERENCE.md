@@ -1,7 +1,8 @@
 # NFL Betting Model: the reference
 
 Everything researched, graded and tested on this model, in one place.
-Current as of **Saturday 2026-10-31**. Written for Jameson ("you").
+Current as of **Saturday 2026-10-31**, plus tests 69-70 (Monday 2026-11-02: why
+the model kept betting PHI). Written for Jameson ("you").
 
 - **Every test, one row each:** [`test_database.csv`](test_database.csv) in this
   folder. It opens in Excel; filter the `verdict` column. The same rows are grouped
@@ -443,6 +444,7 @@ roughly the bar for "real".
 | 9 | 2026-09-22 | Stretch or shrink the model's projections (it looked under-confident) | Every multiplier made 2021-25 worse (1.138: +0.019 error). A 'significant' in-sample bias that did not repeat | **REJECTED** | IMPROVEMENT.md |
 | 13 | 2026-10-31 | QB counted twice? Take QB values out of the lines behind the market prior | Error 9.855 vs 9.876 (t -1.4) but straight up 65.49% vs 66.06% (t -2.0), worse in 2013-20 too | **NOT SHIPPED** | scripts/design_checks.py; round-2/fix-outputs |
 | 14 | 2026-10-31 | Smooth trend pull (same 1.5 cap) instead of the 3-pt cliff | Error 9.833 vs 9.876 (t -2.4), Brier t -2.1, but SU 66.27% vs 66.06% (t 0.4), 563 bets vs 653, card -1.8% vs -0.3%; trend checker then switched on a fix it had rejected. Uncapped it goes all the way to the line | **NOT SHIPPED** | scripts/design_checks.py; round-2/fix-outputs |
+| 69 | 2026-11-02 | Why the model kept betting PHI after Hurts went out (a long-time starter's value) | The joint team + QB fit puts most of Hurts's value in PHI's team rating (Hurts himself +0.3 to +0.9 pts). McKee gets the pooled replacement level (-2.4 to -3.3). The model priced Hurts -> McKee at 2.6 pts (Week 6) to 4.2 (Week 8); the market moved 5. The model was 2.5-3 pts above FanDuel on PHI every McKee week; PHI lost by 11, 17, 17 | **FINDING (blind spot)** | scripts/backup_qb_rule.py; expert-review/backup-qb-rule/ |
 
 ### Model vs the market
 
@@ -522,6 +524,7 @@ roughly the bar for "real".
 | 53 | 2026-10-29 | Do bigger edges win more? | No: not monotone; the biggest moneyline edges are the worst; the highest-chance third of bets is the worst (-8.1%) | **FINDING** | round-2/grade.md |
 | 54 | 2026-10-31 | No spread bets at a whole number (your rule: you can't place them) | 2013-20 ROI +2.65% -> +5.57% (t +1.4), 2021-25 -0.30% -> -2.76% (t -1.2): no measurable cost. Skipping the whole game instead is no better. The card shifts toward moneylines | **YOUR RULE (shipped)** | scripts/half_point_rule.py; expert-review/half-point-rule/ |
 | 55 | 2026-10-31 | Spreads vs moneylines in the replayed card | No rule: spreads +2.8% (SE 4.5%) on 450, moneylines -7.1% (SE 6.2%) on 203. With the rule: +7.5% on 268 vs -10.4% on 360 | **FINDING (spreads + moneylines locked)** | half_point_rule.txt |
+| 70 | 2026-11-02 | No bets on a team starting a backup QB (three definitions) | Those bets won 41-52% while the model said 58-61%, in both periods. Rule on, 2013-20 / 2021-25: under 8 career starts (the trend checker's own definition) +16.8 units (t +1.2) / +1.7 (t +0.2); stand-in for the regular starter +10.3 / +2.7; new + under 8 +16.0 / +12.2 (t +1.7 / +1.4) but only flags a backup's first start. A guardrail that costs nothing measurable, not a source of profit. 2026: the bets it flags went 2-4-1 | **YOUR CALL (not shipped)** | scripts/backup_qb_rule.py; expert-review/backup-qb-rule/ |
 
 ### Live 2026 evaluation
 
@@ -644,7 +647,11 @@ on McKee at replacement level (−3.30); BUF assumes Lamar plays.
   that isn't proven. Only live seasons can confirm it.
 - **Replacement-level quarterbacks.** Several 2026 bets (PHI with McKee, TB with Jalon
   Daniels) rested on the pooled value for QBs with fewer than 8 starts. History says
-  such QBs run about 1 pt worse than the model thinks (watch list).
+  such QBs run about 1 pt worse than the model thinks (watch list). **Measured
+  2026-11-02 (tests 69-70):** the model underprices losing a long-time starter, and its
+  bets on backup-QB teams won 41-52% while it said 58-61%, in both periods. "No bets on
+  a team whose QB has under 8 starts" costs nothing measurable and would have stopped
+  all three PHI bets, but it is a guardrail, not profit (2021-25: +1.7 units). Your call.
 - **The one lever the research and the tests agree on is price,** but you bet at one
   book (locked).
 
@@ -663,6 +670,7 @@ on McKee at replacement level (−3.30); BUF assumes Lamar plays.
 | Round 1 and 2: grade, fixes, changes, grader scripts | `expert-review/round-1/`, `expert-review/round-2/` |
 | Outputs behind round-2 fixes (ablation, design checks, not-shipped runs) | `expert-review/round-2/fix-outputs/` |
 | Half-point rule replay | `expert-review/half-point-rule/half_point_rule.txt` |
+| Why PHI kept getting bet; backup-QB rule replay | `expert-review/backup-qb-rule/backup_qb_rule.txt` |
 | Score history | `expert-review/report-card.md` |
 | The test log, in prose | `IMPROVEMENT.md` (log of tested candidates) |
 | Running state, decisions, dead ends | `CLAUDE.md` |
@@ -670,4 +678,4 @@ on McKee at replacement level (−3.30); BUF assumes Lamar plays.
 | Original validation, rejected ideas, bugs fixed | `README.md` |
 | Live picks and bets (the record) | `picks/2026/` |
 | Every model bet, graded | `data/model_bet_ledger_2026.csv` |
-| Scripts that reproduce the numbers | `scripts/replay_deployed.py`, `ablation.py`, `design_checks.py`, `half_point_rule.py`, `refit_factors.py`, `factor_lab.py`, `miss_report.py` |
+| Scripts that reproduce the numbers | `scripts/replay_deployed.py`, `ablation.py`, `design_checks.py`, `half_point_rule.py`, `backup_qb_rule.py`, `refit_factors.py`, `factor_lab.py`, `miss_report.py` |

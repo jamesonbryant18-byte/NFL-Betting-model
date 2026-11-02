@@ -13,8 +13,8 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-10-31 (Sat, expert review round 2 shipped; reference +
-test database; half-point rule; Week 8 re-run 12:33).**
+**Last updated 2026-11-02 (Mon: why the model kept betting PHI; a
+no-bets-on-backup-QBs rule replayed, not shipped).**
 Everything on `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -568,6 +568,24 @@ pick against the favorite, KC over DEN 52.5%. Depth chart still Wed 10/28: do
 the Sunday roster run. Tracker 2,284 cells exact, K6/M5 named, 3 charts redrawn;
 Weeks 1-7 checksums unchanged.
 
+**2026-11-02 (Mon, before MNF CHI @ SEA): "why do you bet the eagles all the
+time".** The card bet PHI with McKee three weeks running (+3.5, +4.5, +5.5);
+PHI lost by 11, 17 and 17. Cause (`scripts/backup_qb_rule.py`, output in
+`expert-review/backup-qb-rule/`, tests 69-70): the joint team + QB fit puts
+most of a long-time starter's value in the TEAM rating (Hurts himself +0.3 to
++0.9), and McKee sits at the pooled replacement level (-2.4 to -3.3). So
+Hurts -> McKee was priced at 2.6 pts (Week 6) to 4.2 (Week 8) against a
+5-pt market move, and the model sat 2.5-3 pts above FanDuel on PHI every McKee
+week. Same blind spot 2013-25: bets on backup-QB teams won 41-52% while the
+model said 58-61%, in both periods. "No bets on a team whose QB has under 8
+career starts" (the trend checker's own definition): +16.8 units 2013-20
+(t 1.2), +1.7 2021-25 (t 0.2). It costs nothing and earns nothing measurable,
+and it would have stopped all three PHI bets (2026 bets it flags: 2-4-1).
+Offered as Jameson's call, NOT shipped. Week 8 card from final scores, MNF
+pending: LV +1.5 W, BUF -174 W, TEN +12.5 W, MIN +3.5 L (by 4), PHI +5.5 L;
+SEA -168 Monday. The ledger was rebuilt from the archive: its Week 8 rows had
+still been the Saturday 12:00 build (SEA -3, MIA +7).
+
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
 "redo" a past week's `output/NFL_Model_*_WeekNN.xlsx`. Reading it read-only
@@ -811,7 +829,8 @@ tracker's merge-across-runs from `betlog.py`.
 .venv/bin/python -W ignore scripts/bet_ledger.py               # the model's bets, graded, one row each
 .venv/bin/python -W ignore scripts/build_structural_bases.py   # ratings without prior/QB/HFA (for ablation.py)
 .venv/bin/python -W ignore scripts/design_checks.py            # QB counted twice? smooth trend pull? (no, no)
-.venv/bin/python -W ignore scripts/half_point_rule.py          # his no-whole-number rule, replayed
+.venv/bin/python -W ignore scripts/half_point_rule.py          # Jameson's no-whole-number rule, replayed
+.venv/bin/python -W ignore scripts/backup_qb_rule.py           # why PHI kept getting bet; no-bets-on-backup-QBs rule (not shipped)
 .venv/bin/python -W ignore scripts/replay_deployed.py          # the model as it runs, on 2021-25
 .venv/bin/python -W ignore scripts/ablation.py                 # what each piece is worth
 .venv/bin/python -W ignore scripts/refit_factors.py            # re-weight the game factors

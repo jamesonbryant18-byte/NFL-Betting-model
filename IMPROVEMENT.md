@@ -119,7 +119,43 @@ direction that felt worst on Sunday.
 
 ## Log of tested candidates
 
-### HIS RULE — no spread bets at a whole number (2026-10-31)
+### Why the model kept betting PHI; "no bets on a backup QB" (2026-11-02) — NOT SHIPPED, Jameson's call
+
+Jameson asked why the model keeps betting the Eagles. The card bet PHI three
+straight weeks after Hurts went out, all with Tanner McKee: Week 6 +3.5,
+Week 7 +4.5, Week 8 +5.5. PHI lost by 11, 17 and 17.
+`scripts/backup_qb_rule.py`; output in `expert-review/backup-qb-rule/`.
+
+**The cause.** Team and QB are fit jointly. Hurts has started almost every PHI
+game since 2021, so the fit cannot separate him from the team: most of his
+value sits in PHI's team rating, and Hurts himself is worth +0.3 to +0.9.
+McKee has too few starts for a rating of his own and gets the pooled
+replacement level (-2.4 to -3.3). So the model priced Hurts -> McKee at 2.6
+pts in Week 6 and 4.2 by Week 8, while the market moved Week 6 five points
+when Hurts was ruled out. Every McKee week the model sat 2.5 to 3 pts above
+FanDuel on PHI, and the gap read as value.
+
+**The history.** Replayed card, closing prices, today's rules (the card
+refills when a bet is cut):
+
+| backup QB = | bets ON that team, 2013-20 | 2021-25 | rule on, 2013-20 | 2021-25 |
+|---|---|---|---|---|
+| under 8 career starts (the trend checker's definition, 2026-09-26) | 132, won 51.9% (model said 59.4%) | 80, won 50.0% (58.3%) | +16.8 units (t +1.2) | +1.7 (t +0.2) |
+| stand-in for the team's regular starter | 103, won 51.0% (60.0%) | 70, won 51.4% (58.8%) | +10.3 (t +0.8) | +2.7 (t +0.3) |
+| new to the job + under 8 starts | 46, won 43.5% (60.9%) | 39, won 41.0% (59.1%) | +16.0 (t +1.7) | +12.2 (t +1.4) |
+
+The overconfidence is real and repeats: 8 to 18 points of win % in both
+periods. Cutting the bets helps less, because the bets that replace them are
+ordinary card bets. "New + under 8" looks best but flags only a backup's
+first start (Week 6 PHI, not Weeks 7-8). The stand-in version was written
+after seeing which weeks that one missed. "Under 8 career starts" was defined
+before any of this, and it stops all three. 2026 bets it flags: CHI -3.5 W,
+TB +3 P, TB +8.5 W, CHI -120 L, PHI +3.5 L, PHI +4.5 L, PHI +5.5 L.
+
+Verdict: a guardrail that costs nothing measurable, not a source of profit.
+Offered to Jameson; not shipped.
+
+### JAMESON'S RULE — no spread bets at a whole number (2026-10-31)
 
 Jameson: "dont do bets that are a whole number I can't do that." Shipped as
 `THRESHOLDS.spread_half_points_only` (Jameson's constraint, so it ships whatever the
