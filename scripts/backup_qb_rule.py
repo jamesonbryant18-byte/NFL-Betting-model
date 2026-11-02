@@ -6,8 +6,8 @@ whether "no bets on a team starting a backup QB" should be a rule
     .venv/bin/python -W ignore scripts/backup_qb_rule.py
 
 Part 1, the cause. Team and QB are fit jointly. Hurts has started nearly every
-PHI game since 2021, so the fit cannot tell him apart from the team and most
-of his value sits in PHI's TEAM rating: the fit credits Hurts himself with
+PHI game since 2021, so the fit cannot tell Hurts apart from the team and most
+of Hurts's value sits in PHI's TEAM rating: the fit credits Hurts alone with
 +0.3 to +0.9 pts. McKee has too few starts for a rating and gets the pooled
 replacement level (-2.4 to -3.3). So the model priced Hurts -> McKee at 2.6
 pts in Week 6 and 4.2 by Week 8; the market moved Week 6 five points (PHI

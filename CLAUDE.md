@@ -572,7 +572,7 @@ Weeks 1-7 checksums unchanged.
 time".** The card bet PHI with McKee three weeks running (+3.5, +4.5, +5.5);
 PHI lost by 11, 17 and 17. Cause (`scripts/backup_qb_rule.py`, output in
 `expert-review/backup-qb-rule/`, tests 69-70): the joint team + QB fit puts
-most of a long-time starter's value in the TEAM rating (Hurts himself +0.3 to
+most of a long-time starter's value in the TEAM rating (Hurts alone +0.3 to
 +0.9), and McKee sits at the pooled replacement level (-2.4 to -3.3). So
 Hurts -> McKee was priced at 2.6 pts (Week 6) to 4.2 (Week 8) against a
 5-pt market move, and the model sat 2.5-3 pts above FanDuel on PHI every McKee

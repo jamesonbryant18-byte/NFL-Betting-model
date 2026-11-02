@@ -127,9 +127,9 @@ Week 7 +4.5, Week 8 +5.5. PHI lost by 11, 17 and 17.
 `scripts/backup_qb_rule.py`; output in `expert-review/backup-qb-rule/`.
 
 **The cause.** Team and QB are fit jointly. Hurts has started almost every PHI
-game since 2021, so the fit cannot separate him from the team: most of his
-value sits in PHI's team rating, and Hurts himself is worth +0.3 to +0.9.
-McKee has too few starts for a rating of his own and gets the pooled
+game since 2021, so the fit cannot separate Hurts from the team: most of Hurts's
+value sits in PHI's team rating, and Hurts alone is worth +0.3 to +0.9.
+McKee has too few starts for an individual rating and gets the pooled
 replacement level (-2.4 to -3.3). So the model priced Hurts -> McKee at 2.6
 pts in Week 6 and 4.2 by Week 8, while the market moved Week 6 five points
 when Hurts was ruled out. Every McKee week the model sat 2.5 to 3 pts above
