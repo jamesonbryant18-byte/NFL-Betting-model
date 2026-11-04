@@ -72,7 +72,7 @@
     "TEN": "depth chart",
     "WAS": "depth chart"
   },
-  "locked": false,
+  "locked": true,
   "weather": {
     "2026_08_BAL_BUF": {
       "label": "66\u00b0F, wind 9 mph",
