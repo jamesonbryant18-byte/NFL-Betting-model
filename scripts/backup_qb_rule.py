@@ -39,7 +39,11 @@ stopped all three. 2026 live bets V1 flags: CHI -3.5 W, TB +3 P, TB +8.5 W,
 CHI -120 L, PHI +3.5 L, PHI +4.5 L, PHI +5.5 L (2-4-1, -$10.82 at $5).
 
 Verdict: a real, repeatable overconfidence; the rule is a guardrail that costs
-nothing measurable, not a source of profit. Jameson's call (not shipped).
+nothing measurable, not a source of profit.
+
+Part 3, what shipped (2026-11-04, Jameson): no bets ON a team whose QB has under
+8 career starts AND under 5 this season (qb_rule.py, live and in the replay).
+Parts 1-2 are the original evidence and measure against the card without it.
 """
 import os
 import sys
@@ -148,7 +152,7 @@ def part2(games):
     for label, yrs in [("2013-20 (fit period)", replay.TUNE), ("2021-25 (hold-out)", replay.HOLD)]:
         sub = d[d.season.isin(yrs)]
         sub.attrs = d.attrs
-        now = replay.card(sub)
+        now = replay.card(sub, model=NFLModel())         # the card without the shipped rule
         print(label)
         show("today's rules", now)
         for name, f in fs.items():
@@ -173,7 +177,44 @@ def part2(games):
     print(hit[["week", "game", "bet", "qb", "starts", "V0", "V1", "V2", "out", "pnl_at_5"]].to_string(index=False))
 
 
+def part3(games):
+    """The rule as shipped: replayed against the card without it, and on 2026's live bets."""
+    from nflmodel.qb_rule import counts_before, is_blocked, played_log
+    d = replay.deployed()
+    print("PART 3: as shipped, under 8 career starts AND under 5 this season (card refills)")
+    for label, yrs in [("2013-20 (fit period)", replay.TUNE), ("2021-25 (hold-out)", replay.HOLD),
+                       ("2013-25", replay.TUNE + replay.HOLD)]:
+        sub = d[d.season.isin(yrs)]
+        sub.attrs = d.attrs
+        off, on = replay.card(sub, model=NFLModel()), replay.card(sub)
+        print(label)
+        show("rule off", off)
+        show("rule on", on)
+        u, se = vs(on, off)
+        print(f"      rule on: {u:+.1f} units vs rule off (t {u / se:+.2f})")
+        spreads = on[on.market == "SPREAD"]
+        show("rule on, spreads only", spreads)
+        print()
+
+    led = pd.read_csv("data/model_bet_ledger_2026.csv")
+    g26 = games[games.season == 2026]
+    log = played_log(games)
+    print("2026 live card bets the shipped rule would have stopped:")
+    for _, r in led.iterrows():
+        away, home = r.game.split(" @ ")
+        row = g26[(g26.week == r.week) & (g26.home_team == home) & (g26.away_team == away)]
+        if row.empty:
+            continue
+        row, team = row.iloc[0], r.bet.split()[0]
+        qb = row.home_qb_name if team == home else row.away_qb_name
+        career, now = counts_before(log, qb, 2026, row.gameday)
+        if is_blocked(career, now):
+            print(f"    wk{r.week} {r.bet:<12} {qb:<18} {career} career, {now} this season  "
+                  f"{r.out}  ${r.pnl_at_5:+.2f}")
+
+
 if __name__ == "__main__":
     games = load_games()
     part1(games)
     part2(games)
+    part3(games)

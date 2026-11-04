@@ -106,8 +106,8 @@ report, so run the week again late in the week before betting.
 One canonical replay of the model as it runs (`src/nflmodel/replay.py`):
 everything fit on 2013-2020, scored on 2021-2025. Quote these numbers, never a
 lab's own rebuild. Round 2 (2026-10-31, win % walk-forward): SU 66.06% vs
-the favorite's 66.48% (t -0.6), calibration slope 0.96, card ROI -0.3% (SE
-3.6%) on 653 bets. `scripts/build_structural_bases.py` (once, seconds) lets
+the favorite's 66.48% (t -0.6), calibration slope 0.96. Card with today's
+rules (half-point + QB rule, 2026-11-04): 594 bets, ROI -1.81% (SE 3.97%). `scripts/build_structural_bases.py` (once, seconds) lets
 the ablation measure the market prior, QB fit and home field too;
 `scripts/design_checks.py` re-runs the two round-2 design tests (QB counted
 twice, smooth trend pull: neither shipped).
@@ -201,6 +201,14 @@ He asks for it Sunday morning, before betting the early games:
    2026-10-31: they can't be placed), so X is always a half point, and the
    run lists the whole-number spreads it kept off (`WHOLE-NUMBER SPREADS, NOT
    BET`). If FanDuel moves a bet's line onto a whole number, skip it.
+   **Bet Range** (2026-11-04, first sheet and the run output): the same check
+   for the whole range. Spreads list each half-point number with the worst
+   price at that number (`TB +5.5 (-136) | +6.5 (-158)`), up to two points
+   better than the bet's own number; moneylines give a price range. It is where
+   the model says bet, not a proven profit.
+   **QB rule** (2026-11-04): no bets on a team whose QB has under 8 career
+   starts and under 5 this season. The run lists those teams (`QB RULE, NO BETS
+   ON`). A `--qb` override counts: re-check after any starter change.
 6. A `WARNING: --qb ... may be STALE` means the depth chart names a starter
    who is not on the injury report: check the news, drop the override if he
    plays (2026 Week 7: TB Mayfield).

@@ -89,6 +89,8 @@ Advisory mode has been off since 09-14 (your call).
 | Whole numbers | no spread bets at 3, 7 or any whole number; that game's moneyline is still considered | you (2026-10-31) |
 | Both qualify | spread over moneyline | model |
 | Still a bet at | each bet's worst half-point line or price that still qualifies; worse than that, skip it | expert review round 2 |
+| New QB | no bets on a team whose QB has under 8 career starts and under 5 this season | you (2026-11-04) |
+| Bet Range | each bet's range of lines: spreads list each number with its worst price; moneylines a price range | you (2026-11-04) |
 
 ---
 
@@ -525,6 +527,9 @@ roughly the bar for "real".
 | 54 | 2026-10-31 | No spread bets at a whole number (your rule: you can't place them) | 2013-20 ROI +2.65% -> +5.57% (t +1.4), 2021-25 -0.30% -> -2.76% (t -1.2): no measurable cost. Skipping the whole game instead is no better. The card shifts toward moneylines | **YOUR RULE (shipped)** | scripts/half_point_rule.py; expert-review/half-point-rule/ |
 | 55 | 2026-10-31 | Spreads vs moneylines in the replayed card | No rule: spreads +2.8% (SE 4.5%) on 450, moneylines -7.1% (SE 6.2%) on 203. With the rule: +7.5% on 268 vs -10.4% on 360 | **FINDING (spreads + moneylines locked)** | half_point_rule.txt |
 | 70 | 2026-11-02 | No bets on a team starting a backup QB (three definitions) | Those bets won 41-52% while the model said 58-61%, in both periods. Rule on, 2013-20 / 2021-25: under 8 career starts (the trend checker's own definition) +16.8 units (t +1.2) / +1.7 (t +0.2); stand-in for the regular starter +10.3 / +2.7; new + under 8 +16.0 / +12.2 (t +1.7 / +1.4) but only flags a backup's first start. A guardrail that costs nothing measurable, not a source of profit. 2026: the bets it flags went 2-4-1 | **YOUR CALL (not shipped)** | scripts/backup_qb_rule.py; expert-review/backup-qb-rule/ |
+| 71 | 2026-11-04 | No bets on a team whose QB has under 8 career starts AND under 5 this season (your version of test 70) | Rule on, card refills, 2013-20: 942 bets +7.15% vs +5.57%, +12.8 units (t +0.94). 2021-25: 594 bets -1.81% (SE 3.97) vs -2.76%, +6.6 units (t +0.61). A guardrail, not profit. 2026: the bets it stops went 2-4-1, -$10.82 | **YOUR RULE (shipped)** | src/nflmodel/qb_rule.py; scripts/backup_qb_rule.py part 3 |
+| 72 | 2026-11-02 | One flat limit on spread prices (worst -120) | 2013-25, 616 spread bets said 58.2%, won 53.9% (SE 2.0), break-even -117, flat across model-chance bands. -120 or better: 596 bets, 54.5%, ROI +5.9 vs +4.5 with no limit (SE 4.0). Worse than -120: 7 of 20. Moneylines said 61.6%, won 56.2%, hold-out ROI -10.3 (SE 5.1) | **DECLINED (you want each bet's own range)** | CLAUDE.md section 0, 2026-11-04; scratch replay, script not kept |
+| 73 | 2026-11-04 | Bet Range: each bet's range of lines from the model, on the first sheet | Not a profit test: each number and price is re-run through the live rules. The model runs high, so limits are where it says bet (2013-25 spreads said 57.6%, won 54.6%; 2021-25 moneylines said 60.0%, won 50.3%). Alt-line rungs have no history here | **YOUR ASK (shipped)** | NFLModel.bet_range; tests/test_bet_range.py |
 
 ### Live 2026 evaluation
 
@@ -651,7 +656,8 @@ on McKee at replacement level (−3.30); BUF assumes Lamar plays.
   2026-11-02 (tests 69-70):** the model underprices losing a long-time starter, and its
   bets on backup-QB teams won 41-52% while it said 58-61%, in both periods. "No bets on
   a team whose QB has under 8 starts" costs nothing measurable and would have stopped
-  all three PHI bets, but it is a guardrail, not profit (2021-25: +1.7 units). Your call.
+  all three PHI bets, but it is a guardrail, not profit (2021-25: +1.7 units). **Shipped
+  2026-11-04, your version** (test 71): under 8 career starts and under 5 this season.
 - **The one lever the research and the tests agree on is price,** but you bet at one
   book (locked).
 

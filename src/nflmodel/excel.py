@@ -94,13 +94,14 @@ CHART_GRID = "E0E0E0"
 # presenting picks as more confident than the validation supports.
 # The model as it runs from 2026 Week 8, replayed on 2021-25 with everything
 # fit on 2013-20 only and the win % walk-forward, each season from earlier
-# seasons only (scripts/replay_deployed.py, expert review rounds 1-2).
+# seasons only (scripts/replay_deployed.py, expert review rounds 1-2). The card
+# line has the half-point rule and the QB rule in it (2026-11-04).
 HOLDOUT = {
     "seasons": "2021-25 hold-out, n = 1,424",
     "su": "straight up 66.1% vs 66.5% for simply taking the closing favorite "
           "(−0.4 pt, t −0.6: level within the noise)",
-    "card": "the weekly card at closing prices won 54.2% against a 55.1% break-even, "
-            "ROI −0.3% (SE 3.6%) on 653 bets; the model said 60.4%",
+    "card": "the weekly card at closing prices won 52.7% against a 54.3% break-even, "
+            "ROI −1.8% (SE 4.0%) on 594 bets; the model said 59.2%",
     "mae": "margin error 9.88 vs the closing line's 9.76",
     "coef": "incremental coefficient vs the line +0.34 (t = 1.9): a hint of information "
             "beyond the line, not proven",
@@ -816,7 +817,7 @@ def _sheet_model_data(wb, slate):
 # out), not the game win %: a 76% favorite laying 4.5 covers about 55%
 # (expert review 2026-10-29).
 BETS_HEADERS = ["Game", "Kickoff", "Bet", "Market", "Odds", "Stake", "Model Picks", "Bet Wins %",
-                "Still a Bet At", "Why"]
+                "Still a Bet At", "Bet Range", "Why"]
 
 
 def _sheet_bets(wb, slate, season, week, model_meta):
@@ -829,7 +830,7 @@ def _sheet_bets(wb, slate, season, week, model_meta):
     ws = wb.create_sheet("This Week's Bets")
     ws.tab_color = GREEN
     set_widths(ws, {"A": 13, "B": 13, "C": 15, "D": 11, "E": 8, "F": 8, "G": 12, "H": 11, "I": 14,
-                    "J": 90})
+                    "J": 50, "K": 90})
     lastc = get_column_letter(len(BETS_HEADERS))
     apply_header(ws, "A1", f"THIS WEEK'S BETS — {season} WEEK {week}", merge_to=f"{lastc}1", size=16)
     ws.row_dimensions[1].height = 30
@@ -869,17 +870,22 @@ def _sheet_bets(wb, slate, season, week, model_meta):
             vals = [f"{away} @ {home}", _kickoff(d.get("weekday"), d.get("gametime")),
                     _text(d.get("bet_side")), _text(d.get("bet_market")).title(),
                     _num(d.get("bet_odds")), _num(d.get("stake")), pick, chance,
-                    _text(d.get("still_bet_at")) or "—", _text(d.get("bet_why"))]
+                    _text(d.get("still_bet_at")) or "—", _text(d.get("bet_range")) or "—",
+                    _text(d.get("bet_why"))]
             for j, v in enumerate(vals, start=1):
                 c = ws.cell(row=r, column=j, value=_clean(v))
                 c.border = thin_border()
-                c.alignment = left() if j == 10 else center()
+                c.alignment = left() if j == 11 else center()
                 c.font = Font(bold=(j == 3), size=11, color=color if j == 3 else "000000")
             ws.cell(row=r, column=5).number_format = "+0;-0"
             ws.cell(row=r, column=6).number_format = '"$"#,##0'
             ws.cell(row=r, column=8).number_format = "0%"
             r += 1
         row = r + 1
+
+    ranges = active["bet_range"].astype(str) if "bet_range" in active.columns else pd.Series(dtype=str)
+    width_j = max([50] + [len(t) + 3 for t in ranges])
+    ws.column_dimensions["J"].width = width_j
 
     n_bets = len(active)
     staked = float(active["stake"].sum()) if n_bets and "stake" in active.columns else 0.0
@@ -889,7 +895,23 @@ def _sheet_bets(wb, slate, season, week, model_meta):
                                      "qualifies; if FanDuel's is worse, skip it. Spreads at a whole "
                                      "number (3, 7, ...) are never bets (your rule)."
             ).font = Font(bold=True, color=NAVY, size=11)
-    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=len(BETS_HEADERS))
+    notes = ["Bet Range: where the MODEL says this is a bet, not a proven profit. Spreads list each "
+             "number with the worst price at that number in parentheses: +3.5 (-140) means +3.5 at "
+             "-140 or better. Moneylines give the price range. The model runs high: replayed 2013-25, "
+             "its spread bets said 57.6% and won 54.6%; on 2021-25 its moneylines said 60.0% and won "
+             "50.3%. A price near the limit is the thinnest part of the range."]
+    if model_meta.get("qb_rule"):
+        notes.append("QB rule, no bets on (under 8 career starts and under 5 this season): "
+                     + "; ".join(model_meta["qb_rule"]) + ".")
+    for k, note in enumerate(notes, start=1):
+        ws.cell(row=row + k, column=1, value=note).font = Font(color=NAVY, size=11)
+    # Wrapped inside A:J, so each note reads without scrolling over to Why.
+    chars_per_line = 95 + width_j
+    for r in range(row, row + len(notes) + 1):
+        c = ws.cell(row=r, column=1)
+        c.alignment = Alignment(wrap_text=True, vertical="top")
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=10)
+        ws.row_dimensions[r].height = 16 * (len(str(c.value)) // chars_per_line + 1)
     ws.freeze_panes = "A4"
 
 
@@ -2556,7 +2578,7 @@ def _sheet_reference(wb, backtest_summary, model_meta=None):
           + f"{FACTORS.get('rt_rest_diff', 0):.3f} pt per day of rest difference (measured about neutral).")
     entry("Injuries", "Non-QB injuries are a live game factor (2026 Week 4 on): "
           + f"{FACTORS.get('inj_total', 0):.2f} pt per full-time starter out, by prior-season snap share. "
-            "On 2021-25, with the weight fit on 2013-20, they lower margin error (t −2.6) and add straight-up winners; without them the card replay falls from −0.3% to −3.5%. "
+            "On 2021-25, with the weight fit on 2013-20, they lower margin error (t −2.6) and add straight-up winners; without them the card replay fell from −0.3% to −3.5% (measured 2026-10-31, before the half-point and QB rules). "
             "Opponent-adjusted EPA/play ran Weeks 4-7 of 2026 and was dropped 2026-10-29 (it made the win % and the card worse); the weekly self-tune was switched off the same day (it added nothing).")
 
     section("HONEST LIMITS")

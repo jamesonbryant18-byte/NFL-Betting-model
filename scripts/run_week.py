@@ -308,6 +308,12 @@ def main():
               f'the model is using replacement level ({repl:+.2f} pts). Any bet '
               f'on this game rests on that assumption.')
 
+    # Jameson's QB rule (qb_rule.py): no bets ON a team whose starter has under
+    # 8 career starts and under 5 this season. Set before any projection, so
+    # the card refills with the next bets.
+    from nflmodel.qb_rule import describe, game_blocks
+    model.no_bet_teams, qb_rule_rows = game_blocks(slate_games, games)
+
     # Confirmed miss-trend fixes (data/trends.json, rebuilt weekly by
     # scripts/miss_report.py). Only reasons the model has CONSISTENTLY missed
     # on -- in 2013-2020 and again in 2021+ -- ever reach this point. Two
@@ -390,6 +396,25 @@ def main():
             slate.at[i, 'still_bet_at'] = model.still_qualifies(
                 g.iloc[0].to_dict(), r.bet_side, r.bet_market,
                 trend_at=lambda line, gid=r.game_id: _trend_at(gid, line))
+
+    # The range of lines each bet stays a bet at (Jameson, 2026-11-04).
+    slate['bet_range'] = ''
+    for i, r in slate[slate.recommendation.str.match(r'^(LEAN|BET) ')].iterrows():
+        g = slate_games[slate_games.game_id == r.game_id]
+        if len(g):
+            slate.at[i, 'bet_range'] = model.bet_range(
+                g.iloc[0].to_dict(), r.bet_side, r.bet_market,
+                trend_at=lambda line, gid=r.game_id: _trend_at(gid, line))
+
+    # What the QB rule kept off: the bet each blocked team would have had.
+    qb_rule_notes = []
+    if qb_rule_rows:
+        blocks, model.no_bet_teams = model.no_bet_teams, {}
+        for row in qb_rule_rows:
+            p = model.project(slate_games[slate_games.game_id == row['game_id']].iloc[0].to_dict())
+            off = p.bet_side if p.bet_side and p.bet_side.split()[0] == row['team'] else ''
+            qb_rule_notes.append(describe(row) + (f', {off} kept off' if off else ''))
+        model.no_bet_teams = blocks
 
     # Display and explanation columns, joined on game_id so the slate's
     # edge-sorted order is untouched. None of this feeds the projection: the
@@ -500,7 +525,15 @@ def main():
             if g.get('still_bet_at'):
                 print(f"    {'':<14} {'':<10} {'':>5}   still a bet at {g.still_bet_at} or better "
                       f"(a worse number than that, skip it)")
+            if g.get('bet_range'):
+                print(f"    {'':<14} {'':<10} {'':>5}   bet range: {g.bet_range}")
     print()
+
+    if qb_rule_notes:
+        print('  QB RULE, NO BETS ON  (under 8 career starts and under 5 this season):')
+        for note in qb_rule_notes:
+            print(f'    {note}')
+        print()
 
     # The half-point rule (config THRESHOLDS.spread_half_points_only): name the
     # whole-number spreads it kept off, so the rule is visible every week.
@@ -659,7 +692,8 @@ def main():
                      # The weights behind the archived factor_* points, so the
                      # trend check can rebuild them (replay.archived_factors).
                      factor_weights={} if args.no_factors else dict(FACTORS),
-                     selftune_alpha=float(SELFTUNE.get('alpha', 0))))
+                     selftune_alpha=float(SELFTUNE.get('alpha', 0)),
+                     qb_rule=qb_rule_notes))
 
     # Rosters, injuries and records for the Team Stats sheet. Reporting only;
     # nothing here reaches the ratings. A feed outage degrades to an empty
@@ -684,6 +718,7 @@ def main():
         'advisory': bool(ADVISORY_MODE),
         'deployed': fitted.get('deployed') if fitted else None,
         'residual_sd': fitted.get('residual_sd') if fitted else None,
+        'qb_rule': qb_rule_notes,
     }
     # Never write over a workbook Excel has open: his next save would put the
     # old card back (2026 Week 5). Save beside it instead (expert review r2).

@@ -323,9 +323,15 @@ def card(d: pd.DataFrame, wp_col: str = "wp", margin_col: str = "proj", model=No
     themselves (NFLModel._recommend and _weekly_card, config.THRESHOLDS and
     config.STAKING): which bets qualify, the top card_max by chance to win,
     topped up to card_min with labeled filler. One row per bet, settled.
+    With no `model` the QB rule applies (qb_rule.py), as it does live; pass a
+    plain NFLModel() to measure the card without it.
     """
     from .model import NFLModel
-    mdl = model or NFLModel()
+    if model is None:
+        from .qb_rule import history_blocks
+        model = NFLModel()
+        model.no_bet_teams = history_blocks()
+    mdl = model
     plan = d.attrs.get("win_plan") or {}
     out = []
     for (season, week), wk in d.groupby(["season", "week"], sort=True):
@@ -342,7 +348,8 @@ def card(d: pd.DataFrame, wp_col: str = "wp", margin_col: str = "proj", model=No
                 hml = aml = None
                 eh = ea = np.nan
             rec = mdl._recommend(proj, line, proj - line, ph, pp, pa, hwp, hml, aml, eh, ea,
-                                 g.home_team, g.away_team, g.home_spread_odds, g.away_spread_odds)
+                                 g.home_team, g.away_team, g.home_spread_odds, g.away_spread_odds,
+                                 blocked=mdl.no_bet_teams.get(g.game_id, ()))
             rows.append(dict(game_id=g.game_id, home_team=g.home_team, away_team=g.away_team,
                              home_win_prob=hwp, spread_line=line, projected_margin=proj,
                              spread_edge_pts=proj - line, home_cover_prob=ph,

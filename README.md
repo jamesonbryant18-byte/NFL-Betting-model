@@ -46,7 +46,7 @@ fix, injuries + rest factors, win-% correction), replayed by
 `scripts/replay_deployed.py` with everything fit on 2013-20 and the win %
 walk-forward (each season from earlier seasons only): MAE **9.88** vs the
 line's 9.76, straight up 66.1% vs 66.5% for taking the favorite, the weekly card
-at closing prices −0.3% ROI (SE 3.6%) on 653 bets, incremental coefficient
+at closing prices −1.8% ROI (SE 4.0%) on 594 bets (half-point and QB rules in), incremental coefficient
 **+0.34 (t 1.86)**: a hint of information beyond the line, not proven. Some
 design choices were made after looking at 2021-25, so it flatters the model a
 little; 2026 live is the only untouched test. The table above is the original

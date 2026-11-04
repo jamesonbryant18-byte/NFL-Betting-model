@@ -13,8 +13,8 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-11-02 (Mon: Week 8 Sunday graded, NOT locked; MNF CHI @ SEA
-re-priced in scratch; why the model kept betting PHI, rule not shipped).**
+**Last updated 2026-11-04 (Wed: Week 8 locked, Week 9 built; QB rule and Bet
+Range shipped; see the 2026-11-04 entry at the end of this section).**
 Everything on `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -615,6 +615,46 @@ cutoff is about -190 (-190/+158 edge 3.16%, -192/+160 2.89%). Bradford (SEA G, Q
 -186 (only 0.16 pt of room). Trades are not in the ratings or the injury factor
 (Nelson to SEA, Simmons to CHI). Not locked; closes not written.
 
+**2026-11-04 (Wed): Week 8 locked, QB rule and Bet Range shipped, Week 9 built.**
+Week 8 final 11-3 SU (expected 9.2, noise), favorite 10-4; MNF CHI 34-17 at SEA.
+Card 3-3, -0.65 units. Season 75-45 with 1 tie left out, favorite 77-43, error 9.75
+vs close 9.57; card 28-22-1, +6.55 units, value at the price taken -3.1% a bet
+(+/- 1.4). CLV: spreads +0.22 pts on 29, moneylines +0.2% on 28. Trend fix unchanged.
+His tracker 23-11, +$43.69. His SEA row is ML at -107 vs a -180 close (a loss either
+way, but its +12.6% CLV looks like a typo; he was told).
+
+**QB rule** (`qb_rule.py`, `THRESHOLDS.qb_min_career_starts` / `qb_min_season_starts`):
+his version of test 70. No bets ON a team whose QB has under 8 career starts AND under
+5 this season; either clears him, so a rookie with 5 starts is bettable. Betting
+against that team is still allowed. Replayed, card refills: 2013-20 +12.8 units
+(t +0.94), 2021-25 +6.6 (t +0.61). A guardrail, not profit. It is in the canonical
+replay: `replay.card(d)` is rule on, `replay.card(d, model=NFLModel())` is rule off.
+**Hold-out card with today's rules: 594 bets, won 52.7% vs 54.3% break-even, model said
+59.2%, ROI -1.81% (SE 3.97). Quote this, not -0.3% on 653** (spreads 246 bets +7.77%,
+SE 6.10; moneylines 348 bets -8.58%, SE 5.20).
+
+**Bet Range** (`NFLModel.bet_range`, first sheet column J, run output, archive):
+he declined one flat -120 limit (test 72) and asked for each bet's own range of lines.
+Spreads: each half-point number with its worst price, up to 2 pts above the bet's
+number, `TB +5.5 (-136) | +6.5 (-158)`. Moneylines: `DEN -214 or better`,
+`MIN +125 to +250` (top end = longshot cap). `still_qualifies` moneylines now step one
+cent and cross even money, so that column agrees. It is where the model says bet, not
+proven profit: 2013-25 spreads said 57.6%, won 54.6%; 2021-25 moneylines said 60.0%,
+won 50.3%. Alt-line rungs have no history. Text in a cell may not start with + or -
+(`excel._safe_text` adds a visible apostrophe), hence the leading team name.
+
+Week 9 built 10:48 ET with `--refresh --qb BAL="Joe Fagnano"` (Huntley out, Minter named
+Fagnano for TNF; depth chart still says Huntley). Card, $5 each: DEN -152, CIN -164
+(Sun 9:30 AM), TB +6.5 -114, LV +9.5 -108, IND +5.5 -106, MIN +148 (MNF), CLE +136.
+WAS +215 qualified, left off. TNF JAX @ BAL: no bet. QB rule: BAL Fagnano (0/0), PHI
+McKee (5 career, 3 this season; PHI +148 kept off). **Sunday roster run: CLE (Watson Q
+concussion; Sanders has 7 career, 0 this season, so CLE +136 comes off if Sanders starts;
+it also has only 2 cents of room, limit +134). MIN (Murray Q; Wentz 1.0 pt). LA
+(Stafford Q). LV: one CBS preview called Cousins out for the season, but Raiders
+previews, the depth chart and ESPN's injury feed have him starting; if rookie Mendoza
+starts, LV +9.5 comes off.** Tracker 2,346 cells exact, K6/M5 named, 3 charts redrawn.
+Weeks 1-8 checksums unchanged. First sheet opened in real Excel from a scratch copy.
+
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
 "redo" a past week's `output/NFL_Model_*_WeekNN.xlsx`. Reading it read-only
@@ -854,12 +894,12 @@ tracker's merge-across-runs from `betlog.py`.
 .venv/bin/python -W ignore scripts/run_week.py --starters       # print all 32 starters + source
 .venv/bin/python -W ignore scripts/run_week.py --no-depth-chart # ignore depth charts
 .venv/bin/python -W ignore scripts/run_week.py --archive-anyway # archive a week that already kicked off
-.venv/bin/python -W ignore -m pytest tests/ -q                 # 254 tests
+.venv/bin/python -W ignore -m pytest tests/ -q                 # 272 tests
 .venv/bin/python -W ignore scripts/bet_ledger.py               # the model's bets, graded, one row each
 .venv/bin/python -W ignore scripts/build_structural_bases.py   # ratings without prior/QB/HFA (for ablation.py)
 .venv/bin/python -W ignore scripts/design_checks.py            # QB counted twice? smooth trend pull? (no, no)
 .venv/bin/python -W ignore scripts/half_point_rule.py          # Jameson's no-whole-number rule, replayed
-.venv/bin/python -W ignore scripts/backup_qb_rule.py           # why PHI kept getting bet; no-bets-on-backup-QBs rule (not shipped)
+.venv/bin/python -W ignore scripts/backup_qb_rule.py           # why PHI kept getting bet; the QB rule, replayed
 .venv/bin/python -W ignore scripts/replay_deployed.py          # the model as it runs, on 2021-25
 .venv/bin/python -W ignore scripts/ablation.py                 # what each piece is worth
 .venv/bin/python -W ignore scripts/refit_factors.py            # re-weight the game factors
@@ -950,6 +990,11 @@ Fresh machine: `python3 -m venv .venv && .venv/bin/pip install -r requirements.t
   "still a bet at" steps over whole numbers. Replayed it has no measurable
   cost (2013-20 +2.9 pts ROI, 2021-25 -2.5, neither significant;
   `scripts/half_point_rule.py`) but shifts the card toward moneylines.
+- **QB rule** (2026-11-04): no bets ON a team whose QB has under 8 career starts
+  and under 5 this season. "Lets not have us not bet on rookies": a rookie with 5
+  starts is bettable. `qb_rule.py`; replayed it is a guardrail, not profit.
+- **Each bet shows its own range of lines, never one flat price limit** (2026-11-04,
+  declined flat -120). `NFLModel.bet_range`, column J of This Week's Bets.
 - **Bet Tracker cells and formulas: carried exactly, every week**
   (2026-10-13). K6 (his Kalshi price -> sportsbook odds converter), M5 (total
   staked) and any formula or cell he adds to the sheet reach each new week's

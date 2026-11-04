@@ -141,6 +141,37 @@ def explain_bet(market, team, pick, pick_margin, ticket=None, odds=None,
     return ""
 
 
+# American prices on one scale, 1 step per cent, so a walk crosses even money:
+# +101 -> 1, +100 -> 0, -101 -> -1. Prices below are steps on this scale.
+SPREAD_BEST_STEP = 50                                  # +150
+SPREAD_WORST_STEP = -400                               # -500
+
+
+def _price_step(price: float) -> int:
+    return int(round(price - 100 if price >= 100 else price + 100))
+
+
+def _american_at(step: int) -> float:
+    return float(step + 100 if step >= 0 else step - 100)
+
+
+def _last_true(start: int, stop: int, pred) -> int:
+    """
+    Walking from `start` (pred true) toward `stop`, the last step where pred
+    still holds. Bisects, so pred must flip once along the way.
+    """
+    if pred(stop):
+        return stop
+    good, bad = start, stop
+    while abs(good - bad) > 1:
+        mid = (good + bad) // 2
+        if pred(mid):
+            good = mid
+        else:
+            bad = mid
+    return good
+
+
 class NFLModel:
     """Fit once per week, then project every game on the slate."""
 
@@ -175,6 +206,8 @@ class NFLModel:
         self.calibration: dict | None = None
         # Game factors (config.FACTORS): game_id -> points added to the home side.
         self.factor_adjust: dict[str, float] = {}
+        # no_bet_teams: game_id -> teams that cannot be bet (qb_rule.py).
+        self.no_bet_teams: dict[str, set] = {}
 
     # -- fitting -----------------------------------------------------------
 
@@ -361,7 +394,7 @@ class NFLModel:
         rec = self._recommend(
             projected, line, spread_edge, p_home, p_push, p_away,
             home_wp, h_ml, a_ml, ml_edge_h, ml_edge_a, home, away,
-            hso, aso,
+            hso, aso, blocked=self.no_bet_teams.get(g.get("game_id", ""), ()),
         )
 
         # Tag the bet against the straight-up pick (report.straight_up_ranking
@@ -409,7 +442,7 @@ class NFLModel:
         The worst number (spread) or price (moneyline) at which this bet still
         qualifies under the live rules, everything else held fixed: his
         game-day check (expert review round 2). Steps the line half a point, or
-        the price 5 cents, against the bet and re-runs project(). `trend_at`
+        the price one cent, against the bet and re-runs project(). `trend_at`
         (line -> points) re-decides the trend fixes at each number, as a run at
         that number would (the far-from-the-line pull switches at 3 pts). ''
         if the bet does not qualify at its own number. Qualifying is not
@@ -440,18 +473,12 @@ class NFLModel:
                         break
                     last = line
                 return "" if last is None else format_spread(team, last if home else -last)
-            h, a = float(g["home_moneyline"]), float(g["away_moneyline"])
-            book = american_to_prob(h) + american_to_prob(a)      # the overround stays the same
-            price0, last = (h if home else a), None
-            for k in range(2 * max_steps + 1):
-                price = price0 - 5 * k                             # worse for the bettor
-                if price0 > 0 and price < 100:
-                    break
-                other = prob_to_american(min(0.99, max(0.01, book - american_to_prob(price))))
-                hm, am = (price, other) if home else (other, price)
-                if not holds({**g, "home_moneyline": hm, "away_moneyline": am}):
-                    break
-                last = price
+            holds_at = self._ml_holds(g, team, home, holds)
+            price0 = float(g["home_moneyline"] if home else g["away_moneyline"])
+            if not holds_at(_price_step(price0)):
+                return ""
+            low = _price_step(self.thresholds.ml_max_favorite)
+            last = _american_at(_last_true(_price_step(price0), low, holds_at))
             return "" if last is None else f"{team} {last:+.0f}"
         finally:
             if had:
@@ -459,11 +486,113 @@ class NFLModel:
             else:
                 self.game_adjust.pop(gid, None)
 
+    def _ml_holds(self, g: dict, team: str, home: bool, holds):
+        """holds_at(step): is this still the bet with the team's price at that step?"""
+        h, a = float(g["home_moneyline"]), float(g["away_moneyline"])
+        book = american_to_prob(h) + american_to_prob(a)          # the overround stays the same
+
+        def holds_at(step: int) -> bool:
+            price = _american_at(step)
+            other = prob_to_american(min(0.99, max(0.01, book - american_to_prob(price))))
+            hm, am = (price, other) if home else (other, price)
+            return holds({**g, "home_moneyline": hm, "away_moneyline": am})
+        return holds_at
+
+    def bet_range(self, game, bet_side: str, market: str, trend_at=None,
+                  better_points: int = 2) -> str:
+        """
+        The range of lines the model still calls this bet (Jameson, 2026-11-04:
+        not a flat limit; "the range of where the model tells me to bet it based
+        off of the betting line"). It comes from re-running project() at each
+        line, so every live rule applies. Qualifying is not making the card.
+
+        Spread: each half-point number from the worst that still qualifies to
+        `better_points` better than the bet's own number, with the worst price
+        at that number: "MIN +2.5 (-118) | +3.5 (-140) | +4.5 (-165)". He buys alt
+        lines, so number and price both matter. A better number at the same
+        price can never be a worse bet, so a number's limit is at least as
+        generous as the number below it; the trend pull's 3-pt switch can
+        otherwise make it look tighter.
+
+        Moneyline: "BUF -192 or better" for a favorite; "MIN +105 to +250" for an
+        underdog, whose top end is the longshot cap. '' if the bet does not
+        qualify at its own number (filler).
+        """
+        g = dict(game if isinstance(game, dict) else game.to_dict())
+        gid = g.get("game_id", "")
+        team = str(bet_side).split()[0]
+        home = team == g["home_team"]
+        had = gid in self.game_adjust
+        saved = self.game_adjust.get(gid)
+
+        def holds(gg) -> bool:
+            p = self.project(gg)
+            return bool(p.bet_side) and p.bet_market == market and p.bet_side.split()[0] == team
+
+        try:
+            if market == "SPREAD":
+                return self._spread_range(g, team, home, holds, trend_at, better_points)
+            holds_at = self._ml_holds(g, team, home, holds)
+            price0 = float(g["home_moneyline"] if home else g["away_moneyline"])
+            start = _price_step(price0)
+            if not holds_at(start):
+                return ""
+            worst = _american_at(_last_true(start, _price_step(self.thresholds.ml_max_favorite),
+                                            holds_at))
+            if price0 < 0:
+                return f"{team} {worst:+.0f} or better"
+            best = _american_at(_last_true(start, _price_step(self.thresholds.ml_max_underdog),
+                                           holds_at))
+            return f"{team} {worst:+.0f} to {best:+.0f}"
+        finally:
+            if had:
+                self.game_adjust[gid] = saved
+            else:
+                self.game_adjust.pop(gid, None)
+
+    def _spread_range(self, g, team, home, holds, trend_at, better_points) -> str:
+        """Worst price at each number, worst number first; see bet_range()."""
+        gid = g.get("game_id", "")
+        own = "home_spread_odds" if home else "away_spread_odds"
+        line0 = float(g["spread_line"])
+        ticket0 = -line0 if home else line0                       # the number on his ticket
+
+        def limit(ticket):
+            """The lowest price step that is still a bet at this number, or None."""
+            line = -ticket if home else ticket
+            if not self._bettable_line(line):
+                return None
+            if trend_at is not None:
+                self.game_adjust[gid] = float(trend_at(line))
+            at_number = {**g, "spread_line": line}
+            holds_at = lambda step: holds({**at_number, own: _american_at(step)})
+            if not holds_at(SPREAD_BEST_STEP):
+                return None
+            return _last_true(SPREAD_BEST_STEP, SPREAD_WORST_STEP, holds_at)
+
+        if limit(ticket0) is None:
+            return ""
+        lowest = ticket0
+        while limit(lowest - 0.5) is not None or limit(lowest - 1.0) is not None:
+            lowest -= 0.5 if limit(lowest - 0.5) is not None else 1.0
+
+        rungs, floor, ticket = [], None, lowest
+        while ticket <= ticket0 + better_points:
+            line = -ticket if home else ticket
+            if self._bettable_line(line):
+                own_limit = limit(ticket)
+                # A failed number above a good one keeps the good one's limit.
+                candidates = [x for x in (own_limit, floor) if x is not None]
+                floor = min(candidates)
+                rungs.append(f"{ticket:+.1f} ({_american_at(floor):+.0f})")
+            ticket += 0.5
+        return f"{team} " + " | ".join(rungs)
+
     # -- bet selection -----------------------------------------------------
 
     def _recommend(self, projected, line, spread_edge, p_home, p_push, p_away,
                    home_wp, h_ml, a_ml, ml_edge_h, ml_edge_a, home, away,
-                   home_spread_odds=None, away_spread_odds=None) -> dict:
+                   home_spread_odds=None, away_spread_odds=None, blocked=()) -> dict:
         """
         Pick the best bet on the game, if any, and size it.
 
@@ -498,6 +627,7 @@ class NFLModel:
                 favored_by = line if side_home else -line
                 candidates.append({
                     "market": "SPREAD",
+                    "team": team,
                     "side": format_spread(team, favored_by),
                     "odds": odds,
                     "edge_display": abs(spread_edge),
@@ -518,6 +648,7 @@ class NFLModel:
                 stake, _ = kelly_stake(wp, ml, self.staking.bankroll, self.staking)
                 candidates.append({
                     "market": "MONEYLINE",
+                    "team": team,
                     "side": f"{team} {ml:+.0f}",
                     "odds": ml,
                     "edge_display": edge * 100,
@@ -525,7 +656,7 @@ class NFLModel:
                     "priority": 1,
                 })
 
-        candidates = [c for c in candidates if c["stake"] > 0]
+        candidates = [c for c in candidates if c["stake"] > 0 and c["team"] not in blocked]
 
         if not candidates:
             return {
@@ -663,6 +794,8 @@ class NFLModel:
                 team = home if is_home else away
                 found.append(dict(market="MONEYLINE", team=team, odds=float(ml),
                                   side=f"{team} {ml:+.0f}", chance=p, ticket=None))
+        blocked = self.no_bet_teams.get(r.get("game_id", ""), ())
+        found = [f for f in found if f["team"] not in blocked]
         if not found:
             return None
         best = max(found, key=lambda c: c["chance"])

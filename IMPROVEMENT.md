@@ -119,7 +119,31 @@ direction that felt worst on Sunday.
 
 ## Log of tested candidates
 
-### Why the model kept betting PHI; "no bets on a backup QB" (2026-11-02) — NOT SHIPPED, Jameson's call
+### The QB rule and Bet Range (2026-11-04) — SHIPPED, Jameson's calls
+
+**QB rule** (`qb_rule.py`): no bets ON a team whose QB has under 8 career starts
+AND under 5 this season. He set the 5-start clause so a rookie who has played
+is bettable. Replayed (`backup_qb_rule.py` part 3, card refills):
+
+| period | rule off | rule on | difference |
+|---|---|---|---|
+| 2013-20 | 979 bets, +5.57% | 942 bets, +7.15% (SE 3.20) | +12.8 units (t +0.94) |
+| 2021-25 | 628 bets, -2.76% | 594 bets, -1.81% (SE 3.97) | +6.6 units (t +0.61) |
+
+A guardrail, not an edge. Its live 2026 bets would have been 2-4-1, -$10.82.
+It applies in the canonical replay too, so `replay.card()` with no `model` is
+the rule on; pass `NFLModel()` for off.
+
+**Bet Range** (`NFLModel.bet_range`): he declined the flat -120 limit (test 72)
+and asked for each bet's own range. `project()` is re-run at each number and
+price, so all live rules apply. A number's limit is at least as generous as the
+number below it, because the trend pull's 3-pt switch can otherwise show a better
+number with a tighter price. Limits come from the model's chance, and the model
+runs high (2013-25 spreads said 57.6%, won 54.6%; 2021-25 moneylines said 60.0%,
+won 50.3%), so they are where it says bet, not proven profit. Alt lines have no
+closing-price history here, so the rungs above the bet's own number are untested.
+
+### Why the model kept betting PHI; "no bets on a backup QB" (2026-11-02) — superseded by the rule above
 
 Jameson asked why the model keeps betting the Eagles. The card bet PHI three
 straight weeks after Hurts went out, all with Tanner McKee: Week 6 +3.5,

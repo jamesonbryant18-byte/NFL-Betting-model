@@ -120,6 +120,12 @@ class Thresholds:
     # moneyline bet, and "still a bet at" reports half-point numbers only.
     spread_half_points_only: bool = True
 
+    # Jameson's rule (2026-11-04): no bets ON a team whose QB has fewer than 8
+    # career starts AND fewer than 5 starts this season (either clears him, so
+    # a rookie who has started 5 games is bettable). See qb_rule.py.
+    qb_min_career_starts: int = 8
+    qb_min_season_starts: int = 5
+
 
 THRESHOLDS = Thresholds()
 

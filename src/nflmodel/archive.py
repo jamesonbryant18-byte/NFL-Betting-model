@@ -52,7 +52,7 @@ LEAN_COLS = [
     # spread market at publication), the stake, the cover/push split and how
     # far the number could move before the bet stopped qualifying.
     "bet_chance", "stake", "home_spread_odds", "away_spread_odds",
-    "home_cover_prob", "push_prob", "away_cover_prob", "still_bet_at",
+    "home_cover_prob", "push_prob", "away_cover_prob", "still_bet_at", "bet_range",
 ]
 
 
