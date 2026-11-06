@@ -1,7 +1,7 @@
 {
   "season": 2026,
   "week": 9,
-  "generated_utc": "2026-11-04T15:49:12+00:00",
+  "generated_utc": "2026-11-06T15:33:23+00:00",
   "n_games": 15,
   "n_leans": 7,
   "starters": {
@@ -12,7 +12,7 @@
     "CAR": "Bryce Young",
     "CHI": "Caleb Williams",
     "CIN": "Joe Burrow",
-    "CLE": "Deshaun Watson",
+    "CLE": "Shedeur Sanders",
     "DAL": "Dak Prescott",
     "DEN": "Bo Nix",
     "DET": "Jared Goff",
@@ -25,14 +25,14 @@
     "LAC": "Justin Herbert",
     "LV": "Kirk Cousins",
     "MIA": "Malik Willis",
-    "MIN": "Kyler Murray",
+    "MIN": "Carson Wentz",
     "NE": "Drake Maye",
     "NO": "Tyler Shough",
     "NYG": "J.J. McCarthy",
     "NYJ": "Geno Smith",
-    "PHI": "Tanner McKee",
+    "PHI": "Joe Milton",
     "PIT": "Aaron Rodgers",
-    "SEA": "Sam Darnold",
+    "SEA": "Drew Lock",
     "SF": "Brock Purdy",
     "TB": "Baker Mayfield",
     "TEN": "Cam Ward",
@@ -46,7 +46,7 @@
     "CAR": "depth chart",
     "CHI": "depth chart",
     "CIN": "depth chart",
-    "CLE": "depth chart",
+    "CLE": "override",
     "DAL": "depth chart",
     "DEN": "depth chart",
     "DET": "depth chart",
@@ -59,14 +59,14 @@
     "LAC": "depth chart",
     "LV": "depth chart",
     "MIA": "depth chart",
-    "MIN": "depth chart",
+    "MIN": "override",
     "NE": "depth chart",
     "NO": "depth chart",
     "NYG": "depth chart",
     "NYJ": "depth chart",
-    "PHI": "depth chart",
+    "PHI": "override",
     "PIT": "depth chart",
-    "SEA": "depth chart",
+    "SEA": "override",
     "SF": "depth chart",
     "TB": "depth chart",
     "TEN": "depth chart",
@@ -74,56 +74,47 @@
   },
   "locked": false,
   "weather": {
-    "2026_09_JAX_BAL": {
-      "label": "66\u00b0F, wind 3 mph",
-      "temp_f": 65.5,
-      "wind_mph": 2.6,
-      "precip_prob": 15.0,
-      "windy": false,
-      "precip": false,
-      "cold": false
-    },
     "2026_09_CIN_ATL": {
-      "label": "60\u00b0F, wind 4 mph, 57% rain (retractable roof)",
-      "temp_f": 59.575,
-      "wind_mph": 4.0,
-      "precip_prob": 57.0,
+      "label": "59\u00b0F, wind 5 mph (retractable roof)",
+      "temp_f": 58.99999999999999,
+      "wind_mph": 4.6,
+      "precip_prob": 9.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_09_DEN_CAR": {
-      "label": "63\u00b0F, wind 2 mph",
-      "temp_f": 63.325,
-      "wind_mph": 2.4,
+      "label": "64\u00b0F, wind 6 mph",
+      "temp_f": 63.800000000000004,
+      "wind_mph": 6.1,
       "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_09_DAL_IND": {
-      "label": "57\u00b0F, wind 6 mph (retractable roof)",
-      "temp_f": 56.574999999999996,
-      "wind_mph": 5.6,
+      "label": "60\u00b0F, wind 12 mph (retractable roof)",
+      "temp_f": 59.724999999999994,
+      "wind_mph": 11.5,
       "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_09_NYJ_KC": {
-      "label": "56\u00b0F, wind 5 mph",
-      "temp_f": 55.7,
-      "wind_mph": 5.0,
+      "label": "65\u00b0F, wind 8 mph",
+      "temp_f": 65.4,
+      "wind_mph": 8.3,
       "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_09_DET_MIA": {
-      "label": "83\u00b0F, wind 11 mph",
-      "temp_f": 82.65,
-      "wind_mph": 11.2,
-      "precip_prob": 9.0,
+      "label": "82\u00b0F, wind 10 mph",
+      "temp_f": 82.25,
+      "wind_mph": 9.9,
+      "precip_prob": 6.0,
       "windy": false,
       "precip": false,
       "cold": false
@@ -138,19 +129,19 @@
       "cold": false
     },
     "2026_09_NYG_PHI": {
-      "label": "59\u00b0F, wind 12 mph",
-      "temp_f": 59.025,
-      "wind_mph": 11.7,
-      "precip_prob": 1.0,
+      "label": "61\u00b0F, wind 12 mph",
+      "temp_f": 61.175000000000004,
+      "wind_mph": 12.0,
+      "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_09_LA_WAS": {
-      "label": "60\u00b0F, wind 12 mph",
-      "temp_f": 59.60000000000001,
-      "wind_mph": 12.0,
-      "precip_prob": 1.0,
+      "label": "62\u00b0F, wind 11 mph",
+      "temp_f": 61.8,
+      "wind_mph": 10.8,
+      "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
@@ -165,36 +156,36 @@
       "cold": false
     },
     "2026_09_LV_SF": {
-      "label": "72\u00b0F, wind 8 mph",
-      "temp_f": 71.975,
-      "wind_mph": 7.6,
+      "label": "72\u00b0F, wind 7 mph",
+      "temp_f": 71.9,
+      "wind_mph": 7.4,
       "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_09_GB_NE": {
-      "label": "47\u00b0F, wind 11 mph (gusts 26)",
-      "temp_f": 47.35,
+      "label": "50\u00b0F, wind 11 mph (gusts 26)",
+      "temp_f": 49.575,
       "wind_mph": 11.0,
-      "precip_prob": 6.0,
+      "precip_prob": 0.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_09_ARI_SEA": {
-      "label": "54\u00b0F, wind 10 mph, 20% rain",
-      "temp_f": 53.725,
-      "wind_mph": 10.3,
-      "precip_prob": 20.0,
+      "label": "55\u00b0F, wind 15 mph (gusts 25)",
+      "temp_f": 55.175,
+      "wind_mph": 14.9,
+      "precip_prob": 6.0,
       "windy": false,
       "precip": false,
       "cold": false
     },
     "2026_09_TB_CHI": {
-      "label": "50\u00b0F, wind 6 mph (gusts 17)",
-      "temp_f": 49.9,
-      "wind_mph": 6.5,
+      "label": "53\u00b0F, wind 8 mph (gusts 21)",
+      "temp_f": 53.3,
+      "wind_mph": 8.4,
       "precip_prob": 0.0,
       "windy": false,
       "precip": false,
@@ -224,7 +215,20 @@
   },
   "selftune_alpha": 0.0,
   "qb_rule": [
-    "BAL: Joe Fagnano (0 career starts, 0 this season)",
-    "PHI: Tanner McKee (5 career starts, 3 this season), PHI +148 kept off"
-  ]
+    "CLE: Shedeur Sanders (7 career starts, 0 this season)",
+    "PHI: Joe Milton (1 career starts, 0 this season), PHI +142 kept off"
+  ],
+  "carried": {
+    "JAX @ BAL": {
+      "generated_utc": "2026-11-04T15:49:12+00:00",
+      "trend_fixes": {
+        "generated_utc": "2026-11-04T15:38:59+00:00",
+        "margin": [
+          "model_far_from_market"
+        ],
+        "calibration": true,
+        "ml_max_underdog": 250
+      }
+    }
+  }
 }

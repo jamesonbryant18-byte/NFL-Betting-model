@@ -13,8 +13,8 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-11-04 (Wed: Week 8 locked, Week 9 built; QB rule and Bet
-Range shipped; see the 2026-11-04 entry at the end of this section).**
+**Last updated 2026-11-06 (Fri: TNF graded, Week 9 re-run on QB news; see the
+2026-11-06 entry at the end of this section).**
 Everything on `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -654,6 +654,25 @@ it also has only 2 cents of room, limit +134). MIN (Murray Q; Wentz 1.0 pt). LA
 previews, the depth chart and ESPN's injury feed have him starting; if rookie Mendoza
 starts, LV +9.5 comes off.** Tracker 2,346 cells exact, K6/M5 named, 3 charts redrawn.
 Weeks 1-8 checksums unchanged. First sheet opened in real Excel from a scratch copy.
+
+**2026-11-06 (Fri 10:33 ET): TNF graded, Week 9 re-run on QB news.** TNF JAX 33,
+BAL 10: model JAX by 8.3 (76%), FanDuel JAX -9.5, no bet; right straight up, missed
+by 14.7 vs the line's 13.5 (Fagnano 10/18, 60 yds, 2 INT). Week 9 1-0 SU. He asked
+"no Sam Darnold, check current injury reports". Re-run with `--refresh --qb
+BAL="Joe Fagnano" --qb SEA="Drew Lock" --qb MIN="Carson Wentz" --qb PHI="Joe Milton"
+--qb CLE="Shedeur Sanders"` (re-pass all five). News (ESPN feed, Fri AM): Darnold OUT
+(quad + cracked rib, week-to-week); Lock Q (elbow, limited Thu; if he can't go,
+Milroe = QB rule on SEA); Watson "unlikely to start" (Rapoport), Browns' official
+word later Fri; Wentz named MNF starter; Milton named PHI starter over McKee;
+Stafford full practice; Cousins starts. Card: TB +6.5 -115, DEN -2.5 -120 (was DEN
+-152; line moved to 2.5), LV +9.5 -110, IND +5.5 -105, NO -162 (NEW, replaces CLE
++136, which the QB rule took off), CIN -166 (Sun 9:30), MIN +150 (room only to
++144). NO -162 rests on Sanders at replacement level (-3.58; 3.0-pt swing): if
+Watson is cleared, re-run with CLE back on the depth chart and NO comes off. The
+model prices Darnold -> Lock at 0.3 pts while FanDuel moved SEA 11.5 -> 8.5; SEA is
+no bet (cover 51.4%). His 10:31 save backed up to `output/superseded/`; workbook
+rebuilt in place (not open); tracker 2,346 cells exact, K6/M5 named, 3 charts
+redrawn. No Week 9 rows in his tracker yet. Weeks 1-8 checksums unchanged.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
