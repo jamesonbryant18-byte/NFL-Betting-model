@@ -13,8 +13,8 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-11-06 (Fri: TNF graded, Week 9 re-run on QB news; see the
-2026-11-06 entry at the end of this section).**
+**Last updated 2026-11-09 (Mon: Week 9 graded before MNF, NOT locked; see the
+2026-11-09 entry at the end of this section).**
 Everything on `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -673,6 +673,27 @@ model prices Darnold -> Lock at 0.3 pts while FanDuel moved SEA 11.5 -> 8.5; SEA
 no bet (cover 51.4%). His 10:31 save backed up to `output/superseded/`; workbook
 rebuilt in place (not open); tracker 2,346 cells exact, K6/M5 named, 3 charts
 redrawn. No Week 9 rows in his tracker yet. Weeks 1-8 checksums unchanged.
+
+**2026-11-09 (Mon 08:40 ET, before MNF BUF @ MIN): Week 9 graded, NOT locked** (review
+run with `lock_week` stubbed; meta.json still `"locked": false`; lock Wednesday with
+`review_week.py --week 9`, which also records the closes). 13-1 SU through 14 games
+(expected 9.5, z +2.0, luck; no input errors). Only miss: NE 59.1% (GB won 45-27 at
+NE). Every pick was the market favorite; favorite also 13-1. Season 88-46 with 1 tie
+left out (65.7%), favorite 90-44, expected 86.4 by the model. Card 5-1, +2.87 units
+(TB +6.5, DEN -2.5, IND +5.5, NO -162, CIN -166 won; LV +9.5 lost by 21); season
+33-23-1, +9.42 units. Provisional value at FanDuel's close (scratch only, closes not
+written): week +1.1% a bet (+/- 3.8), season -2.6% (+/- 1.4) = no edge. Biggest
+values: NO -162 vs -235 close (Watson news), IND +5.5 vs +3.5. CLE +136 (taken off
+Friday by the QB rule) closed +194 and lost 22-23. His tracker at the 08:36 save:
+Week 9 5-0 (no LV, no MIN row yet), season 28-11 +$61.44.
+MNF re-priced in a scratch copy at 08:38 (`--refresh`, same five overrides); archive
+and workbook NOT touched, so the card of record stays MIN +150. **Now NO BET**: FanDuel
+MIN +148 / BUF -176, model MIN 41.5% (Friday 42.4%), market 38.7%, edge 2.8% vs the
+3% minimum. The whole drop is the final injury report: Jauan Jennings (MIN WR, 0.72
+starter-eq) and Josh Palmer (BUF WR, 0.34) both Out after Friday's build, net
+0.24 pt to BUF (matches -0.058 -> -0.302 exactly). It qualifies again at
++150 or longer (checked by re-pricing at each cent, overround held). Wentz starts
+(Murray out). Ledger rows for Week 9 added.
 
 **Past weeks' workbooks are his.** 2026-10-07 he asked that the Week 4
 workbook be left exactly as he left it. Never delete, regenerate, re-save or
