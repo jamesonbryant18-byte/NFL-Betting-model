@@ -13,8 +13,8 @@ Working copy: `~/Desktop/NFL-Betting-model`. Python: `.venv/bin/python`
 
 ## 0. Where things stand (keep this section current)
 
-**Last updated 2026-11-09 (Mon: Week 9 graded before MNF, NOT locked; see the
-2026-11-09 entry at the end of this section).**
+**Last updated 2026-11-11 (Wed: Week 9 LOCKED, Week 10 built; see the
+2026-11-11 entry at the end of this section).**
 Everything on `main` and pushed.
 
 What changed 2026-09-25/26, all at Jameson's request:
@@ -1131,3 +1131,19 @@ and has not taken it up.
   `load_games()` now returns. Effect on hold-out MAE is ~0.01 pt. Rebuild both
   (`build_dataset` -> `build_base_projections.py`) in a quiet week, then re-run
   `miss_report.py` and check the trend gate still holds before committing.
+
+**2026-11-11 (Wed): Week 9 locked, Week 10 built.** Week 9 final 14-1 SU
+(only miss GB @ NE), favorite also 14-1; season 89-46 + 1 tie, favorite 91-44.
+Card 5-2 (LV +9.5, MIN +150 lost), season 33-24-1; value at the close
+-2.7% a bet (+/-1.3%) = prices taken were worse than the close, record ahead
+of the bets. CLV season: spreads +0.27 pts on 33, ML +0.2% on 33. Trend check:
+no change to the fixes; factor check ok (88 games). Week 10 built with
+`--qb SEA="Drew Lock"` only (Darnold out per Macdonald; Lock has a minor
+oblique). Card: SEA -6.5, MIN +138 ML, ARI +9.5, DAL +4.5, NYG -134 (TNF WAS @
+NYG), CIN -184, NO -138. Open QB questions to settle before Sunday: BAL
+(depth chart Brissett vs game file Huntley vs Fagnano, 2.8 pt swing), LAC
+Herbert Q, KC Mahomes Q, NYG McCarthy Q, CLE Watson (report Out, ESPN says
+plans to start), MIN (model assumes Cousins from depth chart; Wentz started
+Wk9), PHI (Milton vs McKee). SEA @ LV rests on Mendoza at replacement level;
+LV is blocked by the QB rule. TNF is Thursday, so re-run Wed night / Thu AM.
+

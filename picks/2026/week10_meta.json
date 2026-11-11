@@ -1,0 +1,220 @@
+{
+  "season": 2026,
+  "week": 10,
+  "generated_utc": "2026-11-11T19:36:44+00:00",
+  "n_games": 14,
+  "n_leans": 7,
+  "starters": {
+    "ARI": "Gardner Minshew",
+    "ATL": "Michael Penix Jr.",
+    "BAL": "Jacoby Brissett",
+    "BUF": "Josh Allen",
+    "CAR": "Bryce Young",
+    "CHI": "Caleb Williams",
+    "CIN": "Joe Burrow",
+    "CLE": "Deshaun Watson",
+    "DAL": "Dak Prescott",
+    "DEN": "Bo Nix",
+    "DET": "Jared Goff",
+    "GB": "Jordan Love",
+    "HOU": "C.J. Stroud",
+    "IND": "Daniel Jones",
+    "JAX": "Trevor Lawrence",
+    "KC": "Patrick Mahomes",
+    "LA": "Matthew Stafford",
+    "LAC": "Justin Herbert",
+    "LV": "Fernando Mendoza",
+    "MIA": "Malik Willis",
+    "MIN": "Kirk Cousins",
+    "NE": "Drake Maye",
+    "NO": "Tyler Shough",
+    "NYG": "J.J. McCarthy",
+    "NYJ": "Geno Smith",
+    "PHI": "Joe Milton III",
+    "PIT": "Aaron Rodgers",
+    "SEA": "Drew Lock",
+    "SF": "Brock Purdy",
+    "TB": "Baker Mayfield",
+    "TEN": "Cam Ward",
+    "WAS": "Jayden Daniels"
+  },
+  "starter_source": {
+    "ARI": "game file",
+    "ATL": "depth chart",
+    "BAL": "depth chart",
+    "BUF": "depth chart",
+    "CAR": "depth chart",
+    "CHI": "depth chart",
+    "CIN": "depth chart",
+    "CLE": "depth chart",
+    "DAL": "depth chart",
+    "DEN": "depth chart",
+    "DET": "depth chart",
+    "GB": "depth chart",
+    "HOU": "depth chart",
+    "IND": "depth chart",
+    "JAX": "depth chart",
+    "KC": "depth chart",
+    "LA": "depth chart",
+    "LAC": "depth chart",
+    "LV": "depth chart",
+    "MIA": "game file",
+    "MIN": "depth chart",
+    "NE": "depth chart",
+    "NO": "depth chart",
+    "NYG": "depth chart",
+    "NYJ": "depth chart",
+    "PHI": "depth chart",
+    "PIT": "depth chart",
+    "SEA": "override",
+    "SF": "depth chart",
+    "TB": "depth chart",
+    "TEN": "depth chart",
+    "WAS": "depth chart"
+  },
+  "locked": false,
+  "weather": {
+    "2026_10_WAS_NYG": {
+      "label": "48\u00b0F, wind 14 mph (gusts 32), 72% rain",
+      "temp_f": 47.55,
+      "wind_mph": 14.2,
+      "precip_prob": 72.0,
+      "windy": false,
+      "precip": true,
+      "cold": false
+    },
+    "2026_10_NE_DET": {
+      "label": "45\u00b0F, wind 3 mph",
+      "temp_f": 44.824999999999996,
+      "wind_mph": 3.1,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_KC_ATL": {
+      "label": "55\u00b0F, wind 5 mph (retractable roof)",
+      "temp_f": 54.9,
+      "wind_mph": 4.6,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_HOU_CLE": {
+      "label": "45\u00b0F, wind 11 mph, 21% rain",
+      "temp_f": 45.300000000000004,
+      "wind_mph": 10.8,
+      "precip_prob": 21.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_MIN_GB": {
+      "label": "42\u00b0F, wind 7 mph",
+      "temp_f": 42.125,
+      "wind_mph": 6.8,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_MIA_IND": {
+      "label": "48\u00b0F, wind 6 mph (retractable roof)",
+      "temp_f": 48.199999999999996,
+      "wind_mph": 5.8,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_CAR_NO": {
+      "label": "dome",
+      "temp_f": null,
+      "wind_mph": null,
+      "precip_prob": null,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_BUF_NYJ": {
+      "label": "49\u00b0F, wind 14 mph",
+      "temp_f": 48.550000000000004,
+      "wind_mph": 14.3,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_JAX_TEN": {
+      "label": "53\u00b0F, wind 6 mph",
+      "temp_f": 52.974999999999994,
+      "wind_mph": 5.5,
+      "precip_prob": 1.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_LA_ARI": {
+      "label": "73\u00b0F, wind 3 mph (retractable roof)",
+      "temp_f": 73.3,
+      "wind_mph": 3.0,
+      "precip_prob": 1.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_SEA_LV": {
+      "label": "dome",
+      "temp_f": null,
+      "wind_mph": null,
+      "precip_prob": null,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_SF_DAL": {
+      "label": "51\u00b0F, wind 13 mph, 67% rain (retractable roof)",
+      "temp_f": 50.6,
+      "wind_mph": 13.2,
+      "precip_prob": 67.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_PIT_CIN": {
+      "label": "39\u00b0F, wind 4 mph",
+      "temp_f": 39.150000000000006,
+      "wind_mph": 3.8,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    },
+    "2026_10_LAC_BAL": {
+      "label": "45\u00b0F, wind 4 mph",
+      "temp_f": 45.275,
+      "wind_mph": 4.3,
+      "precip_prob": 0.0,
+      "windy": false,
+      "precip": false,
+      "cold": false
+    }
+  },
+  "trend_fixes": {
+    "generated_utc": "2026-11-11T19:35:58+00:00",
+    "margin": [
+      "model_far_from_market"
+    ],
+    "calibration": true,
+    "ml_max_underdog": 250
+  },
+  "factor_weights": {
+    "inj_total": 0.637,
+    "rt_rest_diff": 0.048
+  },
+  "selftune_alpha": 0.0,
+  "qb_rule": [
+    "LV: Fernando Mendoza (0 career starts, 0 this season)"
+  ]
+}
