@@ -72,7 +72,7 @@
     "TEN": "depth chart",
     "WAS": "depth chart"
   },
-  "locked": false,
+  "locked": true,
   "weather": {
     "2026_09_CIN_ATL": {
       "label": "59\u00b0F, wind 5 mph (retractable roof)",

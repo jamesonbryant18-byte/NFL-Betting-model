@@ -50,10 +50,10 @@ week,game,bet,market,line,odds,home_spread_odds,away_spread_odds,stake,p_model,e
 8,CHI @ SEA,SEA -168,MONEYLINE,,-168.0,-115.0,-105.0,5.0,0.691,0.088,True,False,SEA -218,L,-1.0,-5.0,-180.0,-180.0,fanduel (action network),0.6183,-0.0136
 8,BAL @ BUF,BUF -174,MONEYLINE,,-174.0,-118.0,-104.0,5.0,0.6643,0.055,True,False,BUF -194,W,0.5747,2.87,-178.0,-178.0,fanduel (action network),0.6136,-0.0338
 8,TEN @ CIN,TEN +12.5,SPREAD,12.5,-110.0,-110.0,-110.0,5.0,0.5638,1.544,False,False,TEN +12.5,W,0.9091,4.55,13.5,-102.0,fanduel (action network),0.4654,-0.1115
-9,TB @ CHI,TB +6.5,SPREAD,6.5,-115.0,-105.0,-115.0,5.0,0.6223,3.473,False,False,TB +5.5,W,0.8696,4.35,,,,,
-9,DEN @ CAR,DEN -2.5,SPREAD,-2.5,-120.0,-100.0,-120.0,5.0,0.59,2.946,True,False,DEN -2.5,W,0.8333,4.17,,,,,
-9,LV @ SF,LV +9.5,SPREAD,9.5,-110.0,-110.0,-110.0,5.0,0.6122,2.821,False,False,LV +8.5,L,-1.0,-5.0,,,,,
-9,DAL @ IND,IND +5.5,SPREAD,5.5,-105.0,-105.0,-115.0,5.0,0.5924,2.449,False,False,IND +5.5,W,0.9524,4.76,,,,,
-9,CLE @ NO,NO -162,MONEYLINE,,-162.0,-110.0,-110.0,5.0,0.6639,0.071,True,False,NO -194,W,0.6173,3.09,,,,,
-9,CIN @ ATL,CIN -166,MONEYLINE,,-166.0,-105.0,-115.0,5.0,0.6513,0.052,True,False,CIN -183,W,0.6024,3.01,,,,,
-9,BUF @ MIN,MIN +150,MONEYLINE,,150.0,-105.0,-115.0,5.0,0.4241,0.04,False,False,MIN +144,,,,,,,,
+9,TB @ CHI,TB +6.5,SPREAD,6.5,-115.0,-105.0,-115.0,5.0,0.6223,3.473,False,False,TB +5.5,W,0.8696,4.35,6.5,-120.0,fanduel (action network),0.5217,-0.0246
+9,DEN @ CAR,DEN -2.5,SPREAD,-2.5,-120.0,-100.0,-120.0,5.0,0.59,2.946,True,False,DEN -2.5,W,0.8333,4.17,-3.0,-110.0,fanduel (action network),0.5366,-0.0162
+9,LV @ SF,LV +9.5,SPREAD,9.5,-110.0,-110.0,-110.0,5.0,0.6122,2.821,False,False,LV +8.5,L,-1.0,-5.0,9.5,-115.0,fanduel (action network),0.5108,-0.0248
+9,DAL @ IND,IND +5.5,SPREAD,5.5,-105.0,-105.0,-115.0,5.0,0.5924,2.449,False,False,IND +5.5,W,0.9524,4.76,3.5,-105.0,fanduel (action network),0.5391,0.0525
+9,CLE @ NO,NO -162,MONEYLINE,,-162.0,-110.0,-110.0,5.0,0.6639,0.071,True,False,NO -194,W,0.6173,3.09,-235.0,-235.0,fanduel (action network),0.6735,0.0892
+9,CIN @ ATL,CIN -166,MONEYLINE,,-166.0,-105.0,-115.0,5.0,0.6513,0.052,True,False,CIN -183,W,0.6024,3.01,-180.0,-180.0,fanduel (action network),0.6183,-0.0092
+9,BUF @ MIN,MIN +150,MONEYLINE,,150.0,-105.0,-115.0,5.0,0.4241,0.04,False,False,MIN +144,L,-1.0,-5.0,158.0,158.0,fanduel (action network),0.3726,-0.0686
